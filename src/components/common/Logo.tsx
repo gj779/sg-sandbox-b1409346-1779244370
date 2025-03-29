@@ -36,7 +36,8 @@ export default function Logo({
   }
   
   const isDark = theme === "dark" || resolvedTheme === "dark";
-  const logoSrc = isDark ? "/images/logo-dark.svg" : "/images/logo.svg";
+  // Use the uploaded SVG icon
+  const logoSrc = "/icon-s-blue-m8umsa8t.svg";
   
   if (textOnly) {
     return (

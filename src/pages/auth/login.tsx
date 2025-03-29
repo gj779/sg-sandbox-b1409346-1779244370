@@ -1,0 +1,192 @@
+
+import { useState } from "react";
+import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChefHat, Briefcase } from "lucide-react";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const { type } = router.query;
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (userType: "applicant" | "restaurant") => {
+    setIsLoading(true);
+    
+    // Mock login - in a real app, this would authenticate with Firebase
+    setTimeout(() => {
+      setIsLoading(false);
+      router.push(userType === "applicant" ? "/applicant/dashboard" : "/restaurant/dashboard");
+    }, 1000);
+  };
+
+  return (
+    <>
+      <Head>
+        <title>Sign In | StaffSpace</title>
+        <meta name="description" content="Sign in to your StaffSpace account to find restaurant jobs or hire talented staff." />
+      </Head>
+
+      <div className="container max-w-md py-12">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold">Welcome Back</h1>
+          <p className="text-muted-foreground mt-2">Sign in to your StaffSpace account</p>
+        </div>
+
+        <Tabs defaultValue={type as string || "applicant"} className="w-full">
+          <TabsList className="grid grid-cols-2 mb-8">
+            <TabsTrigger value="applicant" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Job Seeker
+            </TabsTrigger>
+            <TabsTrigger value="restaurant" className="flex items-center gap-2">
+              <ChefHat className="h-4 w-4" />
+              Restaurant
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="applicant">
+            <Card>
+              <CardHeader>
+                <CardTitle>Job Seeker Sign In</CardTitle>
+                <CardDescription>
+                  Enter your credentials to access your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="applicant-email">Email</Label>
+                  <Input
+                    id="applicant-email"
+                    type="email"
+                    placeholder="your.email@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="applicant-password">Password</Label>
+                    <Link href="/auth/reset-password" className="text-sm text-primary hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <Input
+                    id="applicant-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="applicant-remember" 
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  />
+                  <Label htmlFor="applicant-remember" className="text-sm">Remember me</Label>
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button 
+                  className="w-full" 
+                  onClick={() => handleLogin("applicant")}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </Button>
+                <p className="text-sm text-center text-muted-foreground">
+                  Don't have an account?{" "}
+                  <Link href="/auth/register?type=applicant" className="text-primary hover:underline">
+                    Sign up
+                  </Link>
+                </p>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="restaurant">
+            <Card>
+              <CardHeader>
+                <CardTitle>Restaurant Sign In</CardTitle>
+                <CardDescription>
+                  Enter your credentials to access your restaurant account
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="restaurant-email">Email</Label>
+                  <Input
+                    id="restaurant-email"
+                    type="email"
+                    placeholder="restaurant@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="restaurant-password">Password</Label>
+                    <Link href="/auth/reset-password" className="text-sm text-primary hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <Input
+                    id="restaurant-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="restaurant-remember" 
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  />
+                  <Label htmlFor="restaurant-remember" className="text-sm">Remember me</Label>
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-4">
+                <Button 
+                  className="w-full" 
+                  onClick={() => handleLogin("restaurant")}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </Button>
+                <p className="text-sm text-center text-muted-foreground">
+                  Don't have an account?{" "}
+                  <Link href="/auth/register?type=restaurant" className="text-primary hover:underline">
+                    Sign up
+                  </Link>
+                </p>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
+  );
+}

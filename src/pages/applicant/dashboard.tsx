@@ -137,35 +137,30 @@ const tutorialSteps = [
 export default function ApplicantDashboard() {
   const { user, isAuthenticated } = useUser();
   const router = useRouter();
-
-  // Check if user is authenticated
-  if (!isAuthenticated) {
-    return (
-      <div className='container py-12 text-center'>
-        <h1 className='text-2xl font-bold mb-4'>Please Sign In</h1>
-        <p className='text-muted-foreground mb-6'>You need to be signed in to view your dashboard.</p>
-        <Button onClick={() => router.push('/auth/login?redirect=/applicant/dashboard')}>
-          Sign In
-        </Button>
-      </div>
-    );
-  }
-
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialCompleted, setTutorialCompleted] = useState(false);
 
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/auth/login?redirect=/applicant/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
   useEffect(() => {
     // Check if this is the first visit to show tutorial
-    const hasSeenTutorial = localStorage.getItem("applicant-tutorial-completed");
-    if (!hasSeenTutorial) {
-      setShowTutorial(true);
-    } else {
-      setTutorialCompleted(true);
+    if (isAuthenticated) {
+      const hasSeenTutorial = localStorage.getItem('applicant-tutorial-completed');
+      if (!hasSeenTutorial) {
+        setShowTutorial(true);
+      } else {
+        setTutorialCompleted(true);
+      }
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const handleTutorialComplete = () => {
-    localStorage.setItem("applicant-tutorial-completed", "true");
+    localStorage.setItem('applicant-tutorial-completed', 'true');
     setTutorialCompleted(true);
   };
 
@@ -178,9 +173,9 @@ export default function ApplicantDashboard() {
   };
 
   const formatSalary = (salary: { amount: number, period: string }) => {
-    if (salary.period === "Hourly") {
+    if (salary.period === 'Hourly') {
       return `$${salary.amount}/hr`;
-    } else if (salary.period === "Yearly") {
+    } else if (salary.period === 'Yearly') {
       return `$${salary.amount.toLocaleString()}/year`;
     }
     return `$${salary.amount}/${salary.period.toLowerCase()}`;
@@ -188,20 +183,32 @@ export default function ApplicantDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      case "Reviewed":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-      case "Shortlisted":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "Rejected":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
-      case "Hired":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'Reviewed':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'Shortlisted':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'Rejected':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case 'Hired':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className='container py-12 text-center'>
+        <h1 className='text-2xl font-bold mb-4'>Please Sign In</h1>
+        <p className='text-muted-foreground mb-6'>You need to be signed in to view your dashboard.</p>
+        <Button onClick={() => router.push('/auth/login?redirect=/applicant/dashboard')}>
+          Sign In
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <>

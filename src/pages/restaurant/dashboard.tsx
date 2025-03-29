@@ -157,35 +157,30 @@ const tutorialSteps = [
 export default function RestaurantDashboard() {
   const { user, isAuthenticated } = useUser();
   const router = useRouter();
-
-  // Check if user is authenticated
-  if (!isAuthenticated) {
-    return (
-      <div className='container py-12 text-center'>
-        <h1 className='text-2xl font-bold mb-4'>Please Sign In</h1>
-        <p className='text-muted-foreground mb-6'>You need to be signed in to view your dashboard.</p>
-        <Button onClick={() => router.push('/auth/login?redirect=/restaurant/dashboard')}>
-          Sign In
-        </Button>
-      </div>
-    );
-  }
-
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialCompleted, setTutorialCompleted] = useState(false);
 
+  // Check if user is authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/auth/login?redirect=/restaurant/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
   useEffect(() => {
     // Check if this is the first visit to show tutorial
-    const hasSeenTutorial = localStorage.getItem("restaurant-tutorial-completed");
-    if (!hasSeenTutorial) {
-      setShowTutorial(true);
-    } else {
-      setTutorialCompleted(true);
+    if (isAuthenticated) {
+      const hasSeenTutorial = localStorage.getItem('restaurant-tutorial-completed');
+      if (!hasSeenTutorial) {
+        setShowTutorial(true);
+      } else {
+        setTutorialCompleted(true);
+      }
     }
-  }, []);
+  }, [isAuthenticated]);
 
   const handleTutorialComplete = () => {
-    localStorage.setItem("restaurant-tutorial-completed", "true");
+    localStorage.setItem('restaurant-tutorial-completed', 'true');
     setTutorialCompleted(true);
   };
 
@@ -198,9 +193,9 @@ export default function RestaurantDashboard() {
   };
 
   const formatSalary = (salary: { amount: number, period: string }) => {
-    if (salary.period === "Hourly") {
+    if (salary.period === 'Hourly') {
       return `$${salary.amount}/hr`;
-    } else if (salary.period === "Yearly") {
+    } else if (salary.period === 'Yearly') {
       return `$${salary.amount.toLocaleString()}/year`;
     }
     return `$${salary.amount}/${salary.period.toLowerCase()}`;
@@ -208,28 +203,46 @@ export default function RestaurantDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "Closed":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-      case "Draft":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-      case "Reviewed":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-      case "Shortlisted":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      case 'Active':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case 'Closed':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+      case 'Draft':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+      case 'Reviewed':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+      case 'Shortlisted':
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className='container py-12 text-center'>
+        <h1 className='text-2xl font-bold mb-4'>Please Sign In</h1>
+        <p className='text-muted-foreground mb-6'>You need to be signed in to view your dashboard.</p>
+        <Button onClick={() => router.push('/auth/login?redirect=/restaurant/dashboard')}>
+          Sign In
+        </Button>
+      </div>
+    );
+  }
+
+  // Add location property to mockApplicants for display
+  const applicantsWithLocation = mockApplicants.map(applicant => ({
+    ...applicant,
+    location: 'New York, NY' // Default location for all applicants
+  }));
 
   return (
     <>
       <Head>
         <title>Restaurant Dashboard | StaffSpace</title>
-        <meta name="description" content="Manage your restaurant profile, job listings, and applicants on StaffSpace." />
+        <meta name='description' content='Manage your restaurant profile, job listings, and applicants on StaffSpace.' />
       </Head>
 
       <div className='container py-8 md:py-12'>
@@ -270,9 +283,9 @@ export default function RestaurantDashboard() {
                   <Briefcase className='h-4 w-4 text-muted-foreground' />
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>{mockListings.filter(l => l.status === "Active").length}</div>
+                  <div className='text-2xl font-bold'>{mockListings.filter(l => l.status === 'Active').length}</div>
                   <p className='text-xs text-muted-foreground'>
-                    {mockListings.filter(l => l.status === "Active").length} listings active
+                    {mockListings.filter(l => l.status === 'Active').length} listings active
                   </p>
                 </CardContent>
               </Card>
@@ -282,9 +295,9 @@ export default function RestaurantDashboard() {
                   <Users className='h-4 w-4 text-muted-foreground' />
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>{mockApplicants.length}</div>
+                  <div className='text-2xl font-bold'>{applicantsWithLocation.length}</div>
                   <p className='text-xs text-muted-foreground'>
-                    {mockApplicants.filter(a => a.status === "Pending").length} new applicants this week
+                    {applicantsWithLocation.filter(a => a.status === 'Pending').length} new applicants this week
                   </p>
                 </CardContent>
               </Card>
@@ -325,7 +338,7 @@ export default function RestaurantDashboard() {
                 <CardContent>
                   <div className='space-y-4'>
                     {/* Applicant 1 */}
-                    {mockApplicants.map((applicant) => (
+                    {applicantsWithLocation.map((applicant) => (
                       <div key={applicant.id} className='border rounded-lg p-4'>
                         <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
                           <div>
@@ -490,7 +503,7 @@ export default function RestaurantDashboard() {
               </CardHeader>
               <CardContent>
                 <div className='space-y-4'>
-                  {mockApplicants.map((applicant) => (
+                  {applicantsWithLocation.map((applicant) => (
                     <div key={applicant.id} className='border rounded-lg p-4'>
                       <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
                         <div>

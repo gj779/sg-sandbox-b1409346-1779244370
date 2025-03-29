@@ -1,6 +1,1 @@
-
-<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M20 0C8.954 0 0 8.954 0 20C0 31.046 8.954 40 20 40C31.046 40 40 31.046 40 20C40 8.954 31.046 0 20 0ZM20 36C11.163 36 4 28.837 4 20C4 11.163 11.163 4 20 4C28.837 4 36 11.163 36 20C36 28.837 28.837 36 20 36Z" fill="#64B5F6"/>
-  <path d="M28 14C28 10.686 25.314 8 22 8H18C14.686 8 12 10.686 12 14V26C12 29.314 14.686 32 18 32H22C25.314 32 28 29.314 28 26V14Z" fill="#64B5F6"/>
-  <path d="M22 16H18V24H22V16Z" fill="white"/>
-</svg>
+Error: Unsupported image format. Allowed formats are: png, jpeg, jpg, gif, webp<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">

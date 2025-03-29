@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import Head from "next/head";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,6 @@ import {
 } from "@/components/ui/select";
 import { 
   Mail, 
-  Phone, 
-  MapPin, 
   MessageSquare, 
   HelpCircle, 
   Send,
@@ -70,7 +69,7 @@ export default function ContactPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 mb-12">
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col items-center text-center">
@@ -81,44 +80,9 @@ export default function ContactPage() {
                 <p className="text-muted-foreground mb-4">
                   For general inquiries and support
                 </p>
-                <a href="mailto:support@staffspace.com" className="text-primary hover:underline">
-                  support@staffspace.com
+                <a href="mailto:info@staffspace.com" className="text-primary hover:underline">
+                  info@staffspace.com
                 </a>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Phone className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">Call Us</h3>
-                <p className="text-muted-foreground mb-4">
-                  Monday to Friday, 9am to 5pm
-                </p>
-                <a href="tel:+1-800-123-4567" className="text-primary hover:underline">
-                  +1 (800) 123-4567
-                </a>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <MapPin className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">Visit Us</h3>
-                <p className="text-muted-foreground mb-4">
-                  Our headquarters location
-                </p>
-                <address className="not-italic text-primary">
-                  123 Restaurant Row<br />
-                  San Francisco, CA 94103
-                </address>
               </div>
             </CardContent>
           </Card>
@@ -248,75 +212,48 @@ export default function ContactPage() {
             </CardContent>
           </Card>
 
-          <div className="space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Frequently Asked Questions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-medium mb-2">How do I create an account?</h3>
-                  <p className="text-muted-foreground text-sm">
-                    You can create an account by clicking on "Sign Up" in the top right corner of the page. Choose between a job seeker or restaurant account type.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-medium mb-2">Is StaffSpace free to use?</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Basic accounts are free. We also offer premium features for both job seekers and restaurants. Visit our Pricing page for more details.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-medium mb-2">How do I post a job listing?</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Restaurant accounts can post job listings from their dashboard. Click on "Create Listing" and fill out the job details.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-medium mb-2">Can I edit my resume after creating it?</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Yes, you can edit your resume at any time from your job seeker dashboard.
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full" asChild>
-                  <a href="#" className="flex items-center justify-center">
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    View All FAQs
-                  </a>
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Hours</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Monday - Friday</span>
-                    <span>9:00 AM - 5:00 PM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Saturday</span>
-                    <span>10:00 AM - 2:00 PM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Sunday</span>
-                    <span>Closed</span>
-                  </div>
-                  <div className="pt-2 text-sm text-muted-foreground">
-                    All times are in Pacific Time (PT)
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Frequently Asked Questions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-medium mb-2">How do I create an account?</h3>
+                <p className="text-muted-foreground text-sm">
+                  You can create an account by clicking on "Sign Up" in the top right corner of the page. Choose between a job seeker or restaurant account type.
+                </p>
+              </div>
+              <div>
+                <h3 className="font-medium mb-2">Is StaffSpace free to use?</h3>
+                <p className="text-muted-foreground text-sm">
+                  Basic accounts are free. We also offer premium features for both job seekers and restaurants. Visit our Pricing page for more details.
+                </p>
+              </div>
+              <div>
+                <h3 className="font-medium mb-2">How do I post a job listing?</h3>
+                <p className="text-muted-foreground text-sm">
+                  Restaurant accounts can post job listings from their dashboard. Click on "Create Listing" and fill out the job details.
+                </p>
+              </div>
+              <div>
+                <h3 className="font-medium mb-2">Can I edit my resume after creating it?</h3>
+                <p className="text-muted-foreground text-sm">
+                  Yes, you can edit your resume at any time from your job seeker dashboard.
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="w-full" asChild>
+                <a href="#" className="flex items-center justify-center">
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  View All FAQs
+                </a>
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
       </div>
     </>

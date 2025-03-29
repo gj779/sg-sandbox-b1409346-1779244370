@@ -205,20 +205,20 @@ export default function CreateResumePage() {
     const completeResume: Partial<Resume> = {
       ...resume,
       skills,
-      education: educations,
-      experience: experiences,
-      certifications,
-      languages,
-      references,
+      education: educations as Education[],
+      experience: experiences as Experience[],
+      certifications: certifications as Certification[],
+      languages: languages as Language[],
+      references: references as Reference[],
     };
     
     // In a real app, this would save to Firebase
-    console.log("Resume data:", completeResume);
+    console.log('Resume data:', completeResume);
     
     // Mock submission
     setTimeout(() => {
       setIsSubmitting(false);
-      router.push("/applicant/dashboard");
+      router.push('/applicant/dashboard');
     }, 1500);
   };
 

@@ -4,48 +4,76 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    /* Updated color scheme with muted pastels and rich accents */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 221 83% 33%;
+    --popover-foreground: 222 47% 11%;
+    
+    /* Primary: Soft teal */
+    --primary: 174 75% 37%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    
+    /* Secondary: Blush pink */
+    --secondary: 350 100% 88%;
+    --secondary-foreground: 355 78% 30%;
+    
+    /* Accent: Deep navy */
+    --accent: 220 70% 30%;
+    --accent-foreground: 210 40% 98%;
+    
+    /* Muted tones */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
+    
+    /* Destructive: Coral */
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 221 83% 33%;
-    --radius: 0.5rem;
+    --destructive-foreground: 210 40% 98%;
+    
+    /* Neutral tones */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 174 75% 37%;
+    
+    /* Rounded corners */
+    --radius: 0.75rem;
   }
 
   .dark {
+    /* Dark mode with rich deep accents */
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
+    --card: 223 47% 14%;
     --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
+    --popover: 223 47% 14%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
+    
+    /* Primary: Brighter teal in dark mode */
+    --primary: 174 75% 42%;
     --primary-foreground: 222 47% 11%;
-    --secondary: 217 32% 17%;
+    
+    /* Secondary: Deeper pink in dark mode */
+    --secondary: 350 80% 70%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217 32% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    
+    /* Accent: Gold in dark mode */
+    --accent: 45 100% 60%;
+    --accent-foreground: 222 47% 11%;
+    
+    /* Muted tones for dark mode */
+    --muted: 223 47% 18%;
+    --muted-foreground: 215 20.2% 75.1%;
+    
+    /* Destructive: Brighter coral in dark mode */
+    --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 224 76% 48%;
+    
+    /* Neutral tones for dark mode */
+    --border: 217 32% 22%;
+    --input: 217 32% 22%;
+    --ring: 174 75% 42%;
   }
 }
 
@@ -55,10 +83,23 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+  h1 {
+    @apply text-3xl md:text-5xl;
+  }
+  h2 {
+    @apply text-2xl md:text-4xl;
+  }
+  h3 {
+    @apply text-xl md:text-2xl;
   }
 }
 
-/* Custom Animations */
+/* Enhanced Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -69,12 +110,12 @@
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
+  animation: fadeIn 0.6s ease-in-out;
 }
 
 @keyframes slideUp {
   from {
-    transform: translateY(20px);
+    transform: translateY(30px);
     opacity: 0;
   }
   to {
@@ -84,7 +125,73 @@
 }
 
 .animate-slide-up {
-  animation: slideUp 0.5s ease-out;
+  animation: slideUp 0.7s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.5s ease-out;
+}
+
+/* Button hover effects */
+.btn-hover-effect {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-hover-effect:after {
+  content: '';
+  position: absolute;
+  width: 0%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: rgba(255, 255, 255, 0.1);
+  transition: width 0.3s ease;
+}
+
+.btn-hover-effect:hover:after {
+  width: 100%;
+}
+
+/* Card hover effects with smoother transitions */
+.job-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+              box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.job-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.15), 
+              0 10px 15px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Badge animations */
+.badge-pulse {
+  animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--primary), 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(var(--primary), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--primary), 0);
+  }
 }
 
 /* Tutorial Guide Styles */
@@ -94,11 +201,11 @@
 }
 
 .tutorial-highlight::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: -4px;
   border-radius: var(--radius);
-  background: linear-gradient(45deg, var(--primary), transparent);
+  background: linear-gradient(45deg, hsl(var(--primary)), transparent);
   opacity: 0.5;
   z-index: -1;
   animation: pulse 2s infinite;
@@ -116,30 +223,64 @@
   }
 }
 
-/* Job Card Hover Effects */
-.job-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.job-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-}
-
-/* Custom Scrollbar */
+/* Enhanced scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
   background: hsl(var(--background));
+  border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 5px;
+  background: hsl(var(--primary) / 0.3);
+  border-radius: 8px;
+  transition: background 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: hsl(var(--primary) / 0.5);
+}
+
+/* Custom focus styles */
+*:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Form element transitions */
+input, select, textarea {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Card transitions */
+.card-transition {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.card-transition:hover {
+  transform: translateY(-4px);
+}
+
+/* Filter transition effects */
+.filter-transition {
+  transition: height 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+}
+
+/* Dropdown menu animations */
+.dropdown-content {
+  animation: dropdownFade 0.2s ease-out;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -1,14 +1,14 @@
-
 import Link from "next/link";
+import Logo from '@/components/common/Logo';
 
 export default function Footer() {
   return (
     <footer className="border-t bg-background">
       <div className="container py-8 md:py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">StaffSpace</h3>
-            <p className="text-sm text-muted-foreground">
+          <div className='space-y-4'>
+            <Logo showText={true} />
+            <p className='text-sm text-muted-foreground'>
               Connecting talented staff with the best restaurants and hospitality venues.
             </p>
           </div>

@@ -10,6 +10,7 @@ export default function Document() {
           async 
           data-softgen-monitoring="true"
         />
+        <link rel='icon' href='/images/logo.svg' />
       </Head>
       <body className="antialiased">
         <Main />

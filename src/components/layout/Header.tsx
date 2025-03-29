@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, Sun, Moon, Globe, User, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
+import Logo from '@/components/common/Logo';
 
 const languages = [
   { code: "en", name: "English" },
@@ -90,8 +90,8 @@ export default function Header() {
             </SheetContent>
           </Sheet>
           
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-bold text-xl">StaffSpace</span>
+          <Link href='/' className='flex items-center gap-2'>
+            <Logo />
           </Link>
           
           <nav className="hidden md:flex items-center gap-6 ml-6">

@@ -900,7 +900,12 @@ export default function JobsPage() {
                   <p className="text-muted-foreground mb-6">
                     Save jobs you're interested in by clicking the star icon on job listings.
                   </p>
-                  <Button onClick={() => document.querySelector('[data-value=all]')?.click()}>
+                  <Button onClick={() => {
+                    const allTabElement = document.querySelector('[data-value=all]');
+                    if (allTabElement instanceof HTMLElement) {
+                      allTabElement.click();
+                    }
+                  }}>
                     Browse All Jobs
                   </Button>
                 </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -22,6 +21,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChefHat, Briefcase } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,20 +32,48 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  
+  const { register } = useUser();
+
+  const validateForm = (userType: "applicant" | "restaurant") => {
+    if (!name || !email || !password || !confirmPassword) {
+      setError("All fields are required");
+      return false;
+    }
+    
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return false;
+    }
+    
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return false;
+    }
+    
+    if (!agreeTerms) {
+      setError("You must agree to the Terms of Service and Privacy Policy");
+      return false;
+    }
+    
+    return true;
+  };
 
   const handleRegister = async (userType: "applicant" | "restaurant") => {
+    if (!validateForm(userType)) {
+      return;
+    }
+    
+    setError("");
     setIsLoading(true);
     
-    // Mock registration - in a real app, this would create a user in Firebase
-    setTimeout(() => {
+    try {
+      await register(name, email, password, userType);
+    } catch (error) {
+      setError("Registration failed. Please try again.");
       setIsLoading(false);
-      
-      if (userType === "applicant") {
-        router.push("/applicant/create-resume");
-      } else {
-        router.push("/restaurant/setup-profile");
-      }
-    }, 1000);
+    }
   };
 
   return (
@@ -82,6 +110,11 @@ export default function RegisterPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {error && (
+                  <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
+                    {error}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="applicant-name">Full Name</Label>
                   <Input
@@ -141,7 +174,7 @@ export default function RegisterPage() {
                 <Button 
                   className="w-full" 
                   onClick={() => handleRegister("applicant")}
-                  disabled={isLoading || !agreeTerms}
+                  disabled={isLoading}
                 >
                   {isLoading ? "Creating Account..." : "Create Account"}
                 </Button>
@@ -164,6 +197,11 @@ export default function RegisterPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {error && (
+                  <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
+                    {error}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="restaurant-name">Restaurant Name</Label>
                   <Input
@@ -223,7 +261,7 @@ export default function RegisterPage() {
                 <Button 
                   className="w-full" 
                   onClick={() => handleRegister("restaurant")}
-                  disabled={isLoading || !agreeTerms}
+                  disabled={isLoading}
                 >
                   {isLoading ? "Creating Account..." : "Create Account"}
                 </Button>

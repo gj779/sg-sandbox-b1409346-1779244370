@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -22,23 +21,39 @@ import {
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChefHat, Briefcase } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { type } = router.query;
+  const { type, redirect } = router.query;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  
+  const { login } = useUser();
 
   const handleLogin = async (userType: "applicant" | "restaurant") => {
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      return;
+    }
+    
+    setError("");
     setIsLoading(true);
     
-    // Mock login - in a real app, this would authenticate with Firebase
-    setTimeout(() => {
+    try {
+      await login(email, password, userType);
+      
+      // Redirect to the specified page or default dashboard
+      if (redirect && typeof redirect === "string") {
+        router.push(redirect);
+      }
+    } catch (error) {
+      setError("Invalid email or password");
       setIsLoading(false);
-      router.push(userType === "applicant" ? "/applicant/dashboard" : "/restaurant/dashboard");
-    }, 1000);
+    }
   };
 
   return (
@@ -75,6 +90,11 @@ export default function LoginPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {error && (
+                  <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
+                    {error}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="applicant-email">Email</Label>
                   <Input
@@ -135,6 +155,11 @@ export default function LoginPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {error && (
+                  <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
+                    {error}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="restaurant-email">Email</Label>
                   <Input

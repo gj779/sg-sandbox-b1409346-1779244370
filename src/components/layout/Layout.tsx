@@ -1,7 +1,9 @@
-
 import { ReactNode } from "react";
 import Header from "./Header";
 import Footer from "./Footer";
+import { ThemeProvider } from 'next-themes';
+import { UserProvider } from '@/contexts/UserContext';
+import { Toaster } from '@/components/ui/toaster';
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,10 +11,15 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
-    </div>
+    <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
+      <UserProvider>
+        <div className='flex min-h-screen flex-col'>
+          <Header />
+          <main className='flex-1'>{children}</main>
+          <Footer />
+        </div>
+        <Toaster />
+      </UserProvider>
+    </ThemeProvider>
   );
 }

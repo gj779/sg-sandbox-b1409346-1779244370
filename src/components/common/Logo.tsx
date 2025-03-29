@@ -1,3 +1,4 @@
+
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -36,18 +37,13 @@ export default function Logo({
   
   const isDark = theme === "dark" || resolvedTheme === "dark";
   const logoSrc = isDark ? "/images/logo-dark.svg" : "/images/logo.svg";
-  const textLogoSrc = isDark ? "/images/staffspace-text-dark.svg" : "/images/staffspace-text-light.svg";
   
   if (textOnly) {
     return (
       <div className={`flex items-center ${className}`}>
-        <Image 
-          src={textLogoSrc} 
-          alt="StaffSpace" 
-          width={180} 
-          height={40} 
-          className="transition-all duration-200"
-        />
+        <span className={`text-2xl font-bold ${isDark ? "text-white" : "text-primary"}`}>
+          StaffSpace
+        </span>
       </div>
     );
   }
@@ -62,13 +58,9 @@ export default function Logo({
         className="transition-all duration-200"
       />
       {showText && (
-        <Image 
-          src={textLogoSrc} 
-          alt="StaffSpace" 
-          width={120} 
-          height={30} 
-          className="transition-all duration-200"
-        />
+        <span className={`text-xl font-bold ${isDark ? "text-white" : "text-primary"}`}>
+          StaffSpace
+        </span>
       )}
     </div>
   );

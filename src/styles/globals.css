@@ -4,76 +4,76 @@
 
 @layer base {
   :root {
-    /* Updated color scheme with muted pastels and rich accents */
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    /* Updated color scheme with more harmonious colors */
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 224 71.4% 4.1%;
     
-    /* Primary: Soft teal */
-    --primary: 174 75% 37%;
+    /* Primary: Rich blue - professional and trustworthy */
+    --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
     
-    /* Secondary: Blush pink */
-    --secondary: 350 100% 88%;
-    --secondary-foreground: 355 78% 30%;
+    /* Secondary: Warm orange - energetic and inviting */
+    --secondary: 25 95% 53%;
+    --secondary-foreground: 210 40% 98%;
     
-    /* Accent: Deep navy */
-    --accent: 220 70% 30%;
+    /* Accent: Deep purple - sophisticated and premium */
+    --accent: 262 83% 58%;
     --accent-foreground: 210 40% 98%;
     
     /* Muted tones */
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
     
-    /* Destructive: Coral */
+    /* Destructive: Coral red */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     
     /* Neutral tones */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 174 75% 37%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
     
     /* Rounded corners */
-    --radius: 0.75rem;
+    --radius: 0.5rem;
   }
 
   .dark {
     /* Dark mode with rich deep accents */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 223 47% 14%;
-    --card-foreground: 210 40% 98%;
-    --popover: 223 47% 14%;
-    --popover-foreground: 210 40% 98%;
+    --background: 224 71.4% 4.1%;
+    --foreground: 210 20% 98%;
+    --card: 224 71.4% 8.1%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71.4% 8.1%;
+    --popover-foreground: 210 20% 98%;
     
-    /* Primary: Brighter teal in dark mode */
-    --primary: 174 75% 42%;
-    --primary-foreground: 222 47% 11%;
+    /* Primary: Brighter blue in dark mode */
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
     
-    /* Secondary: Deeper pink in dark mode */
-    --secondary: 350 80% 70%;
+    /* Secondary: Warmer orange in dark mode */
+    --secondary: 30 100% 60%;
     --secondary-foreground: 210 40% 98%;
     
-    /* Accent: Gold in dark mode */
-    --accent: 45 100% 60%;
-    --accent-foreground: 222 47% 11%;
+    /* Accent: Vibrant purple in dark mode */
+    --accent: 263 70% 71%;
+    --accent-foreground: 210 40% 98%;
     
     /* Muted tones for dark mode */
-    --muted: 223 47% 18%;
-    --muted-foreground: 215 20.2% 75.1%;
+    --muted: 215 14.3% 15.9%;
+    --muted-foreground: 217 10% 64.9%;
     
     /* Destructive: Brighter coral in dark mode */
     --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
     
     /* Neutral tones for dark mode */
-    --border: 217 32% 22%;
-    --input: 217 32% 22%;
-    --ring: 174 75% 42%;
+    --border: 215 14.3% 16.9%;
+    --input: 215 14.3% 16.9%;
+    --ring: 217 91% 60%;
   }
 }
 

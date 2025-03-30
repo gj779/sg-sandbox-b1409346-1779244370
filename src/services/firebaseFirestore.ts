@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   doc, 
@@ -15,11 +14,10 @@ import {
   DocumentData,
   QueryDocumentSnapshot,
   serverTimestamp,
-  Timestamp,
-  addDoc
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { v4 as uuidv4 } from "uuid";
+  addDoc,
+  WhereFilterOp
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 // Generic Firestore service
 export const firestoreService = {
@@ -64,35 +62,40 @@ export const firestoreService = {
   // Query documents
   async queryDocuments(
     collectionName: string,
-    conditions: Array<{ field: string; operator: "==" | "!=" | ">" | ">=" | "<" | "<=" | "array-contains" | "in" | "array-contains-any"; value: any }>,
+    conditions: Array<{ field: string; operator: WhereFilterOp; value: any }>,
     orderByField?: string,
-    orderDirection?: "asc" | "desc",
+    orderDirection?: 'asc' | 'desc',
     limitCount?: number,
     startAfterDoc?: QueryDocumentSnapshot<DocumentData>
   ): Promise<DocumentData[]> {
-    let q = collection(db, collectionName);
+    const collectionRef = collection(db, collectionName);
+    
+    // Build query
+    let queryRef = query(collectionRef);
     
     // Add where conditions
     if (conditions && conditions.length > 0) {
-      q = query(q, ...conditions.map(c => where(c.field, c.operator, c.value)));
+      conditions.forEach(condition => {
+        queryRef = query(queryRef, where(condition.field, condition.operator, condition.value));
+      });
     }
     
     // Add orderBy
     if (orderByField) {
-      q = query(q, orderBy(orderByField, orderDirection || "asc"));
+      queryRef = query(queryRef, orderBy(orderByField, orderDirection || 'asc'));
     }
     
     // Add limit
     if (limitCount) {
-      q = query(q, limit(limitCount));
+      queryRef = query(queryRef, limit(limitCount));
     }
     
     // Add startAfter for pagination
     if (startAfterDoc) {
-      q = query(q, startAfter(startAfterDoc));
+      queryRef = query(queryRef, startAfter(startAfterDoc));
     }
     
-    const querySnapshot = await getDocs(query(q));
+    const querySnapshot = await getDocs(queryRef);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
   

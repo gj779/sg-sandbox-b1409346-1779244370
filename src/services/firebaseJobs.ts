@@ -20,6 +20,9 @@ export interface JobListing {
   startDate?: string;
   endDate?: string;
   isActive: boolean;
+  isApproved?: boolean;
+  approvedAt?: any;
+  rejectionReason?: string;
   createdAt: any;
   updatedAt: any;
 }

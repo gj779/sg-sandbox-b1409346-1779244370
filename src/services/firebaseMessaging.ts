@@ -48,7 +48,7 @@ export const firebaseMessagingService = {
   async getUserConversations(userId: string): Promise<Conversation[]> {
     const conditions = [{
       field: "participants",
-      operator: "array-contains",
+      operator: "array-contains" as const,
       value: userId
     }];
     
@@ -84,7 +84,7 @@ export const firebaseMessagingService = {
   async getConversationMessages(conversationId: string): Promise<Message[]> {
     const conditions = [{
       field: "conversationId",
-      operator: "==",
+      operator: "==" as const,
       value: conversationId
     }];
     
@@ -116,17 +116,17 @@ export const firebaseMessagingService = {
     const conditions = [
       {
         field: "conversationId",
-        operator: "==",
+        operator: "==" as const,
         value: conversationId
       },
       {
         field: "receiverId",
-        operator: "==",
+        operator: "==" as const,
         value: userId
       },
       {
         field: "read",
-        operator: "==",
+        operator: "==" as const,
         value: false
       }
     ];
@@ -146,12 +146,12 @@ export const firebaseMessagingService = {
     const conditions = [
       {
         field: "receiverId",
-        operator: "==",
+        operator: "==" as const,
         value: userId
       },
       {
         field: "read",
-        operator: "==",
+        operator: "==" as const,
         value: false
       }
     ];

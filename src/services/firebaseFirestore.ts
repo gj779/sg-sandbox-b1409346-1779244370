@@ -16,7 +16,8 @@ import {
   serverTimestamp,
   Timestamp,
   addDoc,
-  WhereFilterOp
+  WhereFilterOp,
+  CollectionReference
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
@@ -70,29 +71,38 @@ export const firestoreService = {
     limitCount?: number,
     startAfterDoc?: QueryDocumentSnapshot<DocumentData>
   ): Promise<DocumentData[]> {
-    let q = collection(db, collectionName);
+    const collectionRef = collection(db, collectionName);
+    
+    // Build the query
+    let queryConstraints = [];
     
     // Add where conditions
     if (conditions && conditions.length > 0) {
-      q = query(q, ...conditions.map(c => where(c.field, c.operator, c.value)));
+      for (const condition of conditions) {
+        queryConstraints.push(where(condition.field, condition.operator, condition.value));
+      }
     }
     
     // Add orderBy
     if (orderByField) {
-      q = query(q, orderBy(orderByField, orderDirection || 'asc'));
+      queryConstraints.push(orderBy(orderByField, orderDirection || 'asc'));
     }
     
     // Add limit
     if (limitCount) {
-      q = query(q, limit(limitCount));
+      queryConstraints.push(limit(limitCount));
     }
     
     // Add startAfter for pagination
     if (startAfterDoc) {
-      q = query(q, startAfter(startAfterDoc));
+      queryConstraints.push(startAfter(startAfterDoc));
     }
     
-    const querySnapshot = await getDocs(query(q));
+    // Create the query
+    const q = query(collectionRef, ...queryConstraints);
+    
+    // Execute the query
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
   

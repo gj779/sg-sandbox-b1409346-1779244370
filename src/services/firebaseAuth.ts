@@ -1,4 +1,3 @@
-
 import { 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -22,7 +21,7 @@ import { auth, db } from "@/lib/firebase";
 export interface RegisterUserParams {
   email: string;
   password: string;
-  userType: "applicant" | "restaurant";
+  userType: "applicant" | "restaurant" | "admin";
   firstName: string;
   lastName: string;
   phoneNumber?: string;
@@ -31,7 +30,7 @@ export interface RegisterUserParams {
 export interface UserProfile {
   id: string;
   email: string;
-  userType: "applicant" | "restaurant";
+  userType: "applicant" | "restaurant" | "admin";
   firstName: string;
   lastName: string;
   phoneNumber?: string;

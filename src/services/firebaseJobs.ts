@@ -1,5 +1,6 @@
 import { firestoreService } from "./firebaseFirestore";
 import { v4 as uuidv4 } from "uuid";
+import { WhereFilterOp } from 'firebase/firestore';
 
 export interface JobListing {
   id: string;
@@ -93,7 +94,7 @@ export const firebaseJobsService = {
     if (filters?.restaurantId) {
       conditions.push({
         field: "restaurantId",
-        operator: "==",
+        operator: "==" as WhereFilterOp,
         value: filters.restaurantId
       });
     }
@@ -101,7 +102,7 @@ export const firebaseJobsService = {
     if (filters?.jobType) {
       conditions.push({
         field: "jobType",
-        operator: "==",
+        operator: "==" as WhereFilterOp,
         value: filters.jobType
       });
     }
@@ -109,7 +110,7 @@ export const firebaseJobsService = {
     if (filters?.isActive !== undefined) {
       conditions.push({
         field: "isActive",
-        operator: "==",
+        operator: "==" as WhereFilterOp,
         value: filters.isActive
       });
     }

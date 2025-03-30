@@ -1,5 +1,6 @@
 import { firestoreService } from "./firebaseFirestore";
 import { v4 as uuidv4 } from "uuid";
+import { WhereFilterOp } from "firebase/firestore";
 
 export interface JobApplication {
   id: string;
@@ -64,7 +65,7 @@ export const firebaseApplicationsService = {
   async getApplicationsByJob(jobId: string): Promise<JobApplication[]> {
     const conditions = [{
       field: "jobId",
-      operator: "==",
+      operator: "==" as WhereFilterOp,
       value: jobId
     }];
     
@@ -75,7 +76,7 @@ export const firebaseApplicationsService = {
   async getApplicationsByApplicant(applicantId: string): Promise<JobApplication[]> {
     const conditions = [{
       field: "applicantId",
-      operator: "==",
+      operator: "==" as WhereFilterOp,
       value: applicantId
     }];
     
@@ -86,7 +87,7 @@ export const firebaseApplicationsService = {
   async getApplicationsByRestaurant(restaurantId: string): Promise<JobApplication[]> {
     const conditions = [{
       field: "restaurantId",
-      operator: "==",
+      operator: "==" as WhereFilterOp,
       value: restaurantId
     }];
     
@@ -97,7 +98,7 @@ export const firebaseApplicationsService = {
   async getApplicationsByStatus(status: JobApplication["status"]): Promise<JobApplication[]> {
     const conditions = [{
       field: "status",
-      operator: "==",
+      operator: "==" as WhereFilterOp,
       value: status
     }];
     

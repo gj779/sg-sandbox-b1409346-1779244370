@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -107,6 +106,19 @@ export default function CreateListingPage() {
 
   const handleRemoveRequirement = (requirement: string) => {
     setRequirements(requirements.filter((r) => r !== requirement));
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+    if (e.target.value) {
+      form.setValue(fieldName, new Date(e.target.value));
+    } else {
+      form.setValue(fieldName, undefined);
+    }
+  };
+
+  const formatDateForInput = (date: Date | undefined): string => {
+    if (!date) return '';
+    return new Date(date).toISOString().split('T')[0];
   };
 
   const onSubmit = async (data: z.infer<typeof jobListingSchema>) => {
@@ -346,14 +358,8 @@ export default function CreateListingPage() {
                     <FormLabel>Application Deadline (Optional)</FormLabel>
                     <Input 
                       type="date"
-                      value={form.watch("applicationDeadline") ? new Date(form.watch("applicationDeadline")).toISOString().split('T')[0] : ""}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          form.setValue("applicationDeadline", new Date(e.target.value));
-                        } else {
-                          form.setValue("applicationDeadline", undefined);
-                        }
-                      }}
+                      value={formatDateForInput(form.watch("applicationDeadline"))}
+                      onChange={(e) => handleDateChange(e, "applicationDeadline")}
                     />
                   </div>
 
@@ -362,14 +368,8 @@ export default function CreateListingPage() {
                       <FormLabel>Event Date</FormLabel>
                       <Input 
                         type="date"
-                        value={form.watch("eventDate") ? new Date(form.watch("eventDate")).toISOString().split('T')[0] : ""}
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            form.setValue("eventDate", new Date(e.target.value));
-                          } else {
-                            form.setValue("eventDate", undefined);
-                          }
-                        }}
+                        value={formatDateForInput(form.watch("eventDate"))}
+                        onChange={(e) => handleDateChange(e, "eventDate")}
                       />
                     </div>
                   )}
@@ -380,14 +380,8 @@ export default function CreateListingPage() {
                         <FormLabel>Start Date</FormLabel>
                         <Input 
                           type="date"
-                          value={form.watch("startDate") ? new Date(form.watch("startDate")).toISOString().split('T')[0] : ""}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              form.setValue("startDate", new Date(e.target.value));
-                            } else {
-                              form.setValue("startDate", undefined);
-                            }
-                          }}
+                          value={formatDateForInput(form.watch("startDate"))}
+                          onChange={(e) => handleDateChange(e, "startDate")}
                         />
                       </div>
 
@@ -395,14 +389,8 @@ export default function CreateListingPage() {
                         <FormLabel>End Date</FormLabel>
                         <Input 
                           type="date"
-                          value={form.watch("endDate") ? new Date(form.watch("endDate")).toISOString().split('T')[0] : ""}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              form.setValue("endDate", new Date(e.target.value));
-                            } else {
-                              form.setValue("endDate", undefined);
-                            }
-                          }}
+                          value={formatDateForInput(form.watch("endDate"))}
+                          onChange={(e) => handleDateChange(e, "endDate")}
                         />
                       </div>
                     </>

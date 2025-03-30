@@ -1,4 +1,3 @@
-
 import { 
   DynamoDBClient, 
   GetItemCommand, 
@@ -6,10 +5,11 @@ import {
   UpdateItemCommand, 
   DeleteItemCommand,
   QueryCommand,
-  ScanCommand
-} from "@aws-sdk/client-dynamodb";
-import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { dynamoDBClient, dynamoDBConfig } from "./config";
+  ScanCommand,
+  ReturnValue
+} from '@aws-sdk/client-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { dynamoDBClient, dynamoDBConfig } from './config';
 
 // Generic DynamoDB service
 export const dynamoDBService = {
@@ -51,7 +51,7 @@ export const dynamoDBService = {
       UpdateExpression: updateExpression,
       ExpressionAttributeValues: marshall(expressionAttributeValues),
       ExpressionAttributeNames: expressionAttributeNames,
-      ReturnValues: "ALL_NEW",
+      ReturnValues: 'ALL_NEW' as ReturnValue,
     };
 
     const command = new UpdateItemCommand(params);

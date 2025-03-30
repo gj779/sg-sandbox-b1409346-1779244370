@@ -343,7 +343,7 @@ export default function AdminJobsPage() {
                         </TableCell>
                         <TableCell>
                           {job.isActive ? (
-                            <Badge variant="success" className="bg-green-100 text-green-800">
+                            <Badge variant="default" className="bg-green-100 text-green-800">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Active
                             </Badge>

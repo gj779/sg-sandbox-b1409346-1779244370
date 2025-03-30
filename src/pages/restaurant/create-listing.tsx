@@ -63,6 +63,8 @@ const jobListingSchema = z.object({
   isPremium: z.boolean().default(false),
 });
 
+type FormValues = z.infer<typeof jobListingSchema>;
+
 export default function CreateListingPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,7 +77,7 @@ export default function CreateListingPage() {
   const [isAddingAvailability, setIsAddingAvailability] = useState(false);
 
   // Initialize form
-  const form = useForm<z.infer<typeof jobListingSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(jobListingSchema),
     defaultValues: {
       title: "",
@@ -108,20 +110,22 @@ export default function CreateListingPage() {
     setRequirements(requirements.filter((r) => r !== requirement));
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
+  // Type-safe date change handler
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof FormValues) => {
     if (e.target.value) {
-      form.setValue(fieldName, new Date(e.target.value));
+      form.setValue(fieldName as any, new Date(e.target.value));
     } else {
-      form.setValue(fieldName, undefined);
+      form.setValue(fieldName as any, undefined);
     }
   };
 
+  // Format date for input field
   const formatDateForInput = (date: Date | undefined): string => {
     if (!date) return '';
-    return new Date(date).toISOString().split('T')[0];
+    return date.toISOString().split('T')[0];
   };
 
-  const onSubmit = async (data: z.infer<typeof jobListingSchema>) => {
+  const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     
     // Combine all data

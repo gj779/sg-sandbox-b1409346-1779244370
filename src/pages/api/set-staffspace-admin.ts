@@ -16,8 +16,8 @@ export default async function handler(
 
   try {
     const { secretKey } = req.body;
-    // Hardcoded email for the owner admin account
-    const ownerEmail = "staffspce@gmail.com";
+    // Hardcoded email for the owner admin account - fixed typo
+    const ownerEmail = "staffspace@gmail.com";
 
     // Validate inputs
     if (!secretKey) {
@@ -31,7 +31,15 @@ export default async function handler(
     const expectedSecretKey = process.env.ADMIN_SECRET_KEY || "staffspace-owner-key";
     
     // Remove any quotes that might be in the secret key
-    const cleanSecretKey = secretKey.replace(/"/g, '');
+    // Handle both string and JSON string formats
+    let cleanSecretKey = secretKey;
+    if (typeof secretKey === "string") {
+      cleanSecretKey = secretKey.replace(/^["'](.*)["']$/, "$1");
+    }
+    
+    console.log("Received secret key:", secretKey);
+    console.log("Cleaned secret key:", cleanSecretKey);
+    console.log("Expected secret key:", expectedSecretKey);
     
     if (cleanSecretKey !== expectedSecretKey) {
       return res.status(403).json({ 
@@ -43,6 +51,9 @@ export default async function handler(
     try {
       // Use the admin SDK to find the user
       const adminDb = admin.firestore();
+      
+      console.log("Looking for user with email:", ownerEmail);
+      
       const usersSnapshot = await adminDb
         .collection("users")
         .where("email", "==", ownerEmail)
@@ -58,6 +69,8 @@ export default async function handler(
       // Get the user document
       const userDoc = usersSnapshot.docs[0];
       const userId = userDoc.id;
+      
+      console.log("Found user with ID:", userId);
 
       // Update the user's profile in Firestore using Admin SDK
       await adminDb.collection("users").doc(userId).update({

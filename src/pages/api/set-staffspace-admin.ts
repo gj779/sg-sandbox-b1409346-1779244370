@@ -1,25 +1,8 @@
 
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { getFirestore } from "firebase-admin/firestore";
+import admin from "@/lib/firebase-admin";
 import { db as clientDb } from "@/lib/firebase";
-import { initializeApp, getApps, cert } from "firebase-admin/app";
 import type { NextApiRequest, NextApiResponse } from "next";
-
-// Initialize Firebase Admin SDK if not already initialized
-if (!getApps().length) {
-  const serviceAccount = JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT_KEY || 
-    process.env.FIREBASE_ADMIN_CREDENTIAL || 
-    '{}'
-  );
-
-  initializeApp({
-    credential: cert(serviceAccount)
-  });
-}
-
-// Get Firestore instance from Admin SDK
-const adminDb = getFirestore();
 
 export default async function handler(
   req: NextApiRequest,
@@ -70,6 +53,7 @@ export default async function handler(
 
     // Update the user's profile in Firestore using Admin SDK
     // This bypasses security rules
+    const adminDb = admin.firestore();
     await adminDb.collection("users").doc(userId).update({
       userType: "admin",
       updatedAt: new Date()

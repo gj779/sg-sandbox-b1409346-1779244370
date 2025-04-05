@@ -354,7 +354,7 @@ export default function UserOnboarding() {
     
     try {
       // Prepare onboarding data based on user type
-      const onboardingData = isApplicant 
+      const onboardingData: Record<string, any> = isApplicant 
         ? {
             skills,
             experience,

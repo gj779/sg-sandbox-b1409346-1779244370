@@ -16,8 +16,8 @@ export default async function handler(
 
   try {
     const { secretKey } = req.body;
-    // Hardcoded email for the owner admin account - fixed typo
-    const ownerEmail = "staffspace@gmail.com";
+    // Use the correct email for the owner admin account
+    const ownerEmail = "staffspce@gmail.com";
 
     // Validate inputs
     if (!secretKey) {
@@ -35,6 +35,7 @@ export default async function handler(
     let cleanSecretKey = secretKey;
     if (typeof secretKey === "string") {
       cleanSecretKey = secretKey.replace(/^["'](.*)["']$/, "$1");
+      cleanSecretKey = cleanSecretKey.trim();
     }
     
     console.log("Received secret key:", secretKey);
@@ -60,6 +61,7 @@ export default async function handler(
         .get();
 
       if (usersSnapshot.empty) {
+        console.log("User not found with email:", ownerEmail);
         return res.status(404).json({ 
           success: false, 
           message: `User with email ${ownerEmail} not found. Please register this email first.` 
@@ -71,12 +73,16 @@ export default async function handler(
       const userId = userDoc.id;
       
       console.log("Found user with ID:", userId);
+      console.log("Current user data:", userDoc.data());
 
       // Update the user's profile in Firestore using Admin SDK
       await adminDb.collection("users").doc(userId).update({
         userType: "admin",
+        isAdmin: true, // Add an explicit boolean flag for admin status
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
+
+      console.log("Successfully updated user to admin");
 
       return res.status(200).json({ 
         success: true, 
@@ -87,15 +93,15 @@ export default async function handler(
       console.error("Admin SDK error:", adminError);
       return res.status(500).json({ 
         success: false, 
-        message: "Failed to make staffspace an admin", 
+        message: "Failed to make staffspce an admin", 
         error: adminError instanceof Error ? adminError.message : String(adminError) 
       });
     }
   } catch (error) {
-    console.error("Error making staffspace admin:", error);
+    console.error("Error making staffspce admin:", error);
     return res.status(500).json({ 
       success: false, 
-      message: "Failed to make staffspace an admin", 
+      message: "Failed to make staffspce an admin", 
       error: error instanceof Error ? error.message : String(error) 
     });
   }

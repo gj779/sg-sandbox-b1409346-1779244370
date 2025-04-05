@@ -1,7 +1,25 @@
 
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { getFirestore } from "firebase-admin/firestore";
+import { db as clientDb } from "@/lib/firebase";
+import { initializeApp, getApps, cert } from "firebase-admin/app";
 import type { NextApiRequest, NextApiResponse } from "next";
+
+// Initialize Firebase Admin SDK if not already initialized
+if (!getApps().length) {
+  const serviceAccount = JSON.parse(
+    process.env.FIREBASE_SERVICE_ACCOUNT_KEY || 
+    process.env.FIREBASE_ADMIN_CREDENTIAL || 
+    '{}'
+  );
+
+  initializeApp({
+    credential: cert(serviceAccount)
+  });
+}
+
+// Get Firestore instance from Admin SDK
+const adminDb = getFirestore();
 
 export default async function handler(
   req: NextApiRequest,
@@ -19,17 +37,23 @@ export default async function handler(
 
     // Validate inputs
     if (!secretKey) {
-      return res.status(400).json({ message: "Missing required secret key" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Missing required secret key" 
+      });
     }
 
     // Check the secret key (this is a simple security measure)
     const expectedSecretKey = process.env.ADMIN_SECRET_KEY || "staffspace-owner-key";
     if (secretKey !== expectedSecretKey) {
-      return res.status(403).json({ message: "Invalid secret key" });
+      return res.status(403).json({ 
+        success: false,
+        message: "Invalid secret key" 
+      });
     }
 
-    // Find the user with the owner email
-    const usersRef = collection(db, "users");
+    // Find the user with the owner email using client SDK
+    const usersRef = collection(clientDb, "users");
     const q = query(usersRef, where("email", "==", ownerEmail));
     const querySnapshot = await getDocs(q);
 
@@ -44,9 +68,9 @@ export default async function handler(
     const userDoc = querySnapshot.docs[0];
     const userId = userDoc.id;
 
-    // Update the user's profile in Firestore to make them an admin
-    const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, {
+    // Update the user's profile in Firestore using Admin SDK
+    // This bypasses security rules
+    await adminDb.collection("users").doc(userId).update({
       userType: "admin",
       updatedAt: new Date()
     });

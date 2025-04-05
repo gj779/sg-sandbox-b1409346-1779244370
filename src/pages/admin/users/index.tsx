@@ -267,7 +267,7 @@ export default function AdminUsersPage() {
                         </TableCell>
                         <TableCell>
                           {user.isActive ? (
-                            <Badge variant="success" className="bg-green-100 text-green-800">
+                            <Badge variant="outline" className="bg-green-100 text-green-800">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Active
                             </Badge>

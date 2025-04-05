@@ -1,5 +1,5 @@
 import { firestoreService } from "./firebaseFirestore";
-import { doc, updateDoc, query, collection, where, getDocs } from "firebase/firestore";
+import { doc, updateDoc, query, collection, where, getDocs, WhereFilterOp } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { UserProfile } from "./firebaseAuth";
 import { JobListing } from "./firebaseJobs";
@@ -15,7 +15,7 @@ export const firebaseAdminService = {
   async getUsersByType(userType: "applicant" | "restaurant" | "admin"): Promise<UserProfile[]> {
     const conditions = [{
       field: "userType",
-      operator: "==",
+      operator: "==" as WhereFilterOp,
       value: userType
     }];
     
@@ -38,7 +38,7 @@ export const firebaseAdminService = {
   async getFeaturedJobListings(): Promise<JobListing[]> {
     const conditions = [{
       field: "isPremium",
-      operator: "==",
+      operator: "==" as WhereFilterOp,
       value: true
     }];
     

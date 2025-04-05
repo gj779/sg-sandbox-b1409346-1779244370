@@ -1,7 +1,5 @@
 
-import { collection, query, where, getDocs } from "firebase/firestore";
 import admin from "@/lib/firebase-admin";
-import { db as clientDb } from "@/lib/firebase";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
@@ -10,7 +8,10 @@ export default async function handler(
 ) {
   // Only allow POST requests
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
+    return res.status(405).json({ 
+      success: false,
+      message: "Method not allowed" 
+    });
   }
 
   try {
@@ -28,42 +29,55 @@ export default async function handler(
 
     // Check the secret key (this is a simple security measure)
     const expectedSecretKey = process.env.ADMIN_SECRET_KEY || "staffspace-owner-key";
-    if (secretKey !== expectedSecretKey) {
+    
+    // Remove any quotes that might be in the secret key
+    const cleanSecretKey = secretKey.replace(/"/g, '');
+    
+    if (cleanSecretKey !== expectedSecretKey) {
       return res.status(403).json({ 
         success: false,
         message: "Invalid secret key" 
       });
     }
 
-    // Find the user with the owner email using client SDK
-    const usersRef = collection(clientDb, "users");
-    const q = query(usersRef, where("email", "==", ownerEmail));
-    const querySnapshot = await getDocs(q);
+    try {
+      // Use the admin SDK to find the user
+      const adminDb = admin.firestore();
+      const usersSnapshot = await adminDb
+        .collection("users")
+        .where("email", "==", ownerEmail)
+        .get();
 
-    if (querySnapshot.empty) {
-      return res.status(404).json({ 
+      if (usersSnapshot.empty) {
+        return res.status(404).json({ 
+          success: false, 
+          message: `User with email ${ownerEmail} not found. Please register this email first.` 
+        });
+      }
+
+      // Get the user document
+      const userDoc = usersSnapshot.docs[0];
+      const userId = userDoc.id;
+
+      // Update the user's profile in Firestore using Admin SDK
+      await adminDb.collection("users").doc(userId).update({
+        userType: "admin",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      return res.status(200).json({ 
+        success: true, 
+        message: `User ${ownerEmail} has been successfully made an admin`,
+        userId: userId
+      });
+    } catch (adminError) {
+      console.error("Admin SDK error:", adminError);
+      return res.status(500).json({ 
         success: false, 
-        message: `User with email ${ownerEmail} not found. Please register this email first.` 
+        message: "Failed to make staffspace an admin", 
+        error: adminError instanceof Error ? adminError.message : String(adminError) 
       });
     }
-
-    // Get the user document
-    const userDoc = querySnapshot.docs[0];
-    const userId = userDoc.id;
-
-    // Update the user's profile in Firestore using Admin SDK
-    // This bypasses security rules
-    const adminDb = admin.firestore();
-    await adminDb.collection("users").doc(userId).update({
-      userType: "admin",
-      updatedAt: new Date()
-    });
-
-    return res.status(200).json({ 
-      success: true, 
-      message: `User ${ownerEmail} has been successfully made an admin`,
-      userId: userId
-    });
   } catch (error) {
     console.error("Error making staffspace admin:", error);
     return res.status(500).json({ 

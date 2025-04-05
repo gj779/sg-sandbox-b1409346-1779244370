@@ -18,6 +18,7 @@ export default async function handler(
     const { secretKey } = req.body;
     // Use the correct email for the owner admin account
     const ownerEmail = "staffspce@gmail.com";
+    const defaultPassword = "StaffSpace@Admin2025"; // Default password for initial setup
 
     // Validate inputs
     if (!secretKey) {
@@ -52,6 +53,7 @@ export default async function handler(
     try {
       // Use the admin SDK to find the user
       const adminDb = admin.firestore();
+      const adminAuth = admin.auth();
       
       console.log("Looking for user with email:", ownerEmail);
       
@@ -60,35 +62,88 @@ export default async function handler(
         .where("email", "==", ownerEmail)
         .get();
 
+      let userId;
+
+      // If user doesn't exist in Firestore, create the user
       if (usersSnapshot.empty) {
         console.log("User not found with email:", ownerEmail);
-        return res.status(404).json({ 
-          success: false, 
-          message: `User with email ${ownerEmail} not found. Please register this email first.` 
+        console.log("Creating new admin user...");
+        
+        try {
+          // Check if user exists in Firebase Auth
+          let userRecord;
+          try {
+            userRecord = await adminAuth.getUserByEmail(ownerEmail);
+            userId = userRecord.uid;
+            console.log("User exists in Auth but not in Firestore, using existing auth user:", userId);
+          } catch (authError) {
+            // User doesn't exist in Auth, create new user
+            console.log("User doesn't exist in Auth, creating new user");
+            userRecord = await adminAuth.createUser({
+              email: ownerEmail,
+              password: defaultPassword,
+              displayName: "StaffSpace Admin",
+              emailVerified: true
+            });
+            userId = userRecord.uid;
+            console.log("Created new auth user:", userId);
+          }
+          
+          // Create user profile in Firestore
+          const userProfile = {
+            id: userId,
+            email: ownerEmail,
+            userType: "admin",
+            firstName: "StaffSpace",
+            lastName: "Admin",
+            phoneNumber: "",
+            isAdmin: true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            isActive: true
+          };
+          
+          await adminDb.collection("users").doc(userId).set(userProfile);
+          console.log("Created new admin user profile in Firestore");
+          
+          return res.status(200).json({ 
+            success: true, 
+            message: `Admin user ${ownerEmail} has been successfully created`,
+            userId: userId,
+            isNewUser: true
+          });
+        } catch (createError) {
+          console.error("Error creating admin user:", createError);
+          return res.status(500).json({ 
+            success: false, 
+            message: "Failed to create admin user", 
+            error: createError instanceof Error ? createError.message : String(createError) 
+          });
+        }
+      } else {
+        // User exists, update to admin
+        const userDoc = usersSnapshot.docs[0];
+        userId = userDoc.id;
+        
+        console.log("Found user with ID:", userId);
+        console.log("Current user data:", userDoc.data());
+
+        // Update the user's profile in Firestore using Admin SDK
+        await adminDb.collection("users").doc(userId).update({
+          userType: "admin",
+          isAdmin: true,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log("Successfully updated user to admin");
+
+        return res.status(200).json({ 
+          success: true, 
+          message: `User ${ownerEmail} has been successfully made an admin`,
+          userId: userId,
+          isNewUser: false
         });
       }
-
-      // Get the user document
-      const userDoc = usersSnapshot.docs[0];
-      const userId = userDoc.id;
-      
-      console.log("Found user with ID:", userId);
-      console.log("Current user data:", userDoc.data());
-
-      // Update the user's profile in Firestore using Admin SDK
-      await adminDb.collection("users").doc(userId).update({
-        userType: "admin",
-        isAdmin: true, // Add an explicit boolean flag for admin status
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-
-      console.log("Successfully updated user to admin");
-
-      return res.status(200).json({ 
-        success: true, 
-        message: `User ${ownerEmail} has been successfully made an admin`,
-        userId: userId
-      });
     } catch (adminError) {
       console.error("Admin SDK error:", adminError);
       return res.status(500).json({ 

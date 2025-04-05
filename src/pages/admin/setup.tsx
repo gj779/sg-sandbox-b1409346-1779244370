@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,12 @@ export default function AdminSetupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  
+  // Fix hydration issues by ensuring client-side rendering is consistent
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +67,9 @@ export default function AdminSetupPage() {
     }
   };
 
+  // The admin email address - keep it consistent
+  const adminEmail = "staffspce@gmail.com";
+
   return (
     <>
       <Head>
@@ -79,73 +88,75 @@ export default function AdminSetupPage() {
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Activate Admin Account</CardTitle>
-            <CardDescription>
-              Enter the secret key to activate the admin account for staffspce@gmail.com
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Key className="h-4 w-4 text-muted-foreground" />
-                  <label htmlFor="secretKey" className="text-sm font-medium">
-                    Secret Key
-                  </label>
+        {isClient && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Activate Admin Account</CardTitle>
+              <CardDescription>
+                Enter the secret key to activate the admin account for {adminEmail}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-muted-foreground" />
+                    <label htmlFor="secretKey" className="text-sm font-medium">
+                      Secret Key
+                    </label>
+                  </div>
+                  <Input
+                    id="secretKey"
+                    type="password"
+                    placeholder="Enter the admin secret key"
+                    value={secretKey}
+                    onChange={(e) => setSecretKey(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The secret key is required to activate the admin account. If you don't have it, please contact the system administrator.
+                  </p>
                 </div>
-                <Input
-                  id="secretKey"
-                  type="password"
-                  placeholder="Enter the admin secret key"
-                  value={secretKey}
-                  onChange={(e) => setSecretKey(e.target.value)}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  The secret key is required to activate the admin account. If you don't have it, please contact the system administrator.
-                </p>
-              </div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
-              {success && (
-                <Alert variant="default" className="bg-green-50 text-green-800 border-green-200">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertTitle>Success</AlertTitle>
-                  <AlertDescription>{success}</AlertDescription>
-                </Alert>
-              )}
+                {success && (
+                  <Alert variant="default" className="bg-green-50 text-green-800 border-green-200">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertTitle>Success</AlertTitle>
+                    <AlertDescription>{success}</AlertDescription>
+                  </Alert>
+                )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSubmitting || !secretKey}
-              >
-                {isSubmitting ? "Processing..." : "Activate Admin Account"}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-muted-foreground">
-              Already have an admin account?{" "}
-              <Button
-                variant="link"
-                className="p-0 h-auto"
-                onClick={() => router.push("/auth/login")}
-              >
-                Sign in
-              </Button>
-            </p>
-          </CardFooter>
-        </Card>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting || !secretKey}
+                >
+                  {isSubmitting ? "Processing..." : "Activate Admin Account"}
+                </Button>
+              </form>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <p className="text-sm text-muted-foreground">
+                Already have an admin account?{" "}
+                <Button
+                  variant="link"
+                  className="p-0 h-auto"
+                  onClick={() => router.push("/auth/login")}
+                >
+                  Sign in
+                </Button>
+              </p>
+            </CardFooter>
+          </Card>
+        )}
       </div>
     </>
   );

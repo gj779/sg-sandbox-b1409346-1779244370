@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -27,6 +26,10 @@ service cloud.firestore {
       return isAuthenticated() && 
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'applicant';
+    }
+    
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
     }
     
     // Users collection
@@ -59,16 +62,20 @@ service cloud.firestore {
         (isRestaurant() && resource.data.restaurantId == request.auth.uid) || 
         isAdmin();
       
-      // Only restaurants can create jobs
-      allow create: if isRestaurant() && request.resource.data.restaurantId == request.auth.uid;
+      // Only restaurants with verified email can create jobs
+      allow create: if isRestaurant() && 
+                     request.resource.data.restaurantId == request.auth.uid && 
+                     isEmailVerified();
       
       // Restaurant owners can update their own jobs
       // Admins can update any job
-      allow update: if (isRestaurant() && resource.data.restaurantId == request.auth.uid) || isAdmin();
+      allow update: if (isRestaurant() && resource.data.restaurantId == request.auth.uid && isEmailVerified()) || 
+                     isAdmin();
       
       // Restaurant owners can delete their own jobs
       // Admins can delete any job
-      allow delete: if (isRestaurant() && resource.data.restaurantId == request.auth.uid) || isAdmin();
+      allow delete: if (isRestaurant() && resource.data.restaurantId == request.auth.uid && isEmailVerified()) || 
+                     isAdmin();
     }
     
     // Applications collection
@@ -80,33 +87,41 @@ service cloud.firestore {
         (isRestaurant() && resource.data.restaurantId == request.auth.uid) || 
         isAdmin();
       
-      // Applicants can create applications
-      allow create: if isApplicant() && request.resource.data.applicantId == request.auth.uid;
+      // Applicants with verified email can create applications
+      allow create: if isApplicant() && 
+                     request.resource.data.applicantId == request.auth.uid && 
+                     isEmailVerified();
       
       // Applicants can update their own applications
       // Restaurants can update applications for their jobs (status changes)
       // Admins can update any application
-      allow update: if (isApplicant() && resource.data.applicantId == request.auth.uid) || 
-        (isRestaurant() && resource.data.restaurantId == request.auth.uid) || 
-        isAdmin();
+      // All require email verification
+      allow update: if (isApplicant() && resource.data.applicantId == request.auth.uid && isEmailVerified()) || 
+                     (isRestaurant() && resource.data.restaurantId == request.auth.uid && isEmailVerified()) || 
+                     isAdmin();
       
       // Applicants can delete their own applications
       // Admins can delete any application
-      allow delete: if (isApplicant() && resource.data.applicantId == request.auth.uid) || isAdmin();
+      allow delete: if (isApplicant() && resource.data.applicantId == request.auth.uid && isEmailVerified()) || 
+                     isAdmin();
     }
     
     // Conversations collection
     match /conversations/{conversationId} {
       // Participants can read their conversations
       // Admins can read all conversations
-      allow read: if isAuthenticated() && (resource.data.participants.hasAny([request.auth.uid])) || isAdmin();
+      allow read: if isAuthenticated() && (resource.data.participants.hasAny([request.auth.uid])) || 
+                   isAdmin();
       
-      // Authenticated users can create conversations
-      allow create: if isAuthenticated() && request.resource.data.participants.hasAny([request.auth.uid]);
+      // Authenticated users with verified email can create conversations
+      allow create: if isAuthenticated() && 
+                     request.resource.data.participants.hasAny([request.auth.uid]) && 
+                     isEmailVerified();
       
-      // Participants can update their conversations
+      // Participants with verified email can update their conversations
       // Admins can update any conversation
-      allow update: if isAuthenticated() && (resource.data.participants.hasAny([request.auth.uid])) || isAdmin();
+      allow update: if (isAuthenticated() && resource.data.participants.hasAny([request.auth.uid]) && isEmailVerified()) || 
+                     isAdmin();
       
       // Only admins can delete conversations
       allow delete: if isAdmin();
@@ -121,17 +136,37 @@ service cloud.firestore {
         get(/databases/$(database)/documents/conversations/$(resource.data.conversationId)).data.participants.hasAny([request.auth.uid]) || 
         isAdmin();
       
-      // Authenticated users can send messages in their conversations
+      // Authenticated users with verified email can send messages in their conversations
       allow create: if isAuthenticated() && 
-        exists(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)) &&
-        get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants.hasAny([request.auth.uid]);
+                     exists(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)) &&
+                     get(/databases/$(database)/documents/conversations/$(request.resource.data.conversationId)).data.participants.hasAny([request.auth.uid]) &&
+                     isEmailVerified();
       
-      // Message recipients can mark messages as read
+      // Message recipients with verified email can mark messages as read
       // Admins can update any message
-      allow update: if (isAuthenticated() && resource.data.receiverId == request.auth.uid) || isAdmin();
+      allow update: if (isAuthenticated() && resource.data.receiverId == request.auth.uid && isEmailVerified()) || 
+                     isAdmin();
       
       // Only admins can delete messages
       allow delete: if isAdmin();
+    }
+    
+    // System settings collection - admin only
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Reports collection
+    match /reports/{reportId} {
+      // Anyone authenticated can create reports
+      allow create: if isAuthenticated() && isEmailVerified();
+      
+      // Only the creator and admins can read reports
+      allow read: if isAuthenticated() && (resource.data.createdBy == request.auth.uid || isAdmin());
+      
+      // Only admins can update or delete reports
+      allow update, delete: if isAdmin();
     }
   }
 }

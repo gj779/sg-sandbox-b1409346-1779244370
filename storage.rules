@@ -1,8 +1,51 @@
+
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Default deny all access
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
+    }
+    
+    // Profile images
+    match /profiles/{userId}/{fileName} {
+      // Users can read and write their own profile images
+      // Admins can read and write all profile images
+      // Anyone can read profile images
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Resumes
+    match /resumes/{userId}/{fileName} {
+      // Users can read and write their own resumes
+      // Restaurants can read resumes of applicants who applied to their jobs
+      // Admins can read and write all resumes
+      allow read: if request.auth != null && (
+        request.auth.uid == userId || 
+        isAdmin() || 
+        (isRestaurant() && hasAppliedToRestaurantJob(userId, request.auth.uid))
+      );
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin';
+    }
+    
+    function isRestaurant() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'restaurant';
+    }
+    
+    function hasAppliedToRestaurantJob(applicantId, restaurantId) {
+      return exists(/databases/$(database)/documents/applications/{applicationId}) &&
+        get(/databases/$(database)/documents/applications/{applicationId}).data.applicantId == applicantId &&
+        get(/databases/$(database)/documents/applications/{applicationId}).data.restaurantId == restaurantId;
     }
   }
 }

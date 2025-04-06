@@ -59,6 +59,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       // Check if it's the admin email - ensure lowercase comparison
       if (email.toLowerCase() === "staffspace@gmail.com") {
         role = "admin";
+        console.log("Admin login detected");
       } else if (email.includes("restaurant")) {
         role = "restaurant";
       }

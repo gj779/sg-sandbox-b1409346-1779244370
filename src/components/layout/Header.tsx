@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Menu, Sun, Moon, Globe, User, LogOut } from 'lucide-react';
+import { Menu, Sun, Moon, Globe, User, LogOut, Shield } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Logo from '@/components/common/Logo';
 import { useUser } from '@/contexts/UserContext';
@@ -45,12 +45,23 @@ export default function Header() {
     // In a real app, you would update the i18n context here
   };
 
-  const handleLogin = (type: 'applicant' | 'restaurant') => {
+  const handleLogin = (type: 'applicant' | 'restaurant' | 'admin') => {
     router.push(`/auth/login?type=${type}`);
   };
 
   const handleLogout = () => {
     logout();
+  };
+
+  const navigateToDashboard = () => {
+    // Navigate to the appropriate dashboard based on user role
+    if (user?.role === 'admin') {
+      router.push('/admin/dashboard');
+    } else if (user?.role === 'restaurant') {
+      router.push('/restaurant/dashboard');
+    } else if (user?.role === 'applicant') {
+      router.push('/applicant/dashboard');
+    }
   };
 
   if (!mounted) {
@@ -156,17 +167,15 @@ export default function Header() {
                 <DropdownMenuItem onClick={() => router.push('/profile/edit')}>
                   Edit Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  // Navigate to the appropriate dashboard based on user role
-                  if (user?.role === 'admin') {
-                    router.push('/admin/dashboard');
-                  } else if (user?.role === 'restaurant') {
-                    router.push('/restaurant/dashboard');
-                  } else if (user?.role === 'applicant') {
-                    router.push('/applicant/dashboard');
-                  }
-                }}>
-                  Dashboard
+                <DropdownMenuItem onClick={navigateToDashboard}>
+                  {user?.role === 'admin' ? (
+                    <>
+                      <Shield className='h-4 w-4 mr-2' />
+                      Admin Dashboard
+                    </>
+                  ) : (
+                    'Dashboard'
+                  )}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push('/messaging')}>
                   Messages
@@ -190,7 +199,8 @@ export default function Header() {
                 <DropdownMenuItem onClick={() => handleLogin('restaurant')}>
                   Sign in as Restaurant
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/auth/login?type=admin')}>
+                <DropdownMenuItem onClick={() => handleLogin('admin')}>
+                  <Shield className='h-4 w-4 mr-2' />
                   Sign in as Admin
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

@@ -28,6 +28,9 @@ export interface UserProfile {
   hiringPositions?: string[];
   jobTypes?: string[];
   benefits?: string;
+  firstName?: string;
+  lastName?: string;
+  isActive?: boolean;
 }
 
 interface AuthState {

@@ -45,7 +45,7 @@ export default function LoginPage() {
 
   // Set default tab based on query parameter or if admin email is provided
   const getDefaultTab = () => {
-    if (type === "admin" || (initialEmail && initialEmail.toLowerCase() === "staffspace@gmail.com")) {
+    if (type === "admin" || (initialEmail && typeof initialEmail === 'string' && initialEmail.toLowerCase() === "staffspace@gmail.com")) {
       return "admin";
     }
     return type as string || "applicant";

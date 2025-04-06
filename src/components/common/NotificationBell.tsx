@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,18 +30,18 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (!userProfile) return;
+    if (!userProfile || !userProfile.id) return;
 
     const fetchNotifications = async () => {
       try {
         // Get unread message count
-        const messageCount = await firebaseMessagingService.getUnreadMessageCount(userProfile.id);
+        const messageCount = await firebaseMessagingService.getUnreadMessageCount(userProfile.id as string);
         
         // Get recent applications (for restaurants) or application status updates (for applicants)
         let applicationNotifications: Notification[] = [];
         
         if (userProfile.userType === "restaurant") {
-          const applications = await firebaseApplicationsService.getApplicationsByRestaurant(userProfile.id);
+          const applications = await firebaseApplicationsService.getApplicationsByRestaurant(userProfile.id as string);
           // Only get recent applications (last 7 days)
           const recentApplications = applications.filter(app => {
             const appDate = app.createdAt?.toDate ? app.createdAt.toDate() : new Date(app.createdAt);
@@ -61,7 +60,7 @@ export default function NotificationBell() {
             link: `/restaurant/applications/${app.id}`
           }));
         } else if (userProfile.userType === "applicant") {
-          const applications = await firebaseApplicationsService.getApplicationsByApplicant(userProfile.id);
+          const applications = await firebaseApplicationsService.getApplicationsByApplicant(userProfile.id as string);
           // Only get applications with status updates
           const updatedApplications = applications.filter(app => 
             app.status !== "pending" && 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { type, redirect } = router.query;
+  const { type, redirect, email: initialEmail } = router.query;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -35,6 +35,13 @@ export default function LoginPage() {
   
   const { login } = useUser();
   const { toast } = useToast();
+
+  // Set initial email from query parameter if provided
+  useEffect(() => {
+    if (initialEmail && typeof initialEmail === 'string') {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

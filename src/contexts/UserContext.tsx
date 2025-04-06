@@ -56,12 +56,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       // Determine user role based on email (for demo purposes)
       let role: UserRole = "applicant";
       
-      // Check if it's the admin email
+      // Check if it's the admin email - ensure lowercase comparison
       if (email.toLowerCase() === "staffspace@gmail.com") {
         role = "admin";
       } else if (email.includes("restaurant")) {
         role = "restaurant";
       }
+      
+      console.log("Determined user role:", role); // Debug log
       
       // Create mock user
       const mockUser: User = {
@@ -86,11 +88,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         dashboardPath = "/applicant/dashboard";
       }
       
+      console.log("Redirecting to dashboard:", dashboardPath); // Debug log
+      
       // Create a userProfile object that matches what the login page expects
       const userProfile = {
         id: mockUser.id,
         email: mockUser.email,
-        userType: mockUser.role,
+        userType: mockUser.role, // Ensure this is correctly set
         firstName: mockUser.name,
         lastName: "",
       };

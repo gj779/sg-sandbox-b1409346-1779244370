@@ -34,7 +34,7 @@ export default async function handler(
     // Handle both string and JSON string formats
     let cleanSecretKey = secretKey;
     if (typeof secretKey === "string") {
-      cleanSecretKey = secretKey.replace(/^["'](.*)[\"']$/, "$1");
+      cleanSecretKey = secretKey.replace(/^["'](.*)["']$/, "$1");
       cleanSecretKey = cleanSecretKey.trim();
     }
     

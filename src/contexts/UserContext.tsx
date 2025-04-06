@@ -57,7 +57,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       let role: UserRole = "applicant";
       
       // Check if it's the admin email
-      if (email.toLowerCase() === "staffspce@gmail.com") {
+      if (email.toLowerCase() === "staffspace@gmail.com") {
         role = "admin";
       } else if (email.includes("restaurant")) {
         role = "restaurant";

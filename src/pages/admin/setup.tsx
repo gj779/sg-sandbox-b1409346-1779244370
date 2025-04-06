@@ -39,7 +39,7 @@ export default function AdminSetupPage() {
 
     try {
       // Make sure the secret key doesn't have extra quotes
-      const cleanSecretKey = secretKey.replace(/^["'](.*)[\"']$/, "$1").trim();
+      const cleanSecretKey = secretKey.replace(/^["'](.*)["']$/, "$1").trim();
       
       // Call the API endpoint to set up the admin account
       const response = await fetch("/api/set-staffspace-admin", {
@@ -70,7 +70,7 @@ export default function AdminSetupPage() {
   };
 
   // The admin email address - keep it consistent
-  const adminEmail = "staffspce@gmail.com";
+  const adminEmail = "staffspace@gmail.com";
 
   return (
     <>

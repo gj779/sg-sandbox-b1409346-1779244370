@@ -190,6 +190,9 @@ export default function Header() {
                 <DropdownMenuItem onClick={() => handleLogin('restaurant')}>
                   Sign in as Restaurant
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/auth/login?email=staffspace@gmail.com')}>
+                  Sign in as Admin
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push('/auth/register')}>
                   Create Account

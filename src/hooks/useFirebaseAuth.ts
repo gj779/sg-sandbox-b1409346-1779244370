@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { firebaseAuthService, UserProfile } from "@/services/firebaseAuth";
+import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useRouter } from "next/router";
+import type { UserProfile as FirebaseUserProfile } from "@/services/firebaseAuth";
 
 // Define a UserProfile type that matches what we're using in the app
 export interface UserProfile {

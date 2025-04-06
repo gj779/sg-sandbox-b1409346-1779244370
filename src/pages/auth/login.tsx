@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChefHat, Briefcase } from "lucide-react";
+import { ChefHat, Briefcase, Shield } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -42,6 +42,14 @@ export default function LoginPage() {
       setEmail(initialEmail);
     }
   }, [initialEmail]);
+
+  // Set default tab based on query parameter or if admin email is provided
+  const getDefaultTab = () => {
+    if (type === "admin" || (initialEmail && initialEmail.toLowerCase() === "staffspace@gmail.com")) {
+      return "admin";
+    }
+    return type as string || "applicant";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +91,7 @@ export default function LoginPage() {
           <p className="text-muted-foreground mt-2">Sign in to your StaffSpace account</p>
         </div>
 
-        <Tabs defaultValue={type as string || "applicant"} className="w-full">
+        <Tabs defaultValue={getDefaultTab()} className="w-full">
           <TabsList className="grid grid-cols-2 mb-8">
             <TabsTrigger value="applicant" className="flex items-center gap-2">
               <Briefcase className="h-4 w-4" />
@@ -92,6 +100,10 @@ export default function LoginPage() {
             <TabsTrigger value="restaurant" className="flex items-center gap-2">
               <ChefHat className="h-4 w-4" />
               Restaurant
+            </TabsTrigger>
+            <TabsTrigger value="admin" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Admin
             </TabsTrigger>
           </TabsList>
 

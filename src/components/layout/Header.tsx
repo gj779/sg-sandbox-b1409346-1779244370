@@ -148,8 +148,7 @@ export default function Header() {
                 <Button variant='ghost' size='icon'>
                   <User className='h-5 w-5' />
                   <span className='sr-only'>User menu</span>
-                </Button>
-              </DropdownMenuTrigger>
+                </DropdownMenuTrigger>
               <DropdownMenuContent align='end'>
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -190,7 +189,7 @@ export default function Header() {
                 <DropdownMenuItem onClick={() => handleLogin('restaurant')}>
                   Sign in as Restaurant
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/auth/login?email=staffspace@gmail.com')}>
+                <DropdownMenuItem onClick={() => router.push('/auth/login?type=admin')}>
                   Sign in as Admin
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

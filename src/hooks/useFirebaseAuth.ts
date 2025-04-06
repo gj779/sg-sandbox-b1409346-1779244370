@@ -32,6 +32,9 @@ export interface UserProfile {
   firstName?: string;
   lastName?: string;
   isActive?: boolean;
+  // Restaurant specific fields
+  businessName?: string;
+  businessAddress?: string;
 }
 
 interface AuthState {
@@ -98,7 +101,11 @@ export function useFirebaseAuth() {
     try {
       const { user, userProfile } = await firebaseAuthService.signIn(email, password);
       
-      return userProfile;
+      // Get the correct dashboard path based on user type
+      const dashboardPath = firebaseAuthService.getDashboardPath(userProfile?.userType);
+      
+      // Return both the user profile and the dashboard path
+      return { userProfile, dashboardPath };
     } catch (error: any) {
       setAuthState(prev => ({
         ...prev,

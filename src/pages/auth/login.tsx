@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChefHat, Briefcase } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
+import { toast } from "@/components/ui/toast"; // Assuming toast is imported from a UI component
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,24 +35,29 @@ export default function LoginPage() {
   
   const { login } = useUser();
 
-  const handleLogin = async (userType: "applicant" | "restaurant") => {
-    if (!email || !password) {
-      setError("Please enter both email and password");
-      return;
-    }
-    
-    setError("");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
     setIsLoading(true);
-    
+
     try {
-      await login(email, password, userType);
+      // Sign in user
+      const { userProfile, dashboardPath } = await login(email, password);
       
-      // Redirect to the specified page or default dashboard
-      if (redirect && typeof redirect === "string") {
-        router.push(redirect);
-      }
-    } catch (error) {
-      setError("Invalid email or password");
+      // Show success message
+      toast({
+        title: 'Success',
+        description: 'You have successfully signed in.',
+        variant: 'default',
+      });
+
+      // Redirect to dashboard based on user type
+      const redirectPath = router.query.redirect as string || dashboardPath;
+      router.push(redirectPath);
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'Failed to sign in. Please check your credentials.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -131,7 +137,7 @@ export default function LoginPage() {
               <CardFooter className="flex flex-col gap-4">
                 <Button 
                   className="w-full" 
-                  onClick={() => handleLogin("applicant")}
+                  onClick={handleSubmit}
                   disabled={isLoading}
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
@@ -196,7 +202,7 @@ export default function LoginPage() {
               <CardFooter className="flex flex-col gap-4">
                 <Button 
                   className="w-full" 
-                  onClick={() => handleLogin("restaurant")}
+                  onClick={handleSubmit}
                   disabled={isLoading}
                 >
                   {isLoading ? "Signing in..." : "Sign In"}

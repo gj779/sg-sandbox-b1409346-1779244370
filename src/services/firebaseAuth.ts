@@ -8,20 +8,20 @@ import {
   updateProfile,
   User,
   UserCredential
-} from "firebase/auth";
+} from 'firebase/auth';
 import { 
   doc, 
   setDoc, 
   getDoc, 
   updateDoc, 
   serverTimestamp 
-} from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+} from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 export interface RegisterUserParams {
   email: string;
   password: string;
-  userType: "applicant" | "restaurant" | "admin";
+  userType: 'applicant' | 'restaurant' | 'admin';
   firstName: string;
   lastName: string;
   phoneNumber?: string;
@@ -30,7 +30,7 @@ export interface RegisterUserParams {
 export interface UserProfile {
   id: string;
   email: string;
-  userType: "applicant" | "restaurant" | "admin";
+  userType: 'applicant' | 'restaurant' | 'admin';
   firstName: string;
   lastName: string;
   phoneNumber?: string;
@@ -51,6 +51,9 @@ export interface UserProfile {
   jobTypes?: string[];
   benefits?: string;
   profileComplete?: boolean;
+  // Restaurant specific fields
+  businessName?: string;
+  businessAddress?: string;
 }
 
 export const firebaseAuthService = {
@@ -82,27 +85,27 @@ export const firebaseAuthService = {
       userType,
       firstName,
       lastName,
-      phoneNumber: phoneNumber || "",
+      phoneNumber: phoneNumber || '',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       isActive: true,
       // Initialize onboarding fields
       skills: [],
-      experience: "",
+      experience: '',
       availability: [],
-      preferredLocation: "",
-      bio: "",
-      education: "",
+      preferredLocation: '',
+      bio: '',
+      education: '',
       jobPreferences: [],
-      location: "",
-      cuisineType: "",
+      location: '',
+      cuisineType: '',
       hiringPositions: [],
       jobTypes: [],
-      benefits: "",
+      benefits: '',
       profileComplete: false,
     };
     
-    await setDoc(doc(db, "users", user.uid), userProfile);
+    await setDoc(doc(db, 'users', user.uid), userProfile);
     
     return { user, userProfile };
   },
@@ -113,10 +116,24 @@ export const firebaseAuthService = {
     const user = userCredential.user;
     
     // Get user profile from Firestore
-    const userProfileDoc = await getDoc(doc(db, "users", user.uid));
+    const userProfileDoc = await getDoc(doc(db, 'users', user.uid));
     const userProfile = userProfileDoc.exists() ? userProfileDoc.data() as UserProfile : null;
     
     return { user, userProfile };
+  },
+
+  // Get dashboard path based on user type
+  getDashboardPath(userType: string | undefined): string {
+    switch (userType) {
+      case 'admin':
+        return '/admin/dashboard';
+      case 'restaurant':
+        return '/restaurant/dashboard';
+      case 'applicant':
+        return '/applicant/dashboard';
+      default:
+        return '/';
+    }
   },
 
   // Sign out user
@@ -136,13 +153,13 @@ export const firebaseAuthService = {
 
   // Get user profile
   async getUserProfile(userId: string): Promise<UserProfile | null> {
-    const userProfileDoc = await getDoc(doc(db, "users", userId));
+    const userProfileDoc = await getDoc(doc(db, 'users', userId));
     return userProfileDoc.exists() ? userProfileDoc.data() as UserProfile : null;
   },
 
   // Update user profile
   async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
-    const userRef = doc(db, "users", userId);
+    const userRef = doc(db, 'users', userId);
     
     // Add updatedAt timestamp
     const updatedData = {

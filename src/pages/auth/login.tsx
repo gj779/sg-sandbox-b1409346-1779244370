@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChefHat, Briefcase } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
-import { toast } from "@/components/ui/toast"; // Assuming toast is imported from a UI component
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,6 +34,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   
   const { login } = useUser();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

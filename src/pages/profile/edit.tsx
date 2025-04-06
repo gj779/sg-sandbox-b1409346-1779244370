@@ -69,37 +69,31 @@ const restaurantProfileSchema = z.object({
   cuisineType: z.string().optional(),
 });
 
+// Create a union type for the form values
+type ProfileFormValues = z.infer<typeof applicantProfileSchema> | z.infer<typeof restaurantProfileSchema>;
+
 export default function EditProfilePage() {
   const { userProfile, updateUserProfile } = useFirebaseAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userType, setUserType] = useState<"applicant" | "restaurant" | "admin" | undefined>(undefined);
 
   // Determine which schema to use based on user type
-  const formSchema = userProfile?.userType === "applicant" 
+  const formSchema = userType === "applicant" 
     ? applicantProfileSchema 
     : restaurantProfileSchema;
 
   // Initialize form with react-hook-form
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<ProfileFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
       phoneNumber: "",
-      // Applicant specific fields
-      bio: "",
-      preferredLocation: "",
-      skills: "",
-      experience: "",
-      education: "",
-      // Restaurant specific fields
-      businessName: "",
-      businessAddress: "",
-      businessDescription: "",
-      cuisineType: "",
+      // We'll set the type-specific fields in the useEffect
     },
   });
 
@@ -107,6 +101,7 @@ export default function EditProfilePage() {
   useEffect(() => {
     if (userProfile) {
       setIsLoading(false);
+      setUserType(userProfile.userType);
       
       // Common fields
       form.setValue("firstName", userProfile.firstName || "");
@@ -137,7 +132,7 @@ export default function EditProfilePage() {
     }
   }, [userProfile, isLoading, router]);
 
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+  const onSubmit = async (data: ProfileFormValues) => {
     setIsSubmitting(true);
     
     try {
@@ -149,17 +144,19 @@ export default function EditProfilePage() {
       };
       
       // Add user type specific fields
-      if (userProfile?.userType === "applicant") {
-        updateData.bio = data.bio;
-        updateData.preferredLocation = data.preferredLocation;
-        updateData.skills = data.skills ? data.skills.split(",").map(s => s.trim()) : [];
-        updateData.experience = data.experience;
-        updateData.education = data.education;
-      } else if (userProfile?.userType === "restaurant") {
-        updateData.businessName = data.businessName;
-        updateData.businessAddress = data.businessAddress;
-        updateData.bio = data.businessDescription; // Map to bio field in the database
-        updateData.cuisineType = data.cuisineType;
+      if (userType === "applicant") {
+        const applicantData = data as z.infer<typeof applicantProfileSchema>;
+        updateData.bio = applicantData.bio;
+        updateData.preferredLocation = applicantData.preferredLocation;
+        updateData.skills = applicantData.skills ? applicantData.skills.split(",").map((s: string) => s.trim()) : [];
+        updateData.experience = applicantData.experience;
+        updateData.education = applicantData.education;
+      } else if (userType === "restaurant") {
+        const restaurantData = data as z.infer<typeof restaurantProfileSchema>;
+        updateData.businessName = restaurantData.businessName;
+        updateData.businessAddress = restaurantData.businessAddress;
+        updateData.bio = restaurantData.businessDescription; // Map to bio field in the database
+        updateData.cuisineType = restaurantData.cuisineType;
       }
       
       // Update profile
@@ -172,7 +169,7 @@ export default function EditProfilePage() {
       });
       
       // Redirect to dashboard
-      const dashboardPath = userProfile?.userType === "applicant" 
+      const dashboardPath = userType === "applicant" 
         ? "/applicant/dashboard" 
         : "/restaurant/dashboard";
       
@@ -283,7 +280,7 @@ export default function EditProfilePage() {
             </Card>
 
             {/* Applicant specific fields */}
-            {userProfile?.userType === "applicant" && (
+            {userType === "applicant" && (
               <Card>
                 <CardHeader>
                   <CardTitle>Professional Information</CardTitle>
@@ -379,7 +376,7 @@ export default function EditProfilePage() {
             )}
 
             {/* Restaurant specific fields */}
-            {userProfile?.userType === "restaurant" && (
+            {userType === "restaurant" && (
               <Card>
                 <CardHeader>
                   <CardTitle>Restaurant Information</CardTitle>
@@ -465,7 +462,7 @@ export default function EditProfilePage() {
                 type="button" 
                 variant="outline" 
                 onClick={() => {
-                  const dashboardPath = userProfile?.userType === "applicant" 
+                  const dashboardPath = userType === "applicant" 
                     ? "/applicant/dashboard" 
                     : "/restaurant/dashboard";
                   router.push(dashboardPath);

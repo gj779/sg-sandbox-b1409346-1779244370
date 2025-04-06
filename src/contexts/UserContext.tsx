@@ -134,6 +134,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       router.push("/applicant/create-resume");
     } else if (role === "restaurant") {
       router.push("/restaurant/setup-profile");
+    } else if (role === "admin") {
+      router.push("/admin/dashboard");
     }
   };
 

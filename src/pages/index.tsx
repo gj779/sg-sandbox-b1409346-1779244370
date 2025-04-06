@@ -1,4 +1,3 @@
-
 import Head from "next/head";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ export default function HomePage() {
       <Head>
         <title>StaffSpace - Connect with Restaurant Jobs</title>
         <meta name="description" content="Find restaurant jobs or hire talented staff with StaffSpace - the premier platform for hospitality recruitment." />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/icon-s-blue-m8umsa8t.svg" />
       </Head>
 
       {/* Hero Section */}

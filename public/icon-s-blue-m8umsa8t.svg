@@ -1,14 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Generator: Adobe Illustrator 26.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-<svg version="1.1" id="Слой_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 1674 1463.1" style="enable-background:new 0 0 1674 1463.1;" xml:space="preserve">
-<style type="text/css">
-	.st0{fill:#1C1E6E;}
-</style>
-<g>
-	<path class="st0" d="M365.6,766.1L1674,558.9C1616.8,197.5,1277.5-49,916.2,8.3S308.3,404.8,365.6,766.1z"/>
-	<path class="st0" d="M1240.8,879.5c-16.9,126.1-74.3,242.5-165.7,334c-110.2,110.2-256.8,170.9-412.7,170.9
-		s-302.5-60.7-412.7-170.9c-91.5-91.5-148.8-207.9-165.7-334H1240.8 M1324.8,800.7H0c0,365.8,296.6,662.4,662.4,662.4
-		S1324.8,1166.6,1324.8,800.7L1324.8,800.7z"/>
-</g>
+
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <path d="M16 2C8.268 2 2 8.268 2 16C2 23.732 8.268 30 16 30C23.732 30 30 23.732 30 16C30 8.268 23.732 2 16 2Z" fill="#1E40AF"/>
+  <path d="M22 12L16 8L10 12V20L16 24L22 20V12Z" fill="white"/>
+  <path d="M16 16L13 14V18L16 20L19 18V14L16 16Z" fill="#1E40AF"/>
 </svg>

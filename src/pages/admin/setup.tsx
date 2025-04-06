@@ -38,13 +38,16 @@ export default function AdminSetupPage() {
     setIsSubmitting(true);
 
     try {
+      // Make sure the secret key doesn't have extra quotes
+      const cleanSecretKey = secretKey.replace(/^["'](.*)[\"']$/, "$1").trim();
+      
       // Call the API endpoint to set up the admin account
       const response = await fetch("/api/set-staffspace-admin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ secretKey }),
+        body: JSON.stringify({ secretKey: cleanSecretKey }),
       });
 
       const data = await response.json();

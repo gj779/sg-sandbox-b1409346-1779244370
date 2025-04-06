@@ -1,4 +1,3 @@
-
 import admin from "@/lib/firebase-admin";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -35,7 +34,7 @@ export default async function handler(
     // Handle both string and JSON string formats
     let cleanSecretKey = secretKey;
     if (typeof secretKey === "string") {
-      cleanSecretKey = secretKey.replace(/^["'](.*)["']$/, "$1");
+      cleanSecretKey = secretKey.replace(/^["'](.*)[\"']$/, "$1");
       cleanSecretKey = cleanSecretKey.trim();
     }
     
@@ -56,6 +55,26 @@ export default async function handler(
       const adminAuth = admin.auth();
       
       console.log("Looking for user with email:", ownerEmail);
+      
+      // First, check if we need to create Firestore rules to allow admin operations
+      try {
+        // Create a test collection with admin permissions
+        await adminDb.collection("_admin_setup").doc("_permissions_test").set({
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          testWrite: true
+        });
+        console.log("Successfully wrote to Firestore with admin permissions");
+        
+        // Clean up test document
+        await adminDb.collection("_admin_setup").doc("_permissions_test").delete();
+      } catch (permissionError) {
+        console.error("Permission error when writing to Firestore:", permissionError);
+        return res.status(500).json({
+          success: false,
+          message: "Firebase Admin SDK has insufficient permissions. Please check your service account and Firestore rules.",
+          error: permissionError instanceof Error ? permissionError.message : String(permissionError)
+        });
+      }
       
       const usersSnapshot = await adminDb
         .collection("users")
@@ -108,7 +127,7 @@ export default async function handler(
           
           return res.status(200).json({ 
             success: true, 
-            message: `Admin user ${ownerEmail} has been successfully created`,
+            message: `Admin user ${ownerEmail} has been successfully created. You can now sign in with the default password.`,
             userId: userId,
             isNewUser: true
           });
@@ -139,7 +158,7 @@ export default async function handler(
 
         return res.status(200).json({ 
           success: true, 
-          message: `User ${ownerEmail} has been successfully made an admin`,
+          message: `User ${ownerEmail} has been successfully made an admin. You can now sign in.`,
           userId: userId,
           isNewUser: false
         });

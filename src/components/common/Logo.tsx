@@ -19,6 +19,7 @@ export default function Logo({
 }: LogoProps) {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   useEffect(() => {
     setMounted(true);
@@ -35,8 +36,6 @@ export default function Logo({
   }
   
   const isDark = theme === "dark" || resolvedTheme === "dark";
-  // Use the uploaded SVG icon
-  const logoSrc = "/icon-s-blue-m8umsa8t.svg";
   
   if (textOnly) {
     return (
@@ -48,6 +47,22 @@ export default function Logo({
     );
   }
   
+  // Fallback to a simple div if image fails to load
+  if (imageError) {
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        <div 
+          style={{ width, height }} 
+          className={`flex items-center justify-center rounded-full ${isDark ? "bg-primary/30" : "bg-primary/20"}`}
+        >
+          <span className="text-primary font-bold text-sm">Logo</span>
+        </div>
+      </div>
+    );
+  }
+  
+  const logoSrc = "/icon-s-blue-m8umsa8t.svg";
+  
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <Image 
@@ -56,6 +71,7 @@ export default function Logo({
         width={width} 
         height={height} 
         className="transition-all duration-200"
+        onError={() => setImageError(true)}
       />
       {showText && (
         <span className={`text-xl font-bold ${isDark ? "text-white" : "text-primary"}`}>

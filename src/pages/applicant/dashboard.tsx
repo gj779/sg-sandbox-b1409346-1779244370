@@ -229,7 +229,7 @@ export default function ApplicantDashboard() {
                 <Search className='mr-2 h-4 w-4' /> Find Jobs
               </Button>
             </Link>
-            <Link href='/applicant/create-resume'>
+            <Link href='/profile/edit'>
               <Button variant='outline'>
                 <User className='mr-2 h-4 w-4' /> Edit Profile
               </Button>

@@ -257,7 +257,7 @@ export default function RestaurantDashboard() {
                 <Plus className='mr-2 h-4 w-4' /> Post Job
               </Button>
             </Link>
-            <Link href='/restaurant/setup-profile'>
+            <Link href='/profile/edit'>
               <Button variant='outline'>
                 <Settings className='mr-2 h-4 w-4' /> Edit Profile
               </Button>

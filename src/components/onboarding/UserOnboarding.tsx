@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { 
@@ -354,7 +353,7 @@ export default function UserOnboarding() {
     
     try {
       // Prepare onboarding data based on user type
-      const onboardingData: Record<string, any> = isApplicant 
+      const onboardingData = isApplicant 
         ? {
             skills,
             experience,
@@ -363,7 +362,8 @@ export default function UserOnboarding() {
             bio,
             education,
             jobPreferences,
-            onboardingCompleted: true
+            // Add this to the user profile
+            profileComplete: true
           }
         : {
             location: preferredLocation,
@@ -372,7 +372,8 @@ export default function UserOnboarding() {
             hiringPositions: skills,
             jobTypes: jobPreferences,
             benefits: education,
-            onboardingCompleted: true
+            // Add this to the user profile
+            profileComplete: true
           };
       
       // Update user profile with onboarding data
@@ -400,7 +401,7 @@ export default function UserOnboarding() {
 
   const skipOnboarding = async () => {
     try {
-      await updateUserProfile({ onboardingCompleted: true });
+      await updateUserProfile({ profileComplete: true });
       router.push(isApplicant ? "/applicant/dashboard" : "/restaurant/dashboard");
     } catch (error) {
       console.error("Error skipping onboarding:", error);

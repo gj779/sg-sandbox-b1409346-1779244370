@@ -1,9 +1,8 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/router";
 
 // Define user types
-export type UserRole = "applicant" | "restaurant" | null;
+export type UserRole = "applicant" | "restaurant" | "admin" | null;
 
 export interface User {
   id: string;
@@ -16,7 +15,7 @@ export interface User {
 interface UserContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ userProfile: any, dashboardPath: string }>;
   register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -46,36 +45,66 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
 
-  // Mock login function
-  const login = async (email: string, password: string, role: UserRole): Promise<void> => {
+  // Login function
+  const login = async (email: string, password: string): Promise<{ userProfile: any, dashboardPath: string }> => {
     setIsLoading(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Create mock user
-    const mockUser: User = {
-      id: `user_${Math.random().toString(36).substring(2, 9)}`,
-      name: email.split("@")[0],
-      email,
-      role,
-      profileComplete: false
-    };
-    
-    // Save to state and localStorage
-    setUser(mockUser);
-    localStorage.setItem("staffspace_user", JSON.stringify(mockUser));
-    setIsLoading(false);
-    
-    // Redirect based on role
-    if (role === "applicant") {
-      router.push("/applicant/dashboard");
-    } else if (role === "restaurant") {
-      router.push("/restaurant/dashboard");
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Determine user role based on email (for demo purposes)
+      let role: UserRole = "applicant";
+      
+      // Check if it's the admin email
+      if (email.toLowerCase() === "staffspce@gmail.com") {
+        role = "admin";
+      } else if (email.includes("restaurant")) {
+        role = "restaurant";
+      }
+      
+      // Create mock user
+      const mockUser: User = {
+        id: `user_${Math.random().toString(36).substring(2, 9)}`,
+        name: email.split("@")[0],
+        email,
+        role,
+        profileComplete: false
+      };
+      
+      // Save to state and localStorage
+      setUser(mockUser);
+      localStorage.setItem("staffspace_user", JSON.stringify(mockUser));
+      
+      // Determine dashboard path based on role
+      let dashboardPath = "/";
+      if (role === "admin") {
+        dashboardPath = "/admin/dashboard";
+      } else if (role === "restaurant") {
+        dashboardPath = "/restaurant/dashboard";
+      } else if (role === "applicant") {
+        dashboardPath = "/applicant/dashboard";
+      }
+      
+      // Create a userProfile object that matches what the login page expects
+      const userProfile = {
+        id: mockUser.id,
+        email: mockUser.email,
+        userType: mockUser.role,
+        firstName: mockUser.name,
+        lastName: "",
+      };
+      
+      return { userProfile, dashboardPath };
+    } catch (error) {
+      console.error("Login error:", error);
+      throw new Error("Failed to sign in. Please check your credentials.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Mock register function
+  // Register function
   const register = async (name: string, email: string, password: string, role: UserRole): Promise<void> => {
     setIsLoading(true);
     

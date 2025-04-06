@@ -9,7 +9,7 @@ export default function HomePage() {
       <Head>
         <title>StaffSpace - Connect with Restaurant Jobs</title>
         <meta name="description" content="Find restaurant jobs or hire talented staff with StaffSpace - the premier platform for hospitality recruitment." />
-        <link rel="icon" href="/icon-s-blue-m8umsa8t.svg" />
+        <link rel="icon" href="/images/logo.svg" />
       </Head>
 
       {/* Hero Section */}

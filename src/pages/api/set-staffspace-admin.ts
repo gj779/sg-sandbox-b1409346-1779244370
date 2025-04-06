@@ -16,7 +16,7 @@ export default async function handler(
   try {
     const { secretKey } = req.body;
     // Use the correct email for the owner admin account
-    const ownerEmail = "staffspce@gmail.com";
+    const ownerEmail = "staffspace@gmail.com";
     const defaultPassword = "StaffSpace@Admin2025"; // Default password for initial setup
 
     // Validate inputs
@@ -167,15 +167,15 @@ export default async function handler(
       console.error("Admin SDK error:", adminError);
       return res.status(500).json({ 
         success: false, 
-        message: "Failed to make staffspce an admin", 
+        message: "Failed to make staffspace an admin", 
         error: adminError instanceof Error ? adminError.message : String(adminError) 
       });
     }
   } catch (error) {
-    console.error("Error making staffspce admin:", error);
+    console.error("Error making staffspace admin:", error);
     return res.status(500).json({ 
       success: false, 
-      message: "Failed to make staffspce an admin", 
+      message: "Failed to make staffspace an admin", 
       error: error instanceof Error ? error.message : String(error) 
     });
   }

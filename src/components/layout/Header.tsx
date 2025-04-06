@@ -148,7 +148,8 @@ export default function Header() {
                 <Button variant='ghost' size='icon'>
                   <User className='h-5 w-5' />
                   <span className='sr-only'>User menu</span>
-                </DropdownMenuTrigger>
+                </Button>
+              </DropdownMenuTrigger>
               <DropdownMenuContent align='end'>
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />

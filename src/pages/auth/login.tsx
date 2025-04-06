@@ -43,10 +43,12 @@ export default function LoginPage() {
     }
   }, [initialEmail]);
 
-  // Set default tab based on query parameter or if admin email is provided
+  // Set default tab based on query parameter
   const getDefaultTab = () => {
-    if (type === "admin" || (initialEmail && typeof initialEmail === 'string' && initialEmail.toLowerCase() === "staffspace@gmail.com")) {
-      return "admin";
+    // If admin type is requested, redirect to admin login page
+    if (type === "admin") {
+      router.push("/auth/admin-login");
+      return "applicant"; // Default while redirecting
     }
     return type as string || "applicant";
   };
@@ -59,6 +61,12 @@ export default function LoginPage() {
     try {
       // Sign in user
       const { userProfile, dashboardPath } = await login(email, password);
+      
+      // If this is an admin account, redirect to admin login
+      if (userProfile.userType === "admin") {
+        router.push("/auth/admin-login");
+        return;
+      }
       
       // Show success message
       toast({

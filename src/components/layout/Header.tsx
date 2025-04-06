@@ -46,7 +46,11 @@ export default function Header() {
   };
 
   const handleLogin = (type: 'applicant' | 'restaurant' | 'admin') => {
-    router.push(`/auth/login?type=${type}`);
+    if (type === 'admin') {
+      router.push(`/auth/admin-login`);
+    } else {
+      router.push(`/auth/login?type=${type}`);
+    }
   };
 
   const handleLogout = () => {

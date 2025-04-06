@@ -153,14 +153,23 @@ export default function Header() {
               <DropdownMenuContent align='end'>
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push(`/${user?.role}/profile`)}>
-                  Profile
+                <DropdownMenuItem onClick={() => router.push('/profile/edit')}>
+                  Edit Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push(`/${user?.role}/dashboard`)}>
+                <DropdownMenuItem onClick={() => {
+                  // Navigate to the appropriate dashboard based on user role
+                  if (user?.role === 'admin') {
+                    router.push('/admin/dashboard');
+                  } else if (user?.role === 'restaurant') {
+                    router.push('/restaurant/dashboard');
+                  } else if (user?.role === 'applicant') {
+                    router.push('/applicant/dashboard');
+                  }
+                }}>
                   Dashboard
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push(`/${user?.role}/settings`)}>
-                  Settings
+                <DropdownMenuItem onClick={() => router.push('/messaging')}>
+                  Messages
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>

@@ -1,4 +1,3 @@
-
 // User Types
 export interface User {
   id: string;
@@ -6,9 +5,10 @@ export interface User {
   name: string;
   photoURL?: string;
   phoneNumber?: string;
-  userType: "applicant" | "restaurant";
+  userType: "applicant" | "restaurant" | "admin";
   createdAt: Date;
   updatedAt: Date;
+  profileComplete?: boolean;
 }
 
 export interface Applicant extends User {

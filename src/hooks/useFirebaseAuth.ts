@@ -1,9 +1,34 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService, UserProfile } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useRouter } from "next/router";
+
+// Define a UserProfile type that matches what we're using in the app
+export interface UserProfile {
+  id?: string;
+  email?: string;
+  name?: string;
+  photoURL?: string;
+  phoneNumber?: string;
+  userType?: "applicant" | "restaurant" | "admin";
+  createdAt?: Date;
+  updatedAt?: Date;
+  profileComplete?: boolean;
+  // Add other fields that might be updated
+  skills?: string[];
+  experience?: string;
+  availability?: string[];
+  preferredLocation?: string;
+  bio?: string;
+  education?: string;
+  jobPreferences?: string[];
+  location?: string;
+  cuisineType?: string;
+  hiringPositions?: string[];
+  jobTypes?: string[];
+  benefits?: string;
+}
 
 interface AuthState {
   isAuthenticated: boolean;

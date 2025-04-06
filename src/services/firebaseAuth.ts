@@ -37,6 +37,20 @@ export interface UserProfile {
   createdAt: any;
   updatedAt: any;
   isActive: boolean;
+  // Add fields used in onboarding
+  skills?: string[];
+  experience?: string;
+  availability?: string[];
+  preferredLocation?: string;
+  bio?: string;
+  education?: string;
+  jobPreferences?: string[];
+  location?: string;
+  cuisineType?: string;
+  hiringPositions?: string[];
+  jobTypes?: string[];
+  benefits?: string;
+  profileComplete?: boolean;
 }
 
 export const firebaseAuthService = {
@@ -72,6 +86,20 @@ export const firebaseAuthService = {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       isActive: true,
+      // Initialize onboarding fields
+      skills: [],
+      experience: "",
+      availability: [],
+      preferredLocation: "",
+      bio: "",
+      education: "",
+      jobPreferences: [],
+      location: "",
+      cuisineType: "",
+      hiringPositions: [],
+      jobTypes: [],
+      benefits: "",
+      profileComplete: false,
     };
     
     await setDoc(doc(db, "users", user.uid), userProfile);

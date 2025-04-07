@@ -44,7 +44,8 @@ export default function NotificationBell() {
           const applications = await firebaseApplicationsService.getApplicationsByRestaurant(userProfile.id as string);
           // Only get recent applications (last 7 days)
           const recentApplications = applications.filter(app => {
-            const appDate = app.createdAt?.toDate ? app.createdAt.toDate() : new Date(app.createdAt);
+            // Use appliedAt instead of createdAt
+            const appDate = app.appliedAt?.toDate ? app.appliedAt.toDate() : new Date(app.appliedAt);
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
             return appDate > sevenDaysAgo;
@@ -56,7 +57,7 @@ export default function NotificationBell() {
             message: `You have a new application for job ID: ${app.jobId}`,
             type: "application",
             read: false,
-            timestamp: app.createdAt,
+            timestamp: app.appliedAt,
             link: `/restaurant/applications/${app.id}`
           }));
         } else if (userProfile.userType === "applicant") {
@@ -64,7 +65,7 @@ export default function NotificationBell() {
           // Only get applications with status updates
           const updatedApplications = applications.filter(app => 
             app.status !== "pending" && 
-            app.updatedAt !== app.createdAt
+            app.updatedAt !== app.appliedAt
           );
           
           applicationNotifications = updatedApplications.map(app => ({

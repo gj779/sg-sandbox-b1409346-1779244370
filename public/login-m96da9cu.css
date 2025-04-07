@@ -1,0 +1,32 @@
+.inputBox {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-content: center;
+    border: 1px solid black;
+    margin-left: 4px;
+    width: auto;
+
+}
+
+inputField:focus {
+    border: none;
+}
+
+.footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+/* .signInBtn {
+    width: 330px;
+    margin-left: 4px;
+}
+
+@media(max-width : 1080px) {
+    .signInBtn {
+        width: 240px;
+    }
+} */

@@ -1,0 +1,260 @@
+html {
+    box-sizing: border-box;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: "Roboto", sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+
+}
+
+
+.chat {
+    height: calc(100% - 69px);
+}
+
+.chat-container {
+    height: 100%;
+}
+
+
+.conversation {
+    height: calc(100% - 12px);
+    position: relative;
+    z-index: 0;
+}
+
+.conversation ::-webkit-scrollbar {
+    transition: all 1s;
+    width: 5px;
+    height: 1px;
+    z-index: 10;
+}
+
+.conversation ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+
+.conversation .conversation-container {
+    overflow-x: hidden;
+    padding: 48px 16px;
+    margin: 16px 496px 19px 196px;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 12px 800px !important;
+}
+
+.conversation .conversation-container:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+
+.message {
+    color: #000;
+    clear: both;
+    line-height: 18px;
+    font-size: 15px;
+    padding: 8px;
+    position: relative;
+    margin: 8px 0;
+    max-width: 85%;
+    word-wrap: break-word;
+    z-index: -1;
+}
+
+.message:after {
+    position: absolute;
+    content: "";
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.metadata {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 0 0 7px;
+    position: relative;
+    bottom: -4px;
+}
+
+.metadata .time {
+    color: rgba(0, 0, 0, .45);
+    font-size: 11px;
+    display: inline-block;
+}
+
+
+
+
+
+.message:first-child {
+    margin: 16px 0 8px;
+}
+
+.message.received {
+
+    border-radius: 10px 10px 10px 0;
+    float: left;
+}
+
+.message.received .metadata {
+    padding: 0 0 0 16px;
+}
+
+.message.received:after {
+    border-width: 0px 10px 10px 0;
+    border-color: transparent #fff transparent transparent;
+    top: 0;
+    left: -10px;
+}
+
+.message.sent {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    float: right;
+}
+
+.message.sent:after {
+    border-width: 0px 0 10px 10px;
+    border-color: transparent transparent transparent #e1ffc7;
+    top: 0;
+    right: -10px;
+}
+
+
+.conversation-compose {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    overflow: hidden;
+    height: 40px;
+    width: 100%;
+    z-index: 2;
+}
+
+.conversation-compose div,
+.conversation-compose input {
+    background: #fff;
+    height: 100%;
+}
+
+.conversation-compose .emoji {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 50% 0 0 50%;
+    flex: 0 0 auto;
+    margin-left: 8px;
+    width: 38px;
+    height: 38px;
+}
+
+.conversation-compose .input-msg {
+    border: 0;
+    flex: 1 1 auto;
+    font-size: 14px;
+    margin: 0;
+    outline: none;
+    min-width: 50px;
+    height: 36px;
+}
+
+.conversation-compose .photo {
+    flex: 0 0 auto;
+    border-radius: 0 30px 30px 0;
+    text-align: center;
+    width: auto;
+    display: flex;
+    padding-right: 6px;
+    height: 38px;
+}
+
+.conversation-compose .photo img {
+    display: block;
+    color: #7d8488;
+    font-size: 24px;
+    transform: translate(-50%, -50%);
+    position: relative;
+    top: 50%;
+    margin-left: 10px;
+}
+
+
+.conversation-compose .send {
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    flex: 0 0 auto;
+    margin-right: 8px;
+    padding: 0;
+    position: relative;
+    outline: none;
+    margin-left: .5rem;
+}
+
+.conversation-compose .send .circle {
+    background: #008a7c;
+    border-radius: 50%;
+    color: #fff;
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.conversation-compose .send .circle i {
+    font-size: 24px;
+    margin-left: 1px;
+}
+
+/* Small Screens */
+
+
+@media (max-width: 1700px) {
+    .conversation {
+        height: calc(100vh - 55px);
+    }
+
+    .conversation .conversation-container {
+        height: calc(100vh - 120px);
+        width: calc(100vw - 520px);
+        margin-left: 84px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .conversation {
+        height: calc(100vh - 55px);
+    }
+
+    .conversation .conversation-container {
+        height: calc(100vh - 120px);
+        width: calc(100vw - 180px);
+        margin-left: 48px;
+    }
+}
+
+@media (max-width: 768px) {
+    .conversation {
+        height: calc(100vh - 55px);
+    }
+
+    .conversation .conversation-container {
+        height: calc(100vh - 120px);
+        width: calc(100vw - 120px);
+        margin: 0;
+    }
+}

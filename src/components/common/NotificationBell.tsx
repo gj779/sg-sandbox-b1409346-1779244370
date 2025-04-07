@@ -92,7 +92,7 @@ export default function NotificationBell() {
           const applications = await firebaseApplicationsService.getApplicationsByApplicant(userProfile.id as string);
           // Only get applications with status updates
           const updatedApplications = applications.filter(app => 
-            app.status !== "pending" && 
+            app.status.toLowerCase() !== "pending" && 
             app.updatedAt !== app.appliedAt
           );
           

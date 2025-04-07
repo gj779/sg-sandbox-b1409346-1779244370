@@ -44,8 +44,21 @@ export default function NotificationBell() {
           const applications = await firebaseApplicationsService.getApplicationsByRestaurant(userProfile.id as string);
           // Only get recent applications (last 7 days)
           const recentApplications = applications.filter(app => {
-            // Use appliedAt instead of createdAt
-            const appDate = app.appliedAt?.toDate ? app.appliedAt.toDate() : new Date(app.appliedAt);
+            // Handle the appliedAt date properly
+            let appDate: Date;
+            if (app.appliedAt) {
+              // Check if it's a Firebase timestamp with toDate method
+              if (typeof app.appliedAt.toDate === 'function') {
+                appDate = app.appliedAt.toDate();
+              } else {
+                // It's already a Date or can be converted to one
+                appDate = new Date(app.appliedAt);
+              }
+            } else {
+              // Default to current date if no appliedAt
+              appDate = new Date();
+            }
+            
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
             return appDate > sevenDaysAgo;
@@ -95,8 +108,25 @@ export default function NotificationBell() {
         
         // Sort by timestamp (newest first)
         allNotifications.sort((a, b) => {
-          const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
-          const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
+          // Handle Firebase timestamps or Date objects
+          let timeA: number, timeB: number;
+          
+          if (a.timestamp) {
+            timeA = typeof a.timestamp.toMillis === 'function' 
+              ? a.timestamp.toMillis() 
+              : new Date(a.timestamp).getTime();
+          } else {
+            timeA = Date.now();
+          }
+          
+          if (b.timestamp) {
+            timeB = typeof b.timestamp.toMillis === 'function' 
+              ? b.timestamp.toMillis() 
+              : new Date(b.timestamp).getTime();
+          } else {
+            timeB = Date.now();
+          }
+          
           return timeB - timeA;
         });
         
@@ -141,7 +171,14 @@ export default function NotificationBell() {
   const formatTime = (timestamp: any) => {
     if (!timestamp) return "";
     
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    // Handle Firebase timestamps or Date objects
+    let date: Date;
+    if (typeof timestamp.toDate === 'function') {
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
+    
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.round(diffMs / 60000);

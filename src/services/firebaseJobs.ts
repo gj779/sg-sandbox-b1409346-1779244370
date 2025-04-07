@@ -60,9 +60,8 @@ export interface JobListingInput {
   description: string;
   location: string;
   salary?: {
-    min?: number;
-    max?: number;
-    rate: "hourly" | "yearly";
+    amount: number;
+    period: "Hourly" | "Daily" | "Weekly" | "Monthly" | "Yearly";
   };
   jobType: "full-time" | "part-time" | "contract" | "temporary";
   skills: string[];
@@ -94,6 +93,11 @@ export const firebaseJobsService = {
     }
   },
   
+  // Get a job listing by ID (alias for getJobListing)
+  async getJob(jobId: string): Promise<JobListing | null> {
+    return this.getJobListing(jobId);
+  },
+  
   // Update a job listing
   async updateJobListing(jobId: string, updates: Partial<JobListing>): Promise<void> {
     try {
@@ -102,6 +106,11 @@ export const firebaseJobsService = {
       console.error(`Error updating job listing with ID: ${jobId}:`, error);
       throw error;
     }
+  },
+  
+  // Update a job listing (alias for updateJobListing)
+  async updateJob(jobId: string, updates: Partial<JobListing>): Promise<void> {
+    return this.updateJobListing(jobId, updates);
   },
   
   // Delete a job listing

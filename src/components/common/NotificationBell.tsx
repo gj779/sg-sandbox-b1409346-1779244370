@@ -46,17 +46,32 @@ export default function NotificationBell() {
           const recentApplications = applications.filter(app => {
             // Handle the appliedAt date properly
             let appDate: Date;
-            if (app.appliedAt) {
+            
+            // First check if appliedAt exists
+            if (!app.appliedAt) {
+              return false;
+            }
+            
+            // Then handle different types of date values
+            if (typeof app.appliedAt === 'object' && app.appliedAt !== null) {
               // Check if it's a Firebase timestamp with toDate method
-              if (typeof app.appliedAt.toDate === 'function') {
+              if ('toDate' in app.appliedAt && typeof app.appliedAt.toDate === 'function') {
                 appDate = app.appliedAt.toDate();
+              } else if (app.appliedAt instanceof Date) {
+                // It's already a Date object
+                appDate = app.appliedAt;
               } else {
-                // It's already a Date or can be converted to one
+                // Try to convert to Date
                 appDate = new Date(app.appliedAt);
               }
             } else {
-              // Default to current date if no appliedAt
-              appDate = new Date();
+              // It's a string or number, convert to Date
+              appDate = new Date(app.appliedAt);
+            }
+            
+            // Check if the date is valid
+            if (isNaN(appDate.getTime())) {
+              return false;
             }
             
             const sevenDaysAgo = new Date();
@@ -112,7 +127,7 @@ export default function NotificationBell() {
           let timeA: number, timeB: number;
           
           if (a.timestamp) {
-            timeA = typeof a.timestamp.toMillis === 'function' 
+            timeA = typeof a.timestamp === 'object' && 'toMillis' in a.timestamp && typeof a.timestamp.toMillis === 'function'
               ? a.timestamp.toMillis() 
               : new Date(a.timestamp).getTime();
           } else {
@@ -120,7 +135,7 @@ export default function NotificationBell() {
           }
           
           if (b.timestamp) {
-            timeB = typeof b.timestamp.toMillis === 'function' 
+            timeB = typeof b.timestamp === 'object' && 'toMillis' in b.timestamp && typeof b.timestamp.toMillis === 'function'
               ? b.timestamp.toMillis() 
               : new Date(b.timestamp).getTime();
           } else {
@@ -173,10 +188,26 @@ export default function NotificationBell() {
     
     // Handle Firebase timestamps or Date objects
     let date: Date;
-    if (typeof timestamp.toDate === 'function') {
-      date = timestamp.toDate();
+    
+    if (typeof timestamp === 'object' && timestamp !== null) {
+      // Check if it's a Firebase timestamp with toDate method
+      if ('toDate' in timestamp && typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate();
+      } else if (timestamp instanceof Date) {
+        // It's already a Date object
+        date = timestamp;
+      } else {
+        // Try to convert to Date
+        date = new Date(timestamp);
+      }
     } else {
+      // It's a string or number, convert to Date
       date = new Date(timestamp);
+    }
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return "Unknown time";
     }
     
     const now = new Date();

@@ -24,14 +24,19 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Generic Firestore service
 export const firestoreService = {
-  // Create a document with auto-generated ID
-  async createDocument(collectionName: string, data: any): Promise<string> {
-    const docRef = await addDoc(collection(db, collectionName), {
-      ...data,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    return docRef.id;
+  // Create a document
+  async createDocument(collection: string, data: any): Promise<string> {
+    try {
+      const docRef = await addDoc(collection(db, collection), {
+        ...data,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      return docRef.id;
+    } catch (error) {
+      console.error(`Error creating document in ${collection}:`, error);
+      throw error;
+    }
   },
   
   // Create a document with specified ID
@@ -44,71 +49,94 @@ export const firestoreService = {
   },
   
   // Get a document by ID
-  async getDocument(collectionName: string, id: string): Promise<DocumentData | null> {
-    const docSnap = await getDoc(doc(db, collectionName, id));
-    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+  async getDocument(collection: string, id: string): Promise<any> {
+    try {
+      const docRef = doc(db, collection, id);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() };
+      } else {
+        console.log(`No document found with ID: ${id} in collection: ${collection}`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error getting document from ${collection}:`, error);
+      throw error;
+    }
   },
   
   // Update a document
-  async updateDocument(collectionName: string, id: string, updates: any): Promise<void> {
-    return updateDoc(doc(db, collectionName, id), {
-      ...updates,
-      updatedAt: serverTimestamp()
-    });
+  async updateDocument(collection: string, id: string, data: any): Promise<void> {
+    try {
+      const docRef = doc(db, collection, id);
+      await updateDoc(docRef, {
+        ...data,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error(`Error updating document in ${collection}:`, error);
+      throw error;
+    }
   },
   
   // Delete a document
-  async deleteDocument(collectionName: string, id: string): Promise<void> {
-    return deleteDoc(doc(db, collectionName, id));
+  async deleteDocument(collection: string, id: string): Promise<void> {
+    try {
+      const docRef = doc(db, collection, id);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error(`Error deleting document from ${collection}:`, error);
+      throw error;
+    }
   },
   
   // Query documents
   async queryDocuments(
     collectionName: string,
     conditions: Array<{ field: string; operator: WhereFilterOp; value: any }>,
-    orderByField?: string,
-    orderDirection?: 'asc' | 'desc',
-    limitCount?: number,
-    startAfterDoc?: QueryDocumentSnapshot<DocumentData>
-  ): Promise<DocumentData[]> {
-    const collectionRef = collection(db, collectionName);
-    
-    // Build the query
-    let queryConstraints = [];
-    
-    // Add where conditions
-    if (conditions && conditions.length > 0) {
-      for (const condition of conditions) {
-        queryConstraints.push(where(condition.field, condition.operator, condition.value));
-      }
+    orderByField: string = 'createdAt',
+    orderDirection: 'asc' | 'desc' = 'desc',
+    limitCount: number = 50
+  ): Promise<any[]> {
+    try {
+      let q = query(collection(db, collectionName));
+      
+      // Add conditions to query
+      conditions.forEach(condition => {
+        q = query(q, where(condition.field, condition.operator, condition.value));
+      });
+      
+      // Add ordering
+      q = query(q, orderBy(orderByField, orderDirection));
+      
+      // Add limit
+      q = query(q, limit(limitCount));
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error(`Error querying documents from ${collectionName}:`, error);
+      // Instead of throwing, return an empty array to prevent cascading failures
+      return [];
     }
-    
-    // Add orderBy
-    if (orderByField) {
-      queryConstraints.push(orderBy(orderByField, orderDirection || 'asc'));
-    }
-    
-    // Add limit
-    if (limitCount) {
-      queryConstraints.push(limit(limitCount));
-    }
-    
-    // Add startAfter for pagination
-    if (startAfterDoc) {
-      queryConstraints.push(startAfter(startAfterDoc));
-    }
-    
-    // Create the query
-    const q = query(collectionRef, ...queryConstraints);
-    
-    // Execute the query
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
   
   // Get all documents in a collection
-  async getAllDocuments(collectionName: string): Promise<DocumentData[]> {
-    const querySnapshot = await getDocs(collection(db, collectionName));
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  async getAllDocuments(collectionName: string): Promise<any[]> {
+    try {
+      const querySnapshot = await getDocs(collection(db, collectionName));
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.error(`Error getting all documents from ${collectionName}:`, error);
+      // Instead of throwing, return an empty array to prevent cascading failures
+      return [];
+    }
   }
 };

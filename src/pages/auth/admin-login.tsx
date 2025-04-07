@@ -52,8 +52,12 @@ export default function AdminLoginPage() {
         variant: "default",
       });
 
+      console.log("Admin login successful, redirecting to dashboard");
+      
       // Redirect to admin dashboard - force the path to be the admin dashboard
-      router.push("/admin/dashboard");
+      setTimeout(() => {
+        router.push("/admin/dashboard");
+      }, 500);
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.message || "Failed to sign in. Please check your credentials.");

@@ -111,7 +111,7 @@ export interface JobListing {
   requirements: string[];
   location: string;
   cuisineType: string[];
-  jobType: "Full-time" | "Part-time" | "Temporary" | "Event" | "Seasonal";
+  jobType: "Full-time" | "Part-time" | "Temporary" | "Event" | "Seasonal" | "full-time" | "part-time" | "contract" | "temporary";
   salary?: {
     amount: number;
     period: "Hourly" | "Daily" | "Weekly" | "Monthly" | "Yearly";

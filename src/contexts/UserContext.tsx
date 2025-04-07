@@ -30,19 +30,25 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   // Check for existing session on mount
   useEffect(() => {
-    // In a real app, this would check localStorage or a token cookie
-    const storedUser = localStorage.getItem("staffspace_user");
-    
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse stored user", error);
-        localStorage.removeItem("staffspace_user");
+    try {
+      // In a real app, this would check localStorage or a token cookie
+      const storedUser = typeof window !== 'undefined' ? localStorage.getItem('staffspace_user') : null;
+      
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (error) {
+          console.error('Failed to parse stored user', error);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('staffspace_user');
+          }
+        }
       }
+    } catch (error) {
+      console.error('Error checking authentication:', error);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   }, []);
 
   // Login function
@@ -54,22 +60,20 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Determine user role based on email (for demo purposes)
-      let role: UserRole = "applicant";
+      let role: UserRole = 'applicant';
       
       // Check if it's the admin email - ensure lowercase comparison
-      if (email.toLowerCase() === "staffspace@gmail.com") {
-        role = "admin";
-        console.log("Admin login detected");
-      } else if (email.includes("restaurant")) {
-        role = "restaurant";
+      if (email.toLowerCase() === 'staffspace@gmail.com') {
+        role = 'admin';
+        console.log('Admin login detected');
+      } else if (email.includes('restaurant')) {
+        role = 'restaurant';
       }
-      
-      console.log("Determined user role:", role); // Debug log
       
       // Create mock user
       const mockUser: User = {
         id: `user_${Math.random().toString(36).substring(2, 9)}`,
-        name: email.split("@")[0],
+        name: email.split('@')[0],
         email,
         role,
         profileComplete: false
@@ -77,34 +81,33 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       
       // Save to state and localStorage
       setUser(mockUser);
-      localStorage.setItem("staffspace_user", JSON.stringify(mockUser));
-      
-      // Determine dashboard path based on role
-      let dashboardPath = "/";
-      if (role === "admin") {
-        dashboardPath = "/admin/dashboard";
-        console.log("Setting admin dashboard path:", dashboardPath);
-      } else if (role === "restaurant") {
-        dashboardPath = "/restaurant/dashboard";
-      } else if (role === "applicant") {
-        dashboardPath = "/applicant/dashboard";
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('staffspace_user', JSON.stringify(mockUser));
       }
       
-      console.log("Redirecting to dashboard:", dashboardPath); // Debug log
+      // Determine dashboard path based on role
+      let dashboardPath = '/';
+      if (role === 'admin') {
+        dashboardPath = '/admin/dashboard';
+      } else if (role === 'restaurant') {
+        dashboardPath = '/restaurant/dashboard';
+      } else if (role === 'applicant') {
+        dashboardPath = '/applicant/dashboard';
+      }
       
       // Create a userProfile object that matches what the login page expects
       const userProfile = {
         id: mockUser.id,
         email: mockUser.email,
-        userType: mockUser.role, // Ensure this is correctly set
+        userType: mockUser.role,
         firstName: mockUser.name,
-        lastName: "",
+        lastName: '',
       };
       
       return { userProfile, dashboardPath };
     } catch (error) {
-      console.error("Login error:", error);
-      throw new Error("Failed to sign in. Please check your credentials.");
+      console.error('Login error:', error);
+      throw new Error('Failed to sign in. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -144,7 +147,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   // Logout function
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("staffspace_user");
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('staffspace_user');
+    }
     router.push("/");
   };
 

@@ -29,129 +29,145 @@ export default function AdminDashboard() {
   const [dataError, setDataError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is admin
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        console.log("User is not authenticated, redirecting to login");
-        router.push("/auth/admin-login");
-        return;
-      }
-      
-      if (user?.role !== "admin") {
-        console.log("User is not admin, redirecting to home");
-        router.push("/");
-        return;
-      }
-    }
-
-    const fetchAdminData = async () => {
-      setIsLoadingData(true);
-      setDataError(null);
-      
-      try {
-        // Use mock data directly to avoid Firestore errors
-        const statsData = {
-          totalUsers: 3,
-          totalApplicants: 1,
-          totalRestaurants: 1,
-          totalJobs: 5,
-          totalApplications: 12,
-          activeJobs: 3
+    // Wrap in try/catch to prevent unhandled errors
+    try {
+      // Only proceed with checks if authentication state is determined
+      if (!isLoading) {
+        if (!isAuthenticated) {
+          console.log('User is not authenticated, redirecting to login');
+          router.push('/auth/admin-login');
+          return;
+        }
+        
+        if (!user || user.role !== 'admin') {
+          console.log('User is not admin, redirecting to home');
+          router.push('/');
+          return;
+        }
+        
+        // Only fetch data if user is authenticated and is admin
+        const fetchAdminData = async () => {
+          setIsLoadingData(true);
+          setDataError(null);
+          
+          try {
+            // Use mock data directly to avoid Firestore errors
+            const statsData = {
+              totalUsers: 3,
+              totalApplicants: 1,
+              totalRestaurants: 1,
+              totalJobs: 5,
+              totalApplications: 12,
+              activeJobs: 3
+            };
+            
+            const activityData = [
+              {
+                type: 'user_registered',
+                entityId: 'user1',
+                timestamp: new Date(),
+                data: {
+                  id: 'user1',
+                  firstName: 'John',
+                  lastName: 'Doe',
+                  userType: 'applicant'
+                }
+              },
+              {
+                type: 'job_created',
+                entityId: 'job1',
+                timestamp: new Date(Date.now() - 86400000),
+                data: {
+                  id: 'job1',
+                  title: 'Head Chef'
+                }
+              },
+              {
+                type: 'application_submitted',
+                entityId: 'app1',
+                timestamp: new Date(Date.now() - 172800000),
+                data: {
+                  id: 'app1',
+                  jobId: 'job1'
+                }
+              }
+            ];
+            
+            setStats(statsData);
+            setRecentActivity(activityData);
+          } catch (error) {
+            console.error('Error fetching admin data:', error);
+            setDataError('Failed to load dashboard data. Using sample data instead.');
+            
+            // Set default mock data if there's an error
+            setStats({
+              totalUsers: 3,
+              totalApplicants: 1,
+              totalRestaurants: 1,
+              totalJobs: 5,
+              totalApplications: 12,
+              activeJobs: 3
+            });
+            
+            setRecentActivity([
+              {
+                type: 'user_registered',
+                entityId: 'user1',
+                timestamp: new Date(),
+                data: {
+                  id: 'user1',
+                  firstName: 'John',
+                  lastName: 'Doe',
+                  userType: 'applicant'
+                }
+              },
+              {
+                type: 'job_created',
+                entityId: 'job1',
+                timestamp: new Date(Date.now() - 86400000),
+                data: {
+                  id: 'job1',
+                  title: 'Head Chef'
+                }
+              }
+            ]);
+          } finally {
+            setIsLoadingData(false);
+          }
         };
         
-        const activityData = [
-          {
-            type: "user_registered",
-            entityId: "user1",
-            timestamp: new Date(),
-            data: {
-              id: "user1",
-              firstName: "John",
-              lastName: "Doe",
-              userType: "applicant"
-            }
-          },
-          {
-            type: "job_created",
-            entityId: "job1",
-            timestamp: new Date(Date.now() - 86400000),
-            data: {
-              id: "job1",
-              title: "Head Chef"
-            }
-          },
-          {
-            type: "application_submitted",
-            entityId: "app1",
-            timestamp: new Date(Date.now() - 172800000),
-            data: {
-              id: "app1",
-              jobId: "job1"
-            }
-          }
-        ];
-        
-        setStats(statsData);
-        setRecentActivity(activityData);
-      } catch (error) {
-        console.error("Error fetching admin data:", error);
-        setDataError("Failed to load dashboard data. Using sample data instead.");
-        
-        // Set default mock data if there's an error
-        setStats({
-          totalUsers: 3,
-          totalApplicants: 1,
-          totalRestaurants: 1,
-          totalJobs: 5,
-          totalApplications: 12,
-          activeJobs: 3
-        });
-        
-        setRecentActivity([
-          {
-            type: "user_registered",
-            entityId: "user1",
-            timestamp: new Date(),
-            data: {
-              id: "user1",
-              firstName: "John",
-              lastName: "Doe",
-              userType: "applicant"
-            }
-          },
-          {
-            type: "job_created",
-            entityId: "job1",
-            timestamp: new Date(Date.now() - 86400000),
-            data: {
-              id: "job1",
-              title: "Head Chef"
-            }
-          }
-        ]);
-      } finally {
-        setIsLoadingData(false);
+        fetchAdminData();
       }
-    };
-
-    if (!isLoading && isAuthenticated && user?.role === "admin") {
-      fetchAdminData();
+    } catch (error) {
+      console.error('Error in admin dashboard effect:', error);
+      // Prevent infinite redirect loops
+      if (router.pathname !== '/') {
+        router.push('/');
+      }
     }
   }, [isLoading, isAuthenticated, user, router]);
 
+  // Safe early return while loading
   if (isLoading || isLoadingData) {
     return (
-      <div className="container flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="text-muted-foreground">Loading admin dashboard...</p>
+      <div className='container flex items-center justify-center min-h-screen'>
+        <div className='flex flex-col items-center gap-2'>
+          <div className='h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent'></div>
+          <p className='text-muted-foreground'>Loading admin dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (!user || user.role !== "admin") {
-    return null; // Will redirect in useEffect
+  // Safe early return if not admin
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className='container flex items-center justify-center min-h-screen'>
+        <div className='flex flex-col items-center gap-2'>
+          <p className='text-muted-foreground'>Redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   const formatDate = (timestamp: any) => {

@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { firebaseAdminService } from "@/services/firebaseAdmin";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { useUser } from "@/contexts/UserContext";
 import { 
   Users, 
   Briefcase, 
@@ -23,7 +22,7 @@ import {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user, userProfile, isLoading } = useFirebaseAuth();
+  const { user, isAuthenticated, isLoading } = useUser();
   const [stats, setStats] = useState<any>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -32,28 +31,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Check if user is admin
     if (!isLoading) {
-      if (!userProfile) {
-        // Try to check from UserContext if Firebase auth is not working
-        const storedUser = localStorage.getItem("staffspace_user");
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            if (parsedUser.role !== "admin") {
-              console.log("User is not admin, redirecting to home");
-              router.push("/");
-              return;
-            }
-          } catch (error) {
-            console.error("Failed to parse stored user", error);
-            router.push("/");
-            return;
-          }
-        } else {
-          console.log("No user found, redirecting to home");
-          router.push("/");
-          return;
-        }
-      } else if (userProfile.userType !== "admin") {
+      if (!isAuthenticated) {
+        console.log("User is not authenticated, redirecting to login");
+        router.push("/auth/admin-login");
+        return;
+      }
+      
+      if (user?.role !== "admin") {
         console.log("User is not admin, redirecting to home");
         router.push("/");
         return;
@@ -150,10 +134,10 @@ export default function AdminDashboard() {
       }
     };
 
-    if (!isLoading) {
+    if (!isLoading && isAuthenticated && user?.role === "admin") {
       fetchAdminData();
     }
-  }, [isLoading, userProfile, router]);
+  }, [isLoading, isAuthenticated, user, router]);
 
   if (isLoading || isLoadingData) {
     return (
@@ -166,21 +150,43 @@ export default function AdminDashboard() {
     );
   }
 
-  if (!userProfile || userProfile.userType !== "admin") {
+  if (!user || user.role !== "admin") {
     return null; // Will redirect in useEffect
   }
 
   const formatDate = (timestamp: any) => {
-    if (!timestamp) return "N/A";
+    if (!timestamp) return 'N/A';
     
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+    try {
+      // Handle Firestore timestamp (has toDate method)
+      if (timestamp && typeof timestamp.toDate === 'function') {
+        return new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).format(timestamp.toDate());
+      }
+      
+      // Handle JavaScript Date object or timestamp that can be converted to Date
+      const date = new Date(timestamp);
+      if (!isNaN(date.getTime())) {
+        return new Intl.DateTimeFormat('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).format(date);
+      }
+      
+      // If we can't format it, return a fallback
+      return 'Invalid date';
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Error formatting date';
+    }
   };
 
   const getActivityIcon = (type: string) => {

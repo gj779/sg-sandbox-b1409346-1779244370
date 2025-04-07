@@ -83,6 +83,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       let dashboardPath = "/";
       if (role === "admin") {
         dashboardPath = "/admin/dashboard";
+        console.log("Setting admin dashboard path:", dashboardPath);
       } else if (role === "restaurant") {
         dashboardPath = "/restaurant/dashboard";
       } else if (role === "applicant") {

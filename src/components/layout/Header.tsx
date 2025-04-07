@@ -60,6 +60,7 @@ export default function Header() {
   const navigateToDashboard = () => {
     // Navigate to the appropriate dashboard based on user role
     if (user?.role === 'admin') {
+      console.log('Navigating to admin dashboard from header');
       router.push('/admin/dashboard');
     } else if (user?.role === 'restaurant') {
       router.push('/restaurant/dashboard');

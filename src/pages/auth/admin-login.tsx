@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -53,9 +52,8 @@ export default function AdminLoginPage() {
         variant: "default",
       });
 
-      // Redirect to admin dashboard
-      const redirectPath = (redirect as string) || dashboardPath;
-      router.push(redirectPath);
+      // Redirect to admin dashboard - force the path to be the admin dashboard
+      router.push("/admin/dashboard");
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.message || "Failed to sign in. Please check your credentials.");

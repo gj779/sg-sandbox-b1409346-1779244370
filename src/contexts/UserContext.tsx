@@ -36,7 +36,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       
       if (storedUser) {
         try {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          // Validate the user object has required fields
+          if (parsedUser && parsedUser.id && parsedUser.email && parsedUser.role) {
+            setUser(parsedUser);
+          } else {
+            console.error('Invalid user data in localStorage');
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('staffspace_user');
+            }
+          }
         } catch (error) {
           console.error('Failed to parse stored user', error);
           if (typeof window !== 'undefined') {
@@ -53,6 +62,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   // Login function
   const login = async (email: string, password: string): Promise<{ userProfile: any, dashboardPath: string }> => {
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+    
     setIsLoading(true);
     
     try {
@@ -115,42 +128,60 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   // Register function
   const register = async (name: string, email: string, password: string, role: UserRole): Promise<void> => {
+    if (!name || !email || !password || !role) {
+      throw new Error('All fields are required for registration');
+    }
+    
     setIsLoading(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Create mock user
-    const mockUser: User = {
-      id: `user_${Math.random().toString(36).substring(2, 9)}`,
-      name,
-      email,
-      role,
-      profileComplete: false
-    };
-    
-    // Save to state and localStorage
-    setUser(mockUser);
-    localStorage.setItem("staffspace_user", JSON.stringify(mockUser));
-    setIsLoading(false);
-    
-    // Redirect based on role
-    if (role === "applicant") {
-      router.push("/applicant/create-resume");
-    } else if (role === "restaurant") {
-      router.push("/restaurant/setup-profile");
-    } else if (role === "admin") {
-      router.push("/admin/dashboard");
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Create mock user
+      const mockUser: User = {
+        id: `user_${Math.random().toString(36).substring(2, 9)}`,
+        name,
+        email,
+        role,
+        profileComplete: false
+      };
+      
+      // Save to state and localStorage
+      setUser(mockUser);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('staffspace_user', JSON.stringify(mockUser));
+      }
+      
+      // Redirect based on role
+      if (role === 'applicant') {
+        router.push('/applicant/create-resume');
+      } else if (role === 'restaurant') {
+        router.push('/restaurant/setup-profile');
+      } else if (role === 'admin') {
+        router.push('/admin/dashboard');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw new Error('Failed to register. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Logout function
   const logout = () => {
-    setUser(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('staffspace_user');
+    try {
+      setUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('staffspace_user');
+      }
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, still try to clear the user state
+      setUser(null);
     }
-    router.push("/");
   };
 
   return (
@@ -173,7 +204,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider");
+    throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 };

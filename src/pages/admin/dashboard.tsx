@@ -20,11 +20,60 @@ import {
   CalendarClock
 } from "lucide-react";
 
+// Define proper types for dashboard data
+interface DashboardStats {
+  totalUsers: number;
+  totalApplicants: number;
+  totalRestaurants: number;
+  totalJobs: number;
+  totalApplications: number;
+  activeJobs: number;
+}
+
+// Define activity types
+type ActivityType = "user_registered" | "job_created" | "application_submitted";
+
+// Define data structure for each activity type
+interface BaseActivity {
+  type: ActivityType;
+  entityId: string;
+  timestamp: Date;
+}
+
+interface UserRegisteredActivity extends BaseActivity {
+  type: "user_registered";
+  data: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    userType: string;
+  };
+}
+
+interface JobCreatedActivity extends BaseActivity {
+  type: "job_created";
+  data: {
+    id: string;
+    title: string;
+  };
+}
+
+interface ApplicationSubmittedActivity extends BaseActivity {
+  type: "application_submitted";
+  data: {
+    id: string;
+    jobId: string;
+  };
+}
+
+// Union type for all activity types
+type Activity = UserRegisteredActivity | JobCreatedActivity | ApplicationSubmittedActivity;
+
 export default function AdminDashboard() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useUser();
-  const [stats, setStats] = useState<any>(null);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
@@ -52,7 +101,7 @@ export default function AdminDashboard() {
           
           try {
             // Use mock data directly to avoid Firestore errors
-            const statsData = {
+            const statsData: DashboardStats = {
               totalUsers: 3,
               totalApplicants: 1,
               totalRestaurants: 1,
@@ -61,7 +110,7 @@ export default function AdminDashboard() {
               activeJobs: 3
             };
             
-            const activityData = [
+            const activityData: Activity[] = [
               {
                 type: 'user_registered',
                 entityId: 'user1',
@@ -170,7 +219,7 @@ export default function AdminDashboard() {
     );
   }
 
-  const formatDate = (timestamp: any) => {
+  const formatDate = (timestamp: Date | null | undefined) => {
     if (!timestamp) return 'N/A';
     
     try {
@@ -205,7 +254,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const getActivityIcon = (type: string) => {
+  const getActivityIcon = (type: ActivityType) => {
     switch (type) {
       case "user_registered":
         return <UserPlus className="h-5 w-5 text-green-500" />;
@@ -218,7 +267,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const getActivityTitle = (activity: any) => {
+  const getActivityTitle = (activity: Activity) => {
     switch (activity.type) {
       case "user_registered":
         return `New ${activity.data.userType}: ${activity.data.firstName} ${activity.data.lastName}`;

@@ -224,18 +224,19 @@ export default function AdminDashboard() {
     
     try {
       // Handle Firestore timestamp (has toDate method)
-      if (timestamp && typeof timestamp.toDate === 'function') {
+      // Check if it's a Firestore timestamp (has toDate method)
+      if (timestamp && typeof (timestamp as any).toDate === 'function') {
         return new Intl.DateTimeFormat('en-US', {
           year: 'numeric',
           month: 'short',
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit'
-        }).format(timestamp.toDate());
+        }).format((timestamp as any).toDate());
       }
       
       // Handle JavaScript Date object or timestamp that can be converted to Date
-      const date = new Date(timestamp);
+      const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
       if (!isNaN(date.getTime())) {
         return new Intl.DateTimeFormat('en-US', {
           year: 'numeric',

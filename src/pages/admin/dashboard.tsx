@@ -77,6 +77,29 @@ export default function AdminDashboard() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
+  // Safe navigation function to prevent errors when navigating to non-existent routes
+  const safeNavigate = (path: string) => {
+    try {
+      // List of valid routes that exist in the application
+      const validRoutes = [
+        "/admin/users",
+        "/admin/jobs",
+        "/admin/reports",
+        "/admin/settings"
+      ];
+      
+      if (validRoutes.includes(path)) {
+        router.push(path);
+      } else {
+        console.log(`Route ${path} is not implemented yet`);
+        // Show an alert to inform the user
+        alert(`This feature (${path}) is not available yet.`);
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
+
   useEffect(() => {
     // Wrap in try/catch to prevent unhandled errors
     try {
@@ -297,11 +320,11 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => router.push("/admin/users")}>
+            <Button onClick={() => safeNavigate("/admin/users")}>
               <Users className="mr-2 h-4 w-4" />
               Manage Users
             </Button>
-            <Button onClick={() => router.push("/admin/jobs")}>
+            <Button onClick={() => safeNavigate("/admin/jobs")}>
               <Briefcase className="mr-2 h-4 w-4" />
               Manage Jobs
             </Button>
@@ -424,7 +447,7 @@ export default function AdminDashboard() {
                 <Button 
                   variant="outline" 
                   className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => router.push("/admin/users/create")}
+                  onClick={() => safeNavigate("/admin/users/create")}
                 >
                   <UserPlus className="h-6 w-6" />
                   <span className="text-sm">Add User</span>
@@ -433,7 +456,7 @@ export default function AdminDashboard() {
                 <Button 
                   variant="outline" 
                   className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => router.push("/admin/jobs/review")}
+                  onClick={() => safeNavigate("/admin/jobs/review")}
                 >
                   <CheckCircle className="h-6 w-6" />
                   <span className="text-sm">Review Jobs</span>
@@ -442,7 +465,7 @@ export default function AdminDashboard() {
                 <Button 
                   variant="outline" 
                   className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => router.push("/admin/reports")}
+                  onClick={() => safeNavigate("/admin/reports")}
                 >
                   <AlertTriangle className="h-6 w-6" />
                   <span className="text-sm">View Reports</span>
@@ -451,7 +474,7 @@ export default function AdminDashboard() {
                 <Button 
                   variant="outline" 
                   className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => router.push("/admin/settings")}
+                  onClick={() => safeNavigate("/admin/settings")}
                 >
                   <Building className="h-6 w-6" />
                   <span className="text-sm">Platform Settings</span>

@@ -65,20 +65,56 @@ export function useFirebaseAuth() {
           // Get user profile from Firestore
           const userProfile = await firebaseAuthService.getUserProfile(user.uid);
           
-          setAuthState({
-            isAuthenticated: true,
-            user,
-            userProfile,
-            isLoading: false,
-            error: null,
-          });
+          // If we got a profile back, set it in state
+          if (userProfile) {
+            setAuthState({
+              isAuthenticated: true,
+              user,
+              userProfile,
+              isLoading: false,
+              error: null,
+            });
+          } else {
+            // If no profile, create a mock profile with basic user info
+            const mockProfile: UserProfile = {
+              id: user.uid,
+              email: user.email || "",
+              firstName: user.displayName?.split(' ')[0] || "",
+              lastName: user.displayName?.split(' ')[1] || "",
+              userType: "applicant", // Default type
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            };
+            
+            setAuthState({
+              isAuthenticated: true,
+              user,
+              userProfile: mockProfile,
+              isLoading: false,
+              error: "Profile data incomplete. Some features may be limited.",
+            });
+          }
         } catch (error) {
+          console.error("Error loading user profile:", error);
+          // Create a fallback profile with basic user info
+          const fallbackProfile: UserProfile = {
+            id: user.uid,
+            email: user.email || "",
+            firstName: user.displayName?.split(' ')[0] || "",
+            lastName: user.displayName?.split(' ')[1] || "",
+            userType: "applicant", // Default type
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          
           setAuthState({
             isAuthenticated: true,
             user,
-            userProfile: null,
+            userProfile: fallbackProfile,
             isLoading: false,
-            error: "Failed to load user profile",
+            error: "Failed to load complete user profile. Using limited profile data.",
           });
         }
       } else {
@@ -104,6 +140,15 @@ export function useFirebaseAuth() {
       
       // Get the correct dashboard path based on user type
       const dashboardPath = firebaseAuthService.getDashboardPath(userProfile?.userType);
+      
+      // Update auth state with user info
+      setAuthState({
+        isAuthenticated: true,
+        user,
+        userProfile,
+        isLoading: false,
+        error: null,
+      });
       
       // Return both the user profile and the dashboard path
       return { userProfile, dashboardPath };
@@ -131,10 +176,14 @@ export function useFirebaseAuth() {
     try {
       const result = await firebaseAuthService.registerUser(userData);
       
-      setAuthState(prev => ({
-        ...prev,
+      // Update auth state with new user
+      setAuthState({
+        isAuthenticated: true,
+        user: result.user,
+        userProfile: result.userProfile,
         isLoading: false,
-      }));
+        error: null,
+      });
       
       return result;
     } catch (error: any) {
@@ -153,6 +202,15 @@ export function useFirebaseAuth() {
     
     try {
       await firebaseAuthService.signOut();
+      
+      // Clear auth state
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        userProfile: null,
+        isLoading: false,
+        error: null,
+      });
       
       router.push("/");
     } catch (error: any) {
@@ -219,10 +277,12 @@ export function useFirebaseAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      // Create a mock updated profile as a fallback
-      const mockUpdatedProfile: UserProfile = {
-        ...authState.userProfile,
+      // Create a merged profile as a fallback
+      const mergedProfile: UserProfile = {
+        ...(authState.userProfile || {}),
         ...updates,
+        id: authState.user.uid,
+        email: authState.user.email || "",
         updatedAt: new Date()
       } as UserProfile;
       
@@ -232,33 +292,25 @@ export function useFirebaseAuth() {
       try {
         // Call the Firebase service to update the profile
         updatedProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, updates);
-        
-        // If Firebase update succeeds, update the local state
-        if (updatedProfile) {
-          setAuthState(prev => ({
-            ...prev,
-            userProfile: updatedProfile,
-            isLoading: false,
-            error: null,
-          }));
-          
-          return updatedProfile;
-        }
       } catch (firebaseError) {
         console.error('Firebase update failed:', firebaseError);
-        // If Firebase update fails, we'll fall back to the mock update
+        // Continue with fallback - we'll handle this below
       }
       
-      // If Firebase update fails or returns null, use the mock update
+      // If Firebase update succeeds, use that profile, otherwise use our merged profile
+      const finalProfile = updatedProfile || mergedProfile;
+      
+      // Update the local state
       setAuthState(prev => ({
         ...prev,
-        userProfile: mockUpdatedProfile,
+        userProfile: finalProfile,
         isLoading: false,
-        error: null,
+        error: updatedProfile ? null : "Profile updated locally only. Changes may not persist after logout.",
       }));
       
-      return mockUpdatedProfile;
+      return finalProfile;
     } catch (error: any) {
+      console.error("Profile update error:", error);
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
@@ -268,6 +320,36 @@ export function useFirebaseAuth() {
     }
   }, [authState.user, authState.userProfile]);
 
+  // Refresh user profile - useful when profile data might have changed
+  const refreshUserProfile = useCallback(async () => {
+    if (!authState.user?.uid) {
+      return null;
+    }
+    
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      const userProfile = await firebaseAuthService.getUserProfile(authState.user.uid);
+      
+      setAuthState(prev => ({
+        ...prev,
+        userProfile,
+        isLoading: false,
+        error: userProfile ? null : "Failed to refresh user profile",
+      }));
+      
+      return userProfile;
+    } catch (error: any) {
+      console.error("Error refreshing profile:", error);
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.message || "Failed to refresh user profile",
+      }));
+      return null;
+    }
+  }, [authState.user]);
+
   return {
     ...authState,
     signIn,
@@ -276,5 +358,6 @@ export function useFirebaseAuth() {
     forgotPassword,
     resetPassword,
     updateUserProfile,
+    refreshUserProfile,
   };
 }

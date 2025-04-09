@@ -42,8 +42,11 @@ import {
   Phone, 
   Mail, 
   Save,
-  Loader2
+  Loader2,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Define form schemas for different user types
 const applicantProfileSchema = z.object({
@@ -73,12 +76,14 @@ const restaurantProfileSchema = z.object({
 type ProfileFormValues = z.infer<typeof applicantProfileSchema> | z.infer<typeof restaurantProfileSchema>;
 
 export default function EditProfilePage() {
-  const { userProfile, updateUserProfile } = useFirebaseAuth();
+  const { userProfile, updateUserProfile, error, refreshUserProfile } = useFirebaseAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [userType, setUserType] = useState<"applicant" | "restaurant" | "admin" | undefined>(undefined);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Determine which schema to use based on user type
   const formSchema = userType === "applicant" 
@@ -96,6 +101,26 @@ export default function EditProfilePage() {
       // We'll set the type-specific fields in the useEffect
     },
   });
+
+  // Handle refreshing profile data
+  const handleRefreshProfile = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshUserProfile();
+      toast({
+        title: "Profile refreshed",
+        description: "Your profile data has been refreshed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh profile data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Load user profile data into form
   useEffect(() => {
@@ -122,18 +147,35 @@ export default function EditProfilePage() {
         form.setValue("businessDescription", userProfile.bio || "");
         form.setValue("cuisineType", userProfile.cuisineType || "");
       }
+    } else if (!isLoading) {
+      // If we're not loading and there's no profile, there's a problem
+      setFormError("Could not load profile data. Please try refreshing or logging in again.");
     }
-  }, [userProfile, form]);
+  }, [userProfile, form, isLoading]);
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!userProfile && !isLoading) {
-      router.push("/auth/login?redirect=/profile/edit");
-    }
+    const checkAuth = setTimeout(() => {
+      if (!userProfile && !isLoading) {
+        router.push("/auth/login?redirect=/profile/edit");
+      }
+    }, 1000); // Give it a second to load
+
+    return () => clearTimeout(checkAuth);
   }, [userProfile, isLoading, router]);
+
+  // Set loading state based on auth state
+  useEffect(() => {
+    if (!userProfile && isLoading) {
+      setIsLoading(true);
+    } else {
+      setIsLoading(false);
+    }
+  }, [userProfile, isLoading]);
 
   const onSubmit = async (data: ProfileFormValues) => {
     setIsSubmitting(true);
+    setFormError(null);
     
     try {
       // Prepare update data based on user type
@@ -160,25 +202,30 @@ export default function EditProfilePage() {
       }
       
       // Update profile
-      await updateUserProfile(updateData);
+      const updatedProfile = await updateUserProfile(updateData);
       
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-        variant: "default",
-      });
-      
-      // Redirect to dashboard
-      const dashboardPath = userType === "applicant" 
-        ? "/applicant/dashboard" 
-        : "/restaurant/dashboard";
-      
-      router.push(dashboardPath);
-    } catch (error) {
+      if (updatedProfile) {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+          variant: "default",
+        });
+        
+        // Redirect to dashboard
+        const dashboardPath = userType === "applicant" 
+          ? "/applicant/dashboard" 
+          : "/restaurant/dashboard";
+        
+        router.push(dashboardPath);
+      } else {
+        throw new Error("Failed to update profile. Please try again.");
+      }
+    } catch (error: any) {
       console.error("Error updating profile:", error);
+      setFormError(error.message || "Failed to update profile. Please try again.");
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: error.message || "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -208,6 +255,43 @@ export default function EditProfilePage() {
             Update your personal information and preferences
           </p>
         </div>
+
+        {error && (
+          <Alert variant="warning" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Warning</AlertTitle>
+            <AlertDescription>
+              {error}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-2" 
+                onClick={handleRefreshProfile}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-3 w-3" />
+                    Refresh Profile
+                  </>
+                )}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {formError && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -342,7 +426,7 @@ export default function EditProfilePage() {
                       <FormItem>
                         <FormLabel>Experience</FormLabel>
                         <FormControl>
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <Select value={field.value || ""} onValueChange={field.onChange}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select experience level" />
                             </SelectTrigger>
@@ -435,7 +519,7 @@ export default function EditProfilePage() {
                       <FormItem>
                         <FormLabel>Cuisine Type</FormLabel>
                         <FormControl>
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <Select value={field.value || ""} onValueChange={field.onChange}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select cuisine type" />
                             </SelectTrigger>

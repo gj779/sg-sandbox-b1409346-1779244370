@@ -166,15 +166,17 @@ export default function AdminJobsPage() {
     }
   };
 
-  const handleToggleJobStatus = async (jobId: string, isActive: boolean) => {
+  const handleToggleJobStatus = async (jobId: string, isActive: boolean | undefined) => {
     try {
-      await firebaseJobsService.updateJobListing(jobId, { isActive: !isActive });
+      // Use a default value of false if isActive is undefined
+      const currentStatus = isActive === true;
+      await firebaseJobsService.updateJobListing(jobId, { isActive: !currentStatus });
       
       // Update the job in the local state
       setJobs(prevJobs => 
         prevJobs.map(job => 
           job.id === jobId 
-            ? { ...job, isActive: !isActive } 
+            ? { ...job, isActive: !currentStatus } 
             : job
         )
       );

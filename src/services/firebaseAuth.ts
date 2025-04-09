@@ -184,6 +184,9 @@ export const firebaseAuthService = {
         return null;
       }
       
+      // Get current user data
+      const currentUserData = userDoc.data();
+      
       // Add updatedAt timestamp
       const updatedData = {
         ...updates,
@@ -193,18 +196,16 @@ export const firebaseAuthService = {
       // Update the document
       await updateDoc(userRef, updatedData);
       
-      // Get the updated profile
-      const updatedDoc = await getDoc(userRef);
-      if (!updatedDoc.exists()) {
-        console.error(`Failed to retrieve updated user profile for ${userId}`);
-        return null;
-      }
+      // Create a merged profile with updated data
+      const mergedProfile = {
+        id: userId,
+        ...currentUserData,
+        ...updates,
+        updatedAt: new Date() // Use a JavaScript Date for immediate use
+      };
       
-      // Return the updated profile
-      return { 
-        id: userId, 
-        ...updatedDoc.data() 
-      } as UserProfile;
+      // Return the merged profile without waiting for another Firestore read
+      return mergedProfile as UserProfile;
     } catch (error) {
       console.error(`Error updating user profile for ${userId}:`, error);
       throw new Error(`Failed to update profile: ${error instanceof Error ? error.message : String(error)}`);

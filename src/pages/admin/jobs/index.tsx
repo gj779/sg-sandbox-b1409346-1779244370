@@ -197,17 +197,11 @@ export default function AdminJobsPage() {
   const formatSalary = (job: JobListing) => {
     if (!job.salary) return "Not specified";
     
-    const { min, max, rate } = job.salary;
+    // Fix the destructuring to match the actual structure of the salary object
+    const { amount, period } = job.salary;
     
-    if (min && max) {
-      return `$${min.toLocaleString()} - $${max.toLocaleString()} ${rate}`;
-    } else if (min) {
-      return `$${min.toLocaleString()} ${rate}`;
-    } else if (max) {
-      return `Up to $${max.toLocaleString()} ${rate}`;
-    }
-    
-    return "Not specified";
+    // Update the return statements to use the correct properties
+    return `$${amount.toLocaleString()} ${period}`;
   };
 
   if (isLoading || isLoadingData) {

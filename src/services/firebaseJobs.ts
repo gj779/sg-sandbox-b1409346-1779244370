@@ -47,6 +47,7 @@ export interface JobListing {
   }[];
   isPremium: boolean;
   isApproved?: boolean;
+  isActive?: boolean; // Add this property to fix TypeScript errors
   approvedAt?: Date;
   rejectionReason?: string;
   createdAt: Date;

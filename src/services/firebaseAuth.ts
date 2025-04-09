@@ -1,3 +1,4 @@
+
 import { 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -153,24 +154,60 @@ export const firebaseAuthService = {
 
   // Get user profile
   async getUserProfile(userId: string): Promise<UserProfile | null> {
-    const userProfileDoc = await getDoc(doc(db, 'users', userId));
-    return userProfileDoc.exists() ? userProfileDoc.data() as UserProfile : null;
+    try {
+      const userProfileDoc = await getDoc(doc(db, 'users', userId));
+      if (!userProfileDoc.exists()) {
+        console.log(`No user profile found with ID: ${userId}`);
+        return null;
+      }
+      
+      const data = userProfileDoc.data();
+      return { 
+        id: userId,
+        ...data
+      } as UserProfile;
+    } catch (error) {
+      console.error(`Error getting user profile for ${userId}:`, error);
+      return null;
+    }
   },
 
   // Update user profile
   async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
-    const userRef = doc(db, 'users', userId);
-    
-    // Add updatedAt timestamp
-    const updatedData = {
-      ...updates,
-      updatedAt: serverTimestamp()
-    };
-    
-    await updateDoc(userRef, updatedData);
-    
-    // Get updated profile
-    const updatedDoc = await getDoc(userRef);
-    return updatedDoc.exists() ? updatedDoc.data() as UserProfile : null;
+    try {
+      const userRef = doc(db, 'users', userId);
+      
+      // Check if user exists first
+      const userDoc = await getDoc(userRef);
+      if (!userDoc.exists()) {
+        console.error(`User with ID ${userId} does not exist`);
+        return null;
+      }
+      
+      // Add updatedAt timestamp
+      const updatedData = {
+        ...updates,
+        updatedAt: serverTimestamp()
+      };
+      
+      // Update the document
+      await updateDoc(userRef, updatedData);
+      
+      // Get the updated profile
+      const updatedDoc = await getDoc(userRef);
+      if (!updatedDoc.exists()) {
+        console.error(`Failed to retrieve updated user profile for ${userId}`);
+        return null;
+      }
+      
+      // Return the updated profile
+      return { 
+        id: userId, 
+        ...updatedDoc.data() 
+      } as UserProfile;
+    } catch (error) {
+      console.error(`Error updating user profile for ${userId}:`, error);
+      throw new Error(`Failed to update profile: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 };

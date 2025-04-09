@@ -255,5 +255,90 @@ export const firebaseJobsService = {
       console.error(`Error adding applicant ${applicantId} to job ${jobId}:`, error);
       throw error;
     }
+  },
+
+  // Get all job listings with optional filters
+  async getAllJobs(filters?: {
+    restaurantId?: string;
+    location?: string;
+    jobType?: string;
+    isActive?: boolean;
+    skills?: string[];
+    searchTerm?: string;
+  }): Promise<JobListing[]> {
+    try {
+      // Start with basic query
+      let conditions: {
+        field: string;
+        operator: WhereFilterOp;
+        value: any;
+      }[] = [];
+      
+      // Add filters if provided
+      if (filters) {
+        if (filters.restaurantId) {
+          conditions.push({
+            field: 'restaurantId',
+            operator: '==',
+            value: filters.restaurantId
+          });
+        }
+        
+        if (filters.jobType) {
+          conditions.push({
+            field: 'jobType',
+            operator: '==',
+            value: filters.jobType
+          });
+        }
+        
+        if (filters.isActive !== undefined) {
+          conditions.push({
+            field: 'isApproved',
+            operator: '==',
+            value: filters.isActive
+          });
+        }
+      }
+      
+      // Get initial results
+      let results = await firestoreService.queryDocuments('jobs', conditions);
+      
+      // Apply client-side filters that can't be done in Firestore query
+      if (filters) {
+        // Filter by location (partial match)
+        if (filters.location) {
+          const locationLower = filters.location.toLowerCase();
+          results = results.filter(job => 
+            job.location.toLowerCase().includes(locationLower)
+          );
+        }
+        
+        // Filter by skills (array contains any)
+        if (filters.skills && filters.skills.length > 0) {
+          results = results.filter(job => 
+            job.requirements.some(req => 
+              filters.skills?.some(skill => 
+                req.toLowerCase().includes(skill.toLowerCase())
+              )
+            )
+          );
+        }
+        
+        // Search term (search in title and description)
+        if (filters.searchTerm) {
+          const searchTermLower = filters.searchTerm.toLowerCase();
+          results = results.filter(job => 
+            job.title.toLowerCase().includes(searchTermLower) || 
+            job.description.toLowerCase().includes(searchTermLower)
+          );
+        }
+      }
+      
+      return results;
+    } catch (error) {
+      console.error('Error getting job listings:', error);
+      return [];
+    }
   }
 };

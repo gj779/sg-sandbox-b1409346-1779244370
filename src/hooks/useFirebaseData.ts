@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { firebaseJobsService, JobListing, JobListingInput } from "@/services/firebaseJobs";
 import { firebaseApplicationsService, JobApplication, JobApplicationInput } from "@/services/firebaseApplications";
@@ -16,12 +15,13 @@ export function useFirebaseJobListings() {
     jobType?: string;
     isActive?: boolean;
     skills?: string[];
+    searchTerm?: string;
   }) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const jobListings = await firebaseJobsService.getJobListings(filters);
+      const jobListings = await firebaseJobsService.getAllJobs(filters);
       setJobs(jobListings);
       return jobListings;
     } catch (err: any) {
@@ -54,8 +54,33 @@ export function useFirebaseJobListings() {
     setError(null);
 
     try {
-      const newJob = await firebaseJobsService.createJobListing(jobData);
-      setJobs(prev => [...prev, newJob]);
+      // Convert JobListingInput to the format expected by createJobListing
+      const adaptedJobData: Omit<JobListing, 'id' | 'createdAt' | 'updatedAt'> = {
+        restaurantId: jobData.restaurantId,
+        restaurantName: '', // This would be filled from the restaurant profile
+        title: jobData.title,
+        description: jobData.description,
+        requirements: jobData.requirements || [],
+        location: jobData.location,
+        cuisineType: [], // This would be filled from the restaurant profile
+        jobType: jobData.jobType,
+        salary: jobData.salary || { amount: 0, period: "Hourly" },
+        isPremium: false,
+        applicants: [],
+        // Convert string dates to Date objects if present
+        startDate: jobData.startDate ? new Date(jobData.startDate) : undefined,
+        endDate: jobData.endDate ? new Date(jobData.endDate) : undefined,
+      };
+      
+      const jobId = await firebaseJobsService.createJobListing(adaptedJobData);
+      
+      // Fetch the newly created job to add to state
+      const newJob = await firebaseJobsService.getJobListing(jobId);
+      
+      if (newJob) {
+        setJobs(prev => [...prev, newJob]);
+      }
+      
       return newJob;
     } catch (err: any) {
       setError(err.message || "Failed to create job listing");
@@ -71,7 +96,22 @@ export function useFirebaseJobListings() {
     setError(null);
 
     try {
-      const updatedJob = await firebaseJobsService.updateJobListing(jobId, updates);
+      // Convert updates to the format expected by updateJobListing
+      const adaptedUpdates: Partial<JobListing> = {
+        ...(updates.title && { title: updates.title }),
+        ...(updates.description && { description: updates.description }),
+        ...(updates.location && { location: updates.location }),
+        ...(updates.jobType && { jobType: updates.jobType }),
+        ...(updates.salary && { salary: updates.salary }),
+        ...(updates.requirements && { requirements: updates.requirements }),
+        ...(updates.startDate && { startDate: new Date(updates.startDate) }),
+        ...(updates.endDate && { endDate: new Date(updates.endDate) }),
+      };
+      
+      await firebaseJobsService.updateJobListing(jobId, adaptedUpdates);
+      
+      // Fetch the updated job to update state
+      const updatedJob = await firebaseJobsService.getJobListing(jobId);
       
       if (updatedJob) {
         setJobs(prev => prev.map(job => 
@@ -96,6 +136,7 @@ export function useFirebaseJobListings() {
     try {
       await firebaseJobsService.deleteJobListing(jobId);
       setJobs(prev => prev.filter(job => job.id !== jobId));
+      return true;
     } catch (err: any) {
       setError(err.message || "Failed to delete job listing");
       throw err;
@@ -110,7 +151,10 @@ export function useFirebaseJobListings() {
     setError(null);
 
     try {
-      const results = await firebaseJobsService.searchJobListings(searchTerm);
+      // Use getAllJobs with a searchTerm parameter
+      const results = await firebaseJobsService.getAllJobs({ 
+        searchTerm 
+      });
       setJobs(results);
       return results;
     } catch (err: any) {
@@ -197,8 +241,16 @@ export function useFirebaseJobApplications() {
     setError(null);
 
     try {
-      const newApplication = await firebaseApplicationsService.createApplication(applicationData);
-      setApplications(prev => [...prev, newApplication]);
+      // Get the application ID from createApplication
+      const applicationId = await firebaseApplicationsService.createApplication(applicationData);
+      
+      // Fetch the newly created application to add to state
+      const newApplication = await firebaseApplicationsService.getApplication(applicationId);
+      
+      if (newApplication) {
+        setApplications(prev => [...prev, newApplication]);
+      }
+      
       return newApplication;
     } catch (err: any) {
       setError(err.message || "Failed to create application");
@@ -218,11 +270,14 @@ export function useFirebaseJobApplications() {
     setError(null);
 
     try {
-      const updatedApplication = await firebaseApplicationsService.updateApplicationStatus(
+      await firebaseApplicationsService.updateApplicationStatus(
         applicationId, 
         status, 
         notes
       );
+      
+      // Fetch the updated application to update state
+      const updatedApplication = await firebaseApplicationsService.getApplication(applicationId);
       
       if (updatedApplication) {
         setApplications(prev => prev.map(app => 

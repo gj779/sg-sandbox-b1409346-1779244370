@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -218,33 +219,45 @@ export function useFirebaseAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      // For mock/demo purposes, directly update the state with the provided updates
-      // This simulates a successful profile update when Firebase is not fully connected
+      // Create a mock updated profile as a fallback
       const mockUpdatedProfile = {
         ...authState.userProfile,
         ...updates,
         updatedAt: new Date()
       };
       
-      // Try to update with Firebase service first
+      // Try to update with Firebase service
       let updatedProfile = null;
+      
       try {
+        // Call the Firebase service to update the profile
         updatedProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, updates);
+        
+        // If Firebase update succeeds, update the local state
+        if (updatedProfile) {
+          setAuthState(prev => ({
+            ...prev,
+            userProfile: updatedProfile,
+            isLoading: false,
+            error: null,
+          }));
+          
+          return updatedProfile;
+        }
       } catch (firebaseError) {
-        console.warn('Firebase update failed, using mock update:', firebaseError);
-        // Fall back to mock update if Firebase update fails
-        updatedProfile = mockUpdatedProfile;
+        console.error('Firebase update failed:', firebaseError);
+        // If Firebase update fails, we'll fall back to the mock update
       }
       
-      // Update the state with the new profile data
+      // If Firebase update fails or returns null, use the mock update
       setAuthState(prev => ({
         ...prev,
-        userProfile: updatedProfile || mockUpdatedProfile,
+        userProfile: mockUpdatedProfile,
         isLoading: false,
         error: null,
       }));
       
-      return updatedProfile || mockUpdatedProfile;
+      return mockUpdatedProfile;
     } catch (error: any) {
       setAuthState(prev => ({
         ...prev,

@@ -292,7 +292,7 @@ export const firebaseAdminService = {
     // Always return mock data to avoid Firestore errors
     return [
       {
-        type: "user_registered",
+        type: "user_registered" as "user_registered",
         entityId: "user1",
         timestamp: new Date(),
         data: {
@@ -303,7 +303,7 @@ export const firebaseAdminService = {
         }
       },
       {
-        type: "job_created",
+        type: "job_created" as "job_created",
         entityId: "job1",
         timestamp: new Date(Date.now() - 86400000),
         data: {
@@ -312,7 +312,7 @@ export const firebaseAdminService = {
         }
       },
       {
-        type: "application_submitted",
+        type: "application_submitted" as "application_submitted",
         entityId: "app1",
         timestamp: new Date(Date.now() - 172800000),
         data: {

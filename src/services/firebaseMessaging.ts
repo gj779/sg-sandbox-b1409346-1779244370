@@ -1,3 +1,4 @@
+
 import { firestoreService } from "./firebaseFirestore";
 import { v4 as uuidv4 } from "uuid";
 import { collection, query, where, orderBy, onSnapshot, serverTimestamp, WhereFilterOp } from "firebase/firestore";
@@ -7,6 +8,7 @@ export interface Message {
   id: string;
   senderId: string;
   receiverId: string;
+  conversationId: string; // Added this property to fix TypeScript error
   content: string;
   timestamp: Date;
   read: boolean;

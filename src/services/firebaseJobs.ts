@@ -319,7 +319,7 @@ export const firebaseJobsService = {
         // Filter by skills (array contains any)
         if (filters.skills && filters.skills.length > 0) {
           results = results.filter(job => 
-            job.requirements.some(req => 
+            job.requirements.some((req: string) => 
               filters.skills?.some(skill => 
                 req.toLowerCase().includes(skill.toLowerCase())
               )

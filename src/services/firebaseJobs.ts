@@ -223,9 +223,10 @@ export const firebaseJobsService = {
         );
       }
       
-      if (searchParams.minSalary) {
+      if (searchParams.minSalary !== undefined && searchParams.minSalary !== null) {
+        const minSalary = searchParams.minSalary;
         filteredJobs = filteredJobs.filter(job => 
-          job.salary && job.salary.amount >= searchParams.minSalary
+          job.salary && job.salary.amount >= minSalary
         );
       }
       

@@ -17,7 +17,8 @@ import {
   Timestamp,
   addDoc,
   WhereFilterOp,
-  CollectionReference
+  CollectionReference,
+  increment as firestoreIncrement
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
@@ -148,5 +149,10 @@ export const firestoreService = {
       // Instead of throwing, return an empty array to prevent cascading failures
       return [];
     }
+  },
+  
+  // Increment function for Firestore fields
+  increment(value: number) {
+    return firestoreIncrement(value);
   }
 };

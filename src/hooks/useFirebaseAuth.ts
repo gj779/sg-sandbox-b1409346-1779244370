@@ -220,14 +220,14 @@ export function useFirebaseAuth() {
     
     try {
       // Create a mock updated profile as a fallback
-      const mockUpdatedProfile = {
+      const mockUpdatedProfile: UserProfile = {
         ...authState.userProfile,
         ...updates,
         updatedAt: new Date()
-      };
+      } as UserProfile;
       
       // Try to update with Firebase service
-      let updatedProfile = null;
+      let updatedProfile: UserProfile | null = null;
       
       try {
         // Call the Firebase service to update the profile

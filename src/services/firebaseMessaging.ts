@@ -16,7 +16,7 @@ export interface Conversation {
   id: string;
   participants: string[];
   lastMessage: string;
-  lastMessageTimestamp: Date;
+  lastMessageTimestamp: Date | null;
   unreadCount: number;
 }
 

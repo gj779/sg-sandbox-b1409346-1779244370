@@ -79,12 +79,21 @@ export function useFirebaseAuth() {
             const mockProfile: UserProfile = {
               id: user.uid,
               email: user.email || "",
-              firstName: user.displayName?.split(' ')[0] || "",
+              firstName: user.displayName?.split(' ')[0] || "User",
               lastName: user.displayName?.split(' ')[1] || "",
               userType: "applicant", // Default type
               isActive: true,
               createdAt: new Date(),
-              updatedAt: new Date()
+              updatedAt: new Date(),
+              // Add default values for required fields to prevent undefined errors
+              bio: "",
+              preferredLocation: "",
+              skills: [],
+              experience: "",
+              education: "",
+              businessName: "",
+              businessAddress: "",
+              cuisineType: ""
             };
             
             setAuthState({
@@ -94,6 +103,13 @@ export function useFirebaseAuth() {
               isLoading: false,
               error: "Profile data incomplete. Some features may be limited.",
             });
+            
+            // Try to create a basic profile in Firestore
+            try {
+              await firebaseAuthService.updateUserProfile(user.uid, mockProfile);
+            } catch (createError) {
+              console.error("Failed to create basic profile:", createError);
+            }
           }
         } catch (error) {
           console.error("Error loading user profile:", error);
@@ -101,12 +117,21 @@ export function useFirebaseAuth() {
           const fallbackProfile: UserProfile = {
             id: user.uid,
             email: user.email || "",
-            firstName: user.displayName?.split(' ')[0] || "",
+            firstName: user.displayName?.split(' ')[0] || "User",
             lastName: user.displayName?.split(' ')[1] || "",
             userType: "applicant", // Default type
             isActive: true,
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            // Add default values for required fields
+            bio: "",
+            preferredLocation: "",
+            skills: [],
+            experience: "",
+            education: "",
+            businessName: "",
+            businessAddress: "",
+            cuisineType: ""
           };
           
           setAuthState({
@@ -116,6 +141,13 @@ export function useFirebaseAuth() {
             isLoading: false,
             error: "Failed to load complete user profile. Using limited profile data.",
           });
+          
+          // Try to create a basic profile in Firestore
+          try {
+            await firebaseAuthService.updateUserProfile(user.uid, fallbackProfile);
+          } catch (createError) {
+            console.error("Failed to create fallback profile:", createError);
+          }
         }
       } else {
         setAuthState({
@@ -138,20 +170,50 @@ export function useFirebaseAuth() {
     try {
       const { user, userProfile } = await firebaseAuthService.signIn(email, password);
       
+      // Create a default profile if none exists
+      let finalUserProfile = userProfile;
+      if (!userProfile) {
+        const defaultProfile: UserProfile = {
+          id: user.uid,
+          email: user.email || "",
+          firstName: user.displayName?.split(' ')[0] || "User",
+          lastName: user.displayName?.split(' ')[1] || "",
+          userType: email.includes("restaurant") ? "restaurant" : "applicant",
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          bio: "",
+          preferredLocation: "",
+          skills: [],
+          experience: "",
+          education: "",
+          businessName: "",
+          businessAddress: "",
+          cuisineType: ""
+        };
+        
+        try {
+          finalUserProfile = await firebaseAuthService.updateUserProfile(user.uid, defaultProfile) || defaultProfile;
+        } catch (error) {
+          console.error("Failed to create default profile:", error);
+          finalUserProfile = defaultProfile;
+        }
+      }
+      
       // Get the correct dashboard path based on user type
-      const dashboardPath = firebaseAuthService.getDashboardPath(userProfile?.userType);
+      const dashboardPath = firebaseAuthService.getDashboardPath(finalUserProfile?.userType);
       
       // Update auth state with user info
       setAuthState({
         isAuthenticated: true,
         user,
-        userProfile,
+        userProfile: finalUserProfile,
         isLoading: false,
         error: null,
       });
       
       // Return both the user profile and the dashboard path
-      return { userProfile, dashboardPath };
+      return { userProfile: finalUserProfile, dashboardPath };
     } catch (error: any) {
       setAuthState(prev => ({
         ...prev,
@@ -331,24 +393,86 @@ export function useFirebaseAuth() {
     try {
       const userProfile = await firebaseAuthService.getUserProfile(authState.user.uid);
       
-      setAuthState(prev => ({
-        ...prev,
-        userProfile,
-        isLoading: false,
-        error: userProfile ? null : "Failed to refresh user profile",
-      }));
-      
-      return userProfile;
+      if (userProfile) {
+        setAuthState(prev => ({
+          ...prev,
+          userProfile,
+          isLoading: false,
+          error: null,
+        }));
+        return userProfile;
+      } else {
+        // If no profile found, create a default one
+        const defaultProfile: UserProfile = {
+          id: authState.user.uid,
+          email: authState.user.email || "",
+          firstName: authState.user.displayName?.split(' ')[0] || "User",
+          lastName: authState.user.displayName?.split(' ')[1] || "",
+          userType: authState.userProfile?.userType || "applicant",
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          bio: "",
+          preferredLocation: "",
+          skills: [],
+          experience: "",
+          education: "",
+          businessName: "",
+          businessAddress: "",
+          cuisineType: ""
+        };
+        
+        try {
+          const createdProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, defaultProfile);
+          setAuthState(prev => ({
+            ...prev,
+            userProfile: createdProfile || defaultProfile,
+            isLoading: false,
+            error: null,
+          }));
+          return createdProfile || defaultProfile;
+        } catch (error) {
+          console.error("Failed to create default profile during refresh:", error);
+          setAuthState(prev => ({
+            ...prev,
+            userProfile: defaultProfile,
+            isLoading: false,
+            error: "Created local profile only. Changes may not persist after logout.",
+          }));
+          return defaultProfile;
+        }
+      }
     } catch (error: any) {
       console.error("Error refreshing profile:", error);
+      // Create a fallback profile
+      const fallbackProfile: UserProfile = {
+        id: authState.user.uid,
+        email: authState.user.email || "",
+        firstName: authState.user.displayName?.split(' ')[0] || "User",
+        lastName: authState.user.displayName?.split(' ')[1] || "",
+        userType: authState.userProfile?.userType || "applicant",
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        bio: "",
+        preferredLocation: "",
+        skills: [],
+        experience: "",
+        education: "",
+        businessName: "",
+        businessAddress: "",
+        cuisineType: ""
+      };
+      
       setAuthState(prev => ({
         ...prev,
+        userProfile: fallbackProfile,
         isLoading: false,
-        error: error.message || "Failed to refresh user profile",
+        error: error.message || "Failed to refresh user profile. Using fallback data.",
       }));
-      return null;
+      return fallbackProfile;
     }
-  }, [authState.user]);
+  }, [authState.user, authState.userProfile]);
 
   return {
     ...authState,

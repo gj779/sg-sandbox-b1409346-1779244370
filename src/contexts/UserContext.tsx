@@ -95,7 +95,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       // Save to state and localStorage
       setUser(mockUser);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('staffspace_user', JSON.stringify(mockUser));
+        try {
+          localStorage.setItem('staffspace_user', JSON.stringify(mockUser));
+        } catch (storageError) {
+          console.error('Error saving user to localStorage:', storageError);
+          // Continue even if localStorage fails
+        }
       }
       
       // Determine dashboard path based on role
@@ -115,6 +120,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         userType: mockUser.role,
         firstName: mockUser.name,
         lastName: '',
+        isActive: true,
       };
       
       return { userProfile, dashboardPath };

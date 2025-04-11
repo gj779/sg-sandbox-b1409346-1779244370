@@ -127,24 +127,29 @@ export default function EditProfilePage() {
       setIsLoading(false);
       setUserType(userProfile.userType);
       
-      // Common fields - add null checks to prevent undefined errors
-      form.setValue('firstName', userProfile.firstName || '');
-      form.setValue('lastName', userProfile.lastName || '');
-      form.setValue('email', userProfile.email || '');
-      form.setValue('phoneNumber', userProfile.phoneNumber || '');
-      
-      // User type specific fields
-      if (userProfile.userType === 'applicant') {
-        form.setValue('bio', userProfile.bio || '');
-        form.setValue('preferredLocation', userProfile.preferredLocation || '');
-        form.setValue('skills', userProfile.skills && userProfile.skills.length > 0 ? userProfile.skills.join(', ') : '');
-        form.setValue('experience', userProfile.experience || '');
-        form.setValue('education', userProfile.education || '');
-      } else if (userProfile.userType === 'restaurant') {
-        form.setValue('businessName', userProfile.businessName || '');
-        form.setValue('businessAddress', userProfile.businessAddress || '');
-        form.setValue('businessDescription', userProfile.bio || '');
-        form.setValue('cuisineType', userProfile.cuisineType || '');
+      try {
+        // Common fields - add null checks to prevent undefined errors
+        form.setValue('firstName', userProfile.firstName || '');
+        form.setValue('lastName', userProfile.lastName || '');
+        form.setValue('email', userProfile.email || '');
+        form.setValue('phoneNumber', userProfile.phoneNumber || '');
+        
+        // User type specific fields
+        if (userProfile.userType === 'applicant') {
+          form.setValue('bio', userProfile.bio || '');
+          form.setValue('preferredLocation', userProfile.preferredLocation || '');
+          form.setValue('skills', userProfile.skills && userProfile.skills.length > 0 ? userProfile.skills.join(', ') : '');
+          form.setValue('experience', userProfile.experience || '');
+          form.setValue('education', userProfile.education || '');
+        } else if (userProfile.userType === 'restaurant') {
+          form.setValue('businessName', userProfile.businessName || '');
+          form.setValue('businessAddress', userProfile.businessAddress || '');
+          form.setValue('businessDescription', userProfile.bio || '');
+          form.setValue('cuisineType', userProfile.cuisineType || '');
+        }
+      } catch (error) {
+        console.error('Error setting form values:', error);
+        setFormError('Error loading profile data. Please try refreshing the page.');
       }
     } else if (!isLoading) {
       // If we're not loading and there's no profile, there's a problem
@@ -178,6 +183,10 @@ export default function EditProfilePage() {
     setFormError(null);
     
     try {
+      if (!userProfile) {
+        throw new Error('User profile not found. Please try logging in again.');
+      }
+
       // Prepare update data based on user type
       const updateData: any = {
         firstName: data.firstName,
@@ -199,11 +208,6 @@ export default function EditProfilePage() {
         updateData.businessAddress = restaurantData.businessAddress || '';
         updateData.bio = restaurantData.businessDescription || ''; // Map to bio field in the database
         updateData.cuisineType = restaurantData.cuisineType || '';
-      }
-      
-      // Ensure required fields are set
-      if (!userProfile) {
-        throw new Error('User profile not found. Please try logging in again.');
       }
       
       updateData.userType = userProfile.userType;

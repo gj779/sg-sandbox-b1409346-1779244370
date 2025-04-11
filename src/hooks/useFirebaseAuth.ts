@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -393,19 +392,44 @@ export function useFirebaseAuth() {
       return null;
     }
     
-    setAuthState(prev => ({ ...prev, isLoading: true }));
+    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
       const userProfile = await firebaseAuthService.getUserProfile(authState.user.uid);
       
       if (userProfile) {
+        // Convert the Firebase UserProfile to our local UserProfile type
+        const typedUserProfile: UserProfile = {
+          id: userProfile.id,
+          email: userProfile.email,
+          userType: userProfile.userType,
+          firstName: userProfile.firstName || '',
+          lastName: userProfile.lastName || '',
+          phoneNumber: userProfile.phoneNumber || '',
+          createdAt: userProfile.createdAt,
+          updatedAt: userProfile.updatedAt,
+          isActive: userProfile.isActive,
+          skills: userProfile.skills || [],
+          experience: userProfile.experience || '',
+          availability: userProfile.availability || [],
+          preferredLocation: userProfile.preferredLocation || '',
+          bio: userProfile.bio || '',
+          education: userProfile.education || '',
+          jobPreferences: userProfile.jobPreferences || [],
+          location: userProfile.location || '',
+          cuisineType: userProfile.cuisineType || '',
+          businessName: userProfile.businessName || '',
+          businessAddress: userProfile.businessAddress || '',
+        };
+        
         setAuthState(prev => ({
           ...prev,
-          userProfile: userProfile as UserProfile,
+          userProfile: typedUserProfile,
           isLoading: false,
           error: null,
         }));
-        return userProfile as UserProfile;
+        
+        return typedUserProfile;
       } else {
         // If no profile found, create a default one
         const defaultProfile: UserProfile = {
@@ -428,27 +452,33 @@ export function useFirebaseAuth() {
         };
         
         try {
-          const createdProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, defaultProfile);
+          // Create a new profile in Firebase
+          const updatedProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, defaultProfile);
+          
+          // If Firebase update succeeds, use that profile, otherwise use our default profile
+          const finalProfile = updatedProfile || defaultProfile;
+          
           setAuthState(prev => ({
             ...prev,
-            userProfile: createdProfile || defaultProfile,
+            userProfile: finalProfile,
             isLoading: false,
-            error: null,
+            error: updatedProfile ? null : 'Created local profile only. Changes may not persist after logout.',
           }));
-          return createdProfile || defaultProfile;
+          
+          return finalProfile;
         } catch (error) {
-          console.error("Failed to create default profile during refresh:", error);
+          console.error('Failed to create default profile during refresh:', error);
           setAuthState(prev => ({
             ...prev,
             userProfile: defaultProfile,
             isLoading: false,
-            error: "Created local profile only. Changes may not persist after logout.",
+            error: 'Created local profile only. Changes may not persist after logout.',
           }));
           return defaultProfile;
         }
       }
     } catch (error: any) {
-      console.error("Error refreshing profile:", error);
+      console.error('Error refreshing profile:', error);
       // Create a fallback profile
       const fallbackProfile: UserProfile = {
         id: authState.user.uid,

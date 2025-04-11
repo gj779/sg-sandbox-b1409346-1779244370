@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { 
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
@@ -34,12 +34,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { 
-  User, 
-  UserPlus, 
-  Building, 
-  MapPin, 
-  Phone, 
-  Mail, 
   Save,
   Loader2,
   AlertCircle,
@@ -83,17 +77,17 @@ export default function EditProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [userType, setUserType] = useState<"applicant" | "restaurant" | "admin" | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
-  const [formInitialized, setFormInitialized] = useState(false);
 
-  // Initialize form with react-hook-form and default values
+  // Initialize form with dynamic resolver based on user type
   const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(userType === "applicant" ? applicantProfileSchema : restaurantProfileSchema),
+    resolver: zodResolver(
+      userType === "applicant" ? applicantProfileSchema : restaurantProfileSchema
+    ),
     defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
       phoneNumber: "",
-      // Type-specific fields will be set in useEffect
       bio: "",
       preferredLocation: "",
       skills: "",
@@ -104,45 +98,79 @@ export default function EditProfilePage() {
       businessDescription: "",
       cuisineType: "",
     },
+    mode: "onChange" // Validate on change for better user experience
   });
+
+  // Update form resolver when user type changes
+  useEffect(() => {
+    if (userType) {
+      form.clearErrors();
+      form.reset(form.getValues(), {
+        resolver: zodResolver(
+          userType === "applicant" ? applicantProfileSchema : restaurantProfileSchema
+        )
+      });
+    }
+  }, [userType, form]);
+
+  // Populate form with user profile data
+  const populateFormWithProfileData = useCallback((profile: any) => {
+    if (!profile) return;
+    
+    try {
+      // Set user type first to ensure correct schema validation
+      setUserType(profile.userType);
+      
+      // Common fields
+      form.setValue('firstName', profile.firstName || '', { shouldValidate: false });
+      form.setValue('lastName', profile.lastName || '', { shouldValidate: false });
+      form.setValue('email', profile.email || '', { shouldValidate: false });
+      form.setValue('phoneNumber', profile.phoneNumber || '', { shouldValidate: false });
+      
+      // User type specific fields
+      if (profile.userType === 'applicant') {
+        form.setValue('bio', profile.bio || '', { shouldValidate: false });
+        form.setValue('preferredLocation', profile.preferredLocation || '', { shouldValidate: false });
+        form.setValue('skills', profile.skills && Array.isArray(profile.skills) ? profile.skills.join(', ') : '', { shouldValidate: false });
+        form.setValue('experience', profile.experience || '', { shouldValidate: false });
+        form.setValue('education', profile.education || '', { shouldValidate: false });
+      } else if (profile.userType === 'restaurant') {
+        form.setValue('businessName', profile.businessName || '', { shouldValidate: false });
+        form.setValue('businessAddress', profile.businessAddress || '', { shouldValidate: false });
+        form.setValue('businessDescription', profile.bio || '', { shouldValidate: false });
+        form.setValue('cuisineType', profile.cuisineType || '', { shouldValidate: false });
+      }
+      
+      // Trigger validation after all fields are set
+      form.trigger();
+    } catch (error) {
+      console.error('Error setting form values:', error);
+      setFormError('Error loading profile data. Please try refreshing the page.');
+    }
+  }, [form]);
 
   // Handle refreshing profile data
   const handleRefreshProfile = async () => {
     setIsRefreshing(true);
+    setFormError(null);
+    
     try {
       const refreshedProfile = await refreshUserProfile();
+      
       if (refreshedProfile) {
+        populateFormWithProfileData(refreshedProfile);
+        
         toast({
           title: "Profile refreshed",
-          description: "Your profile data has been refreshed.",
+          description: "Your profile data has been refreshed successfully.",
         });
-        
-        // Update form values with refreshed profile data
-        setUserType(refreshedProfile.userType);
-        
-        // Common fields
-        form.setValue('firstName', refreshedProfile.firstName || '');
-        form.setValue('lastName', refreshedProfile.lastName || '');
-        form.setValue('email', refreshedProfile.email || '');
-        form.setValue('phoneNumber', refreshedProfile.phoneNumber || '');
-        
-        // User type specific fields
-        if (refreshedProfile.userType === 'applicant') {
-          form.setValue('bio', refreshedProfile.bio || '');
-          form.setValue('preferredLocation', refreshedProfile.preferredLocation || '');
-          form.setValue('skills', refreshedProfile.skills && refreshedProfile.skills.length > 0 ? refreshedProfile.skills.join(', ') : '');
-          form.setValue('experience', refreshedProfile.experience || '');
-          form.setValue('education', refreshedProfile.education || '');
-        } else if (refreshedProfile.userType === 'restaurant') {
-          form.setValue('businessName', refreshedProfile.businessName || '');
-          form.setValue('businessAddress', refreshedProfile.businessAddress || '');
-          form.setValue('businessDescription', refreshedProfile.bio || '');
-          form.setValue('cuisineType', refreshedProfile.cuisineType || '');
-        }
       } else {
         throw new Error("Failed to refresh profile data");
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error refreshing profile:', error);
+      setFormError(error.message || "Failed to refresh profile data. Please try again.");
+      
       toast({
         title: "Error",
         description: "Failed to refresh profile data. Please try again.",
@@ -157,39 +185,12 @@ export default function EditProfilePage() {
   useEffect(() => {
     if (userProfile) {
       setIsLoading(false);
-      setUserType(userProfile.userType);
-      
-      try {
-        // Common fields - add null checks to prevent undefined errors
-        form.setValue('firstName', userProfile.firstName || '');
-        form.setValue('lastName', userProfile.lastName || '');
-        form.setValue('email', userProfile.email || '');
-        form.setValue('phoneNumber', userProfile.phoneNumber || '');
-        
-        // User type specific fields
-        if (userProfile.userType === 'applicant') {
-          form.setValue('bio', userProfile.bio || '');
-          form.setValue('preferredLocation', userProfile.preferredLocation || '');
-          form.setValue('skills', userProfile.skills && userProfile.skills.length > 0 ? userProfile.skills.join(', ') : '');
-          form.setValue('experience', userProfile.experience || '');
-          form.setValue('education', userProfile.education || '');
-        } else if (userProfile.userType === 'restaurant') {
-          form.setValue('businessName', userProfile.businessName || '');
-          form.setValue('businessAddress', userProfile.businessAddress || '');
-          form.setValue('businessDescription', userProfile.bio || '');
-          form.setValue('cuisineType', userProfile.cuisineType || '');
-        }
-        
-        setFormInitialized(true);
-      } catch (error) {
-        console.error('Error setting form values:', error);
-        setFormError('Error loading profile data. Please try refreshing the page.');
-      }
+      populateFormWithProfileData(userProfile);
     } else if (!isLoading) {
       // If we're not loading and there's no profile, there's a problem
       setFormError('Could not load profile data. Please try refreshing or logging in again.');
     }
-  }, [userProfile, form, isLoading]);
+  }, [userProfile, isLoading, populateFormWithProfileData]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -221,11 +222,18 @@ export default function EditProfilePage() {
         throw new Error('User profile not found. Please try logging in again.');
       }
 
+      if (!userType) {
+        throw new Error('User type not determined. Please refresh the page and try again.');
+      }
+
       // Prepare update data based on user type
       const updateData: any = {
         firstName: data.firstName,
         lastName: data.lastName,
         phoneNumber: data.phoneNumber || '',
+        userType: userType, // Ensure user type is included
+        isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
+        email: userProfile.email, // Ensure email is preserved
       };
       
       // Add user type specific fields
@@ -233,7 +241,9 @@ export default function EditProfilePage() {
         const applicantData = data as z.infer<typeof applicantProfileSchema>;
         updateData.bio = applicantData.bio || '';
         updateData.preferredLocation = applicantData.preferredLocation || '';
-        updateData.skills = applicantData.skills ? applicantData.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+        updateData.skills = applicantData.skills 
+          ? applicantData.skills.split(',').map((s: string) => s.trim()).filter(Boolean) 
+          : [];
         updateData.experience = applicantData.experience || '';
         updateData.education = applicantData.education || '';
       } else if (userType === 'restaurant') {
@@ -243,11 +253,6 @@ export default function EditProfilePage() {
         updateData.bio = restaurantData.businessDescription || ''; // Map to bio field in the database
         updateData.cuisineType = restaurantData.cuisineType || '';
       }
-      
-      // Ensure required fields are present
-      updateData.userType = userProfile.userType;
-      updateData.isActive = userProfile.isActive !== undefined ? userProfile.isActive : true;
-      updateData.email = userProfile.email; // Ensure email is preserved
       
       // Update profile
       const updatedProfile = await updateUserProfile(updateData);
@@ -271,6 +276,7 @@ export default function EditProfilePage() {
     } catch (error: any) {
       console.error('Error updating profile:', error);
       setFormError(error.message || 'Failed to update profile. Please try again.');
+      
       toast({
         title: 'Error',
         description: error.message || 'Failed to update profile. Please try again.',
@@ -312,7 +318,7 @@ export default function EditProfilePage() {
           <Alert variant="default" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Warning</AlertTitle>
-            <AlertDescription>
+            <AlertDescription className="flex items-center">
               {authError}
               <Button 
                 variant="outline" 
@@ -341,7 +347,27 @@ export default function EditProfilePage() {
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{formError}</AlertDescription>
+            <AlertDescription className="flex items-center justify-between">
+              <span>{formError}</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefreshProfile}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-3 w-3" />
+                    Refresh Profile
+                  </>
+                )}
+              </Button>
+            </AlertDescription>
           </Alert>
         )}
 
@@ -478,7 +504,11 @@ export default function EditProfilePage() {
                       <FormItem>
                         <FormLabel>Experience</FormLabel>
                         <FormControl>
-                          <Select value={field.value || ""} onValueChange={field.onChange}>
+                          <Select 
+                            value={field.value || ""} 
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Select experience level" />
                             </SelectTrigger>
@@ -571,7 +601,11 @@ export default function EditProfilePage() {
                       <FormItem>
                         <FormLabel>Cuisine Type</FormLabel>
                         <FormControl>
-                          <Select value={field.value || ""} onValueChange={field.onChange}>
+                          <Select 
+                            value={field.value || ""} 
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
                             <SelectTrigger>
                               <SelectValue placeholder="Select cuisine type" />
                             </SelectTrigger>

@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/router";
 
@@ -10,6 +11,8 @@ export interface User {
   email: string;
   role: UserRole;
   profileComplete: boolean;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface UserContextType {
@@ -83,10 +86,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         role = 'restaurant';
       }
       
+      // Get first part of email as name
+      const name = email.split('@')[0];
+      const firstName = name;
+      const lastName = '';
+      
       // Create mock user
       const mockUser: User = {
         id: `user_${Math.random().toString(36).substring(2, 9)}`,
-        name: email.split('@')[0],
+        name,
+        firstName,
+        lastName,
         email,
         role,
         profileComplete: false
@@ -118,8 +128,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         id: mockUser.id,
         email: mockUser.email,
         userType: mockUser.role,
-        firstName: mockUser.name,
-        lastName: '',
+        firstName: mockUser.firstName || mockUser.name,
+        lastName: mockUser.lastName || '',
         isActive: true,
       };
       
@@ -144,10 +154,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Split name into first and last name
+      const nameParts = name.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      
       // Create mock user
       const mockUser: User = {
         id: `user_${Math.random().toString(36).substring(2, 9)}`,
         name,
+        firstName,
+        lastName,
         email,
         role,
         profileComplete: false

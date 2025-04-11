@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -36,6 +35,7 @@ export interface UserProfile {
   // Restaurant specific fields
   businessName?: string;
   businessAddress?: string;
+  role?: "applicant" | "restaurant" | "admin" | null; // Add role for compatibility with UserContext
 }
 
 interface AuthState {
@@ -72,6 +72,7 @@ export function useFirebaseAuth() {
               id: userProfile.id,
               email: userProfile.email,
               userType: userProfile.userType,
+              role: userProfile.userType, // Set role to match userType for compatibility with UserContext
               firstName: userProfile.firstName || '',
               lastName: userProfile.lastName || '',
               phoneNumber: userProfile.phoneNumber || '',
@@ -103,6 +104,7 @@ export function useFirebaseAuth() {
               firstName: user.displayName?.split(' ')[0] || 'User',
               lastName: user.displayName?.split(' ')[1] || '',
               userType: 'applicant', // Default type
+              role: 'applicant', // Set role to match userType for compatibility with UserContext
               isActive: true,
               createdAt: new Date(),
               updatedAt: new Date(),
@@ -141,6 +143,7 @@ export function useFirebaseAuth() {
             firstName: user.displayName?.split(' ')[0] || 'User',
             lastName: user.displayName?.split(' ')[1] || '',
             userType: 'applicant', // Default type
+            role: 'applicant', // Set role to match userType for compatibility with UserContext
             isActive: true,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -200,6 +203,7 @@ export function useFirebaseAuth() {
           firstName: user.displayName?.split(' ')[0] || 'User',
           lastName: user.displayName?.split(' ')[1] || '',
           userType: email.includes('restaurant') ? 'restaurant' : 'applicant',
+          role: email.includes('restaurant') ? 'restaurant' : 'applicant', // Set role to match userType
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -226,6 +230,7 @@ export function useFirebaseAuth() {
           id: userProfile.id,
           email: userProfile.email,
           userType: userProfile.userType,
+          role: userProfile.userType, // Set role to match userType
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
           phoneNumber: userProfile.phoneNumber || '',
@@ -286,6 +291,7 @@ export function useFirebaseAuth() {
         id: result.userProfile.id,
         email: result.userProfile.email,
         userType: result.userProfile.userType,
+        role: result.userProfile.userType, // Set role to match userType
         firstName: result.userProfile.firstName || '',
         lastName: result.userProfile.lastName || '',
         phoneNumber: result.userProfile.phoneNumber || '',
@@ -410,6 +416,7 @@ export function useFirebaseAuth() {
         id: authState.user.uid,
         email: authState.user.email || '',
         userType: authState.userProfile?.userType || 'applicant',
+        role: authState.userProfile?.userType || 'applicant', // Set role to match userType
         isActive: authState.userProfile?.isActive !== undefined ? authState.userProfile.isActive : true,
         updatedAt: new Date(),
         // Ensure all required fields have default values
@@ -438,6 +445,7 @@ export function useFirebaseAuth() {
             id: firebaseUpdatedProfile.id,
             email: firebaseUpdatedProfile.email,
             userType: firebaseUpdatedProfile.userType,
+            role: firebaseUpdatedProfile.userType, // Set role to match userType
             firstName: firebaseUpdatedProfile.firstName || '',
             lastName: firebaseUpdatedProfile.lastName || '',
             phoneNumber: firebaseUpdatedProfile.phoneNumber || '',
@@ -499,6 +507,7 @@ export function useFirebaseAuth() {
           id: userProfile.id,
           email: userProfile.email,
           userType: userProfile.userType,
+          role: userProfile.userType, // Set role to match userType
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
           phoneNumber: userProfile.phoneNumber || '',
@@ -531,6 +540,7 @@ export function useFirebaseAuth() {
           firstName: authState.user.displayName?.split(' ')[0] || 'User',
           lastName: authState.user.displayName?.split(' ')[1] || '',
           userType: authState.userProfile?.userType || 'applicant',
+          role: authState.userProfile?.userType || 'applicant', // Set role to match userType
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -579,6 +589,7 @@ export function useFirebaseAuth() {
         firstName: authState.user.displayName?.split(' ')[0] || 'User',
         lastName: authState.user.displayName?.split(' ')[1] || '',
         userType: authState.userProfile?.userType || 'applicant',
+        role: authState.userProfile?.userType || 'applicant', // Set role to match userType
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),

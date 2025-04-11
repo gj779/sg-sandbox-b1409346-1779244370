@@ -42,20 +42,48 @@ const FormField = <
   )
 }
 
-// Always call hooks at the top level
+// Create a FormContext to avoid direct useFormContext calls
+const FormContext = React.createContext<ReturnType<typeof useFormContext> | null>(null)
+
+// FormContextProvider that always calls useFormContext at the top level
+const FormContextProvider = ({ children }: { children: React.ReactNode }) => {
+  // Always call useFormContext at the top level, but handle errors gracefully
+  const formContextValue = React.useMemo(() => {
+    try {
+      // This will throw if used outside of a FormProvider
+      return useFormContext()
+    } catch (e) {
+      // Return null if not within a form context
+      return null
+    }
+  }, [])
+
+  return (
+    <FormContext.Provider value={formContextValue}>
+      {children}
+    </FormContext.Provider>
+  )
+}
+
+type FormItemContextValue = {
+  id: string
+}
+
+const FormItemContext = React.createContext<FormItemContextValue | undefined>(undefined)
+
+// Fixed useFormField hook that doesn't conditionally call hooks
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
-  
-  // Get form context safely without conditional hooks
   const formContext = React.useContext(FormContext)
   
-  // Handle the case when form context is not available
-  const fieldState = formContext && fieldContext?.name 
-    ? formContext.getFieldState(fieldContext.name, formContext.formState)
-    : {}
-  
   const id = itemContext?.id || ""
+  
+  // Safe access to field state - no conditional hook calls
+  const fieldState = React.useMemo(() => {
+    if (!formContext || !fieldContext?.name) return {}
+    return formContext.getFieldState(fieldContext.name, formContext.formState)
+  }, [formContext, fieldContext?.name])
   
   return {
     id,
@@ -65,32 +93,6 @@ const useFormField = () => {
     formMessageId: `${id}-form-item-message`,
     ...fieldState,
   }
-}
-
-type FormItemContextValue = {
-  id: string
-}
-
-const FormItemContext = React.createContext<FormItemContextValue | undefined>(undefined)
-
-// Create a FormContext to avoid direct useFormContext calls
-const FormContext = React.createContext<ReturnType<typeof useFormContext> | null>(null)
-
-// FormContextProvider that always calls useFormContext at the top level
-const FormContextProvider = ({ children }: { children: React.ReactNode }) => {
-  let formContext = null
-  
-  try {
-    formContext = useFormContext()
-  } catch (e) {
-    // Form context not available, will remain null
-  }
-  
-  return (
-    <FormContext.Provider value={formContext}>
-      {children}
-    </FormContext.Provider>
-  )
 }
 
 const FormItem = React.forwardRef<

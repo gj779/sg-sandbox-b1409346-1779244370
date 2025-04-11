@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -7,12 +8,12 @@ import type { UserProfile as FirebaseUserProfile } from "@/services/firebaseAuth
 
 // Define a UserProfile type that matches what we're using in the app
 export interface UserProfile {
-  id?: string;
-  email?: string;
+  id: string; // Changed from optional to required to match firebaseAuth.ts
+  email: string; // Changed from optional to required to match firebaseAuth.ts
   name?: string;
   photoURL?: string;
   phoneNumber?: string;
-  userType?: "applicant" | "restaurant" | "admin";
+  userType: "applicant" | "restaurant" | "admin"; // Changed from optional to required to match firebaseAuth.ts
   createdAt?: Date;
   updatedAt?: Date;
   profileComplete?: boolean;
@@ -31,7 +32,7 @@ export interface UserProfile {
   benefits?: string;
   firstName?: string;
   lastName?: string;
-  isActive?: boolean;
+  isActive: boolean; // Changed from optional to required to match firebaseAuth.ts
   // Restaurant specific fields
   businessName?: string;
   businessAddress?: string;
@@ -170,7 +171,7 @@ export function useFirebaseAuth() {
       const { user, userProfile } = await firebaseAuthService.signIn(email, password);
       
       // Create a default profile if none exists
-      let finalUserProfile = userProfile;
+      let finalUserProfile: UserProfile;
       if (!userProfile) {
         const defaultProfile: UserProfile = {
           id: user.uid,
@@ -198,6 +199,8 @@ export function useFirebaseAuth() {
           console.error('Failed to create default profile:', error);
           finalUserProfile = defaultProfile;
         }
+      } else {
+        finalUserProfile = userProfile as UserProfile;
       }
       
       // Get the correct dashboard path based on user type
@@ -242,7 +245,7 @@ export function useFirebaseAuth() {
       setAuthState({
         isAuthenticated: true,
         user: result.user,
-        userProfile: result.userProfile,
+        userProfile: result.userProfile as UserProfile,
         isLoading: false,
         error: null,
       });
@@ -341,12 +344,14 @@ export function useFirebaseAuth() {
     try {
       // Create a merged profile as a fallback
       const mergedProfile: UserProfile = {
-        ...(authState.userProfile || {}),
+        ...(authState.userProfile || {}) as UserProfile,
         ...updates,
         id: authState.user.uid,
         email: authState.user.email || '',
+        userType: authState.userProfile?.userType || 'applicant',
+        isActive: authState.userProfile?.isActive || true,
         updatedAt: new Date()
-      } as UserProfile;
+      };
       
       // Try to update with Firebase service
       let updatedProfile: UserProfile | null = null;
@@ -396,11 +401,11 @@ export function useFirebaseAuth() {
       if (userProfile) {
         setAuthState(prev => ({
           ...prev,
-          userProfile,
+          userProfile: userProfile as UserProfile,
           isLoading: false,
           error: null,
         }));
-        return userProfile;
+        return userProfile as UserProfile;
       } else {
         // If no profile found, create a default one
         const defaultProfile: UserProfile = {

@@ -172,6 +172,7 @@ export default function EditProfilePage() {
     }
   }, [userProfile, isLoading]);
 
+  // Improve the onSubmit function to handle form submission better
   const onSubmit = async (data: ProfileFormValues) => {
     setIsSubmitting(true);
     setFormError(null);
@@ -199,6 +200,14 @@ export default function EditProfilePage() {
         updateData.bio = restaurantData.businessDescription || ''; // Map to bio field in the database
         updateData.cuisineType = restaurantData.cuisineType || '';
       }
+      
+      // Ensure required fields are set
+      if (!userProfile) {
+        throw new Error('User profile not found. Please try logging in again.');
+      }
+      
+      updateData.userType = userProfile.userType;
+      updateData.isActive = userProfile.isActive !== undefined ? userProfile.isActive : true;
       
       // Update profile
       const updatedProfile = await updateUserProfile(updateData);

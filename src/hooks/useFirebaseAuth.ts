@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -7,12 +8,12 @@ import type { UserProfile as FirebaseUserProfile } from "@/services/firebaseAuth
 
 // Define a UserProfile type that matches what we're using in the app
 export interface UserProfile {
-  id: string; // Changed from optional to required to match firebaseAuth.ts
-  email: string; // Changed from optional to required to match firebaseAuth.ts
+  id: string;
+  email: string;
   name?: string;
   photoURL?: string;
   phoneNumber?: string;
-  userType: "applicant" | "restaurant" | "admin"; // Changed from optional to required to match firebaseAuth.ts
+  userType: "applicant" | "restaurant" | "admin";
   createdAt?: Date;
   updatedAt?: Date;
   profileComplete?: boolean;
@@ -31,7 +32,7 @@ export interface UserProfile {
   benefits?: string;
   firstName?: string;
   lastName?: string;
-  isActive: boolean; // Changed from optional to required to match firebaseAuth.ts
+  isActive: boolean;
   // Restaurant specific fields
   businessName?: string;
   businessAddress?: string;
@@ -66,10 +67,31 @@ export function useFirebaseAuth() {
           
           // If we got a profile back, set it in state
           if (userProfile) {
+            // Create a properly typed UserProfile with all required fields
+            const typedUserProfile: UserProfile = {
+              id: userProfile.id,
+              email: userProfile.email,
+              userType: userProfile.userType,
+              firstName: userProfile.firstName || '',
+              lastName: userProfile.lastName || '',
+              phoneNumber: userProfile.phoneNumber || '',
+              isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
+              createdAt: userProfile.createdAt,
+              updatedAt: userProfile.updatedAt,
+              bio: userProfile.bio || '',
+              preferredLocation: userProfile.preferredLocation || '',
+              skills: userProfile.skills || [],
+              experience: userProfile.experience || '',
+              education: userProfile.education || '',
+              businessName: userProfile.businessName || '',
+              businessAddress: userProfile.businessAddress || '',
+              cuisineType: userProfile.cuisineType || ''
+            };
+            
             setAuthState({
               isAuthenticated: true,
               user,
-              userProfile,
+              userProfile: typedUserProfile,
               isLoading: false,
               error: null,
             });
@@ -199,7 +221,26 @@ export function useFirebaseAuth() {
           finalUserProfile = defaultProfile;
         }
       } else {
-        finalUserProfile = userProfile as UserProfile;
+        // Convert Firebase UserProfile to our local UserProfile type
+        finalUserProfile = {
+          id: userProfile.id,
+          email: userProfile.email,
+          userType: userProfile.userType,
+          firstName: userProfile.firstName || '',
+          lastName: userProfile.lastName || '',
+          phoneNumber: userProfile.phoneNumber || '',
+          isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
+          createdAt: userProfile.createdAt,
+          updatedAt: userProfile.updatedAt,
+          bio: userProfile.bio || '',
+          preferredLocation: userProfile.preferredLocation || '',
+          skills: userProfile.skills || [],
+          experience: userProfile.experience || '',
+          education: userProfile.education || '',
+          businessName: userProfile.businessName || '',
+          businessAddress: userProfile.businessAddress || '',
+          cuisineType: userProfile.cuisineType || ''
+        };
       }
       
       // Get the correct dashboard path based on user type
@@ -240,16 +281,37 @@ export function useFirebaseAuth() {
     try {
       const result = await firebaseAuthService.registerUser(userData);
       
+      // Convert Firebase UserProfile to our local UserProfile type
+      const typedUserProfile: UserProfile = {
+        id: result.userProfile.id,
+        email: result.userProfile.email,
+        userType: result.userProfile.userType,
+        firstName: result.userProfile.firstName || '',
+        lastName: result.userProfile.lastName || '',
+        phoneNumber: result.userProfile.phoneNumber || '',
+        isActive: result.userProfile.isActive !== undefined ? result.userProfile.isActive : true,
+        createdAt: result.userProfile.createdAt,
+        updatedAt: result.userProfile.updatedAt,
+        bio: result.userProfile.bio || '',
+        preferredLocation: result.userProfile.preferredLocation || '',
+        skills: result.userProfile.skills || [],
+        experience: result.userProfile.experience || '',
+        education: result.userProfile.education || '',
+        businessName: result.userProfile.businessName || '',
+        businessAddress: result.userProfile.businessAddress || '',
+        cuisineType: result.userProfile.cuisineType || ''
+      };
+      
       // Update auth state with new user
       setAuthState({
         isAuthenticated: true,
         user: result.user,
-        userProfile: result.userProfile as UserProfile,
+        userProfile: typedUserProfile,
         isLoading: false,
         error: null,
       });
       
-      return result;
+      return { user: result.user, userProfile: typedUserProfile };
     } catch (error: any) {
       setAuthState(prev => ({
         ...prev,
@@ -368,7 +430,30 @@ export function useFirebaseAuth() {
       
       try {
         // Call the Firebase service to update the profile
-        updatedProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, updates);
+        const firebaseUpdatedProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, updates);
+        
+        if (firebaseUpdatedProfile) {
+          // Convert Firebase UserProfile to our local UserProfile type
+          updatedProfile = {
+            id: firebaseUpdatedProfile.id,
+            email: firebaseUpdatedProfile.email,
+            userType: firebaseUpdatedProfile.userType,
+            firstName: firebaseUpdatedProfile.firstName || '',
+            lastName: firebaseUpdatedProfile.lastName || '',
+            phoneNumber: firebaseUpdatedProfile.phoneNumber || '',
+            isActive: firebaseUpdatedProfile.isActive !== undefined ? firebaseUpdatedProfile.isActive : true,
+            createdAt: firebaseUpdatedProfile.createdAt,
+            updatedAt: firebaseUpdatedProfile.updatedAt,
+            bio: firebaseUpdatedProfile.bio || '',
+            preferredLocation: firebaseUpdatedProfile.preferredLocation || '',
+            skills: firebaseUpdatedProfile.skills || [],
+            experience: firebaseUpdatedProfile.experience || '',
+            education: firebaseUpdatedProfile.education || '',
+            businessName: firebaseUpdatedProfile.businessName || '',
+            businessAddress: firebaseUpdatedProfile.businessAddress || '',
+            cuisineType: firebaseUpdatedProfile.cuisineType || ''
+          };
+        }
       } catch (firebaseError) {
         console.error('Firebase update failed:', firebaseError);
         // Continue with fallback - we'll handle this below
@@ -417,20 +502,17 @@ export function useFirebaseAuth() {
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
           phoneNumber: userProfile.phoneNumber || '',
+          isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
           createdAt: userProfile.createdAt,
           updatedAt: userProfile.updatedAt,
-          isActive: userProfile.isActive,
+          bio: userProfile.bio || '',
+          preferredLocation: userProfile.preferredLocation || '',
           skills: userProfile.skills || [],
           experience: userProfile.experience || '',
-          availability: userProfile.availability || [],
-          preferredLocation: userProfile.preferredLocation || '',
-          bio: userProfile.bio || '',
           education: userProfile.education || '',
-          jobPreferences: userProfile.jobPreferences || [],
-          location: userProfile.location || '',
-          cuisineType: userProfile.cuisineType || '',
           businessName: userProfile.businessName || '',
           businessAddress: userProfile.businessAddress || '',
+          cuisineType: userProfile.cuisineType || ''
         };
         
         setAuthState(prev => ({

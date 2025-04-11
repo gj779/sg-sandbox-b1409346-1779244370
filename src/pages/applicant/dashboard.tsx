@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -19,14 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Briefcase, 
   Clock, 
-  Bell, 
-  FileText, 
-  Settings, 
   Calendar, 
   MapPin, 
-  DollarSign,
   Star,
-  ChevronRight,
   Building,
   MessageSquare,
   Search,
@@ -135,50 +131,72 @@ const tutorialSteps = [
 ];
 
 export default function ApplicantDashboard() {
-  const { user, isAuthenticated } = useUser();
+  const { user, isAuthenticated, isLoading } = useUser();
   const router = useRouter();
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialCompleted, setTutorialCompleted] = useState(false);
 
   // Check if user is authenticated
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Only redirect if we've finished loading and the user is not authenticated
+    if (!isLoading && !isAuthenticated) {
       router.push('/auth/login?redirect=/applicant/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isLoading, router]);
 
   useEffect(() => {
     // Check if this is the first visit to show tutorial
-    if (isAuthenticated) {
-      const hasSeenTutorial = localStorage.getItem('applicant-tutorial-completed');
-      if (!hasSeenTutorial) {
-        setShowTutorial(true);
-      } else {
-        setTutorialCompleted(true);
+    // Only run this if the user is authenticated and we're not loading
+    if (!isLoading && isAuthenticated && typeof window !== 'undefined') {
+      try {
+        const hasSeenTutorial = localStorage.getItem('applicant-tutorial-completed');
+        if (!hasSeenTutorial) {
+          setShowTutorial(true);
+        } else {
+          setTutorialCompleted(true);
+        }
+      } catch (error) {
+        console.error("Error accessing localStorage:", error);
       }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isLoading]);
 
   const handleTutorialComplete = () => {
-    localStorage.setItem('applicant-tutorial-completed', 'true');
-    setTutorialCompleted(true);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('applicant-tutorial-completed', 'true');
+      }
+      setTutorialCompleted(true);
+    } catch (error) {
+      console.error("Error setting localStorage:", error);
+    }
   };
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    try {
+      return new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid date";
+    }
   };
 
   const formatSalary = (salary: { amount: number, period: string }) => {
-    if (salary.period === 'Hourly') {
-      return `$${salary.amount}/hr`;
-    } else if (salary.period === 'Yearly') {
-      return `$${salary.amount.toLocaleString()}/year`;
+    try {
+      if (salary.period === 'Hourly') {
+        return `$${salary.amount}/hr`;
+      } else if (salary.period === 'Yearly') {
+        return `$${salary.amount.toLocaleString()}/year`;
+      }
+      return `$${salary.amount}/${salary.period.toLowerCase()}`;
+    } catch (error) {
+      console.error("Error formatting salary:", error);
+      return "N/A";
     }
-    return `$${salary.amount}/${salary.period.toLowerCase()}`;
   };
 
   const getStatusColor = (status: string) => {
@@ -198,6 +216,19 @@ export default function ApplicantDashboard() {
     }
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="container py-12 flex justify-center items-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show sign in prompt if not authenticated
   if (!isAuthenticated) {
     return (
       <div className='container py-12 text-center'>
@@ -210,6 +241,9 @@ export default function ApplicantDashboard() {
     );
   }
 
+  // Get the user's name safely
+  const userName = user?.name || 'User';
+
   return (
     <>
       <Head>
@@ -221,7 +255,7 @@ export default function ApplicantDashboard() {
         <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-8'>
           <div>
             <h1 className='text-3xl font-bold tracking-tight mb-2'>Applicant Dashboard</h1>
-            <p className='text-muted-foreground'>Welcome back, {user?.name || 'User'}</p>
+            <p className='text-muted-foreground'>Welcome back, {userName}</p>
           </div>
           <div className='flex gap-2 mt-4 md:mt-0'>
             <Link href='/jobs'>
@@ -246,7 +280,7 @@ export default function ApplicantDashboard() {
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value='overview' className='space-y-6'>
+          <TabsContent value='overview' className='space-y-6' id="dashboard-overview">
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
               <Card>
                 <CardHeader className='flex flex-row items-center justify-between pb-2'>
@@ -303,7 +337,7 @@ export default function ApplicantDashboard() {
               <RecentApplications />
             </div>
 
-            <Card>
+            <Card id="recommended-jobs">
               <CardHeader>
                 <CardTitle>Recommended Jobs</CardTitle>
                 <CardDescription>
@@ -354,7 +388,7 @@ export default function ApplicantDashboard() {
           </TabsContent>
 
           {/* Applications Tab */}
-          <TabsContent value='applications'>
+          <TabsContent value='applications' id="applications-tab">
             <Card>
               <CardHeader>
                 <CardTitle>Your Applications</CardTitle>
@@ -427,12 +461,18 @@ export default function ApplicantDashboard() {
         </Tabs>
       </div>
 
-      <TutorialGuide
-        steps={tutorialSteps}
-        onComplete={handleTutorialComplete}
-        isOpen={showTutorial}
-        onOpenChange={setShowTutorial}
-      />
+      {/* Profile card for tutorial */}
+      <div id="profile-card" className="hidden"></div>
+
+      {/* Tutorial Guide */}
+      {typeof window !== 'undefined' && (
+        <TutorialGuide
+          steps={tutorialSteps}
+          onComplete={handleTutorialComplete}
+          isOpen={showTutorial}
+          onOpenChange={setShowTutorial}
+        />
+      )}
     </>
   );
 }

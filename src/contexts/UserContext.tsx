@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/router";
 
@@ -15,6 +14,16 @@ export interface User {
   firstName?: string;
   lastName?: string;
   isActive?: boolean; // Add isActive for compatibility with useFirebaseAuth
+  // Add additional fields for compatibility with useFirebaseAuth
+  phoneNumber?: string;
+  bio?: string;
+  preferredLocation?: string;
+  skills?: string[];
+  experience?: string;
+  education?: string;
+  businessName?: string;
+  businessAddress?: string;
+  cuisineType?: string;
 }
 
 interface UserContextType {
@@ -52,6 +61,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             if (parsedUser.isActive === undefined) {
               parsedUser.isActive = true;
             }
+            // Ensure other fields have default values for compatibility
+            parsedUser.bio = parsedUser.bio || '';
+            parsedUser.preferredLocation = parsedUser.preferredLocation || '';
+            parsedUser.skills = parsedUser.skills || [];
+            parsedUser.experience = parsedUser.experience || '';
+            parsedUser.education = parsedUser.education || '';
+            parsedUser.businessName = parsedUser.businessName || '';
+            parsedUser.businessAddress = parsedUser.businessAddress || '';
+            parsedUser.cuisineType = parsedUser.cuisineType || '';
+            
             setUser(parsedUser);
           } else {
             console.error('Invalid user data in localStorage');
@@ -111,7 +130,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         role,
         userType: role, // Set userType to match role for compatibility
         isActive: true, // Set isActive for compatibility
-        profileComplete: false
+        profileComplete: false,
+        // Add default values for additional fields
+        phoneNumber: '',
+        bio: '',
+        preferredLocation: '',
+        skills: [],
+        experience: '',
+        education: '',
+        businessName: '',
+        businessAddress: '',
+        cuisineType: ''
       };
       
       // Save to state and localStorage
@@ -143,6 +172,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         firstName: mockUser.firstName || mockUser.name,
         lastName: mockUser.lastName || '',
         isActive: true,
+        // Include additional fields
+        phoneNumber: mockUser.phoneNumber || '',
+        bio: mockUser.bio || '',
+        preferredLocation: mockUser.preferredLocation || '',
+        skills: mockUser.skills || [],
+        experience: mockUser.experience || '',
+        education: mockUser.education || '',
+        businessName: mockUser.businessName || '',
+        businessAddress: mockUser.businessAddress || '',
+        cuisineType: mockUser.cuisineType || ''
       };
       
       return { userProfile, dashboardPath };
@@ -181,7 +220,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         role,
         userType: role, // Set userType to match role for compatibility
         isActive: true, // Set isActive for compatibility
-        profileComplete: false
+        profileComplete: false,
+        // Add default values for additional fields
+        phoneNumber: '',
+        bio: '',
+        preferredLocation: '',
+        skills: [],
+        experience: '',
+        education: '',
+        businessName: '',
+        businessAddress: '',
+        cuisineType: ''
       };
       
       // Save to state and localStorage

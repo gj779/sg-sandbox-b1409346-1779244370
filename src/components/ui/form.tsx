@@ -42,34 +42,17 @@ const FormField = <
   )
 }
 
-// Create a FormContext wrapper to avoid direct useFormContext calls
-const FormContext = React.createContext<ReturnType<typeof useFormContext> | null>(null)
-
-// FormContextProvider component that safely provides form context
-const FormContextProvider = ({ children }: { children: React.ReactNode }) => {
-  // Always call useFormContext unconditionally at the top level
-  let formContext = null
-  try {
-    formContext = useFormContext()
-  } catch (e) {
-    // Form context not available, will use null
-  }
-  
-  return (
-    <FormContext.Provider value={formContext}>
-      {children}
-    </FormContext.Provider>
-  )
-}
-
-// Fixed useFormField that doesn't conditionally call hooks
+// Always call hooks at the top level
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
+  
+  // Get form context safely without conditional hooks
   const formContext = React.useContext(FormContext)
   
-  const fieldState = formContext && fieldContext.name 
-    ? formContext.getFieldState(fieldContext.name, formContext.formState) 
+  // Handle the case when form context is not available
+  const fieldState = formContext && fieldContext?.name 
+    ? formContext.getFieldState(fieldContext.name, formContext.formState)
     : {}
   
   const id = itemContext?.id || ""
@@ -80,7 +63,7 @@ const useFormField = () => {
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
-    ...fieldState
+    ...fieldState,
   }
 }
 
@@ -89,6 +72,26 @@ type FormItemContextValue = {
 }
 
 const FormItemContext = React.createContext<FormItemContextValue | undefined>(undefined)
+
+// Create a FormContext to avoid direct useFormContext calls
+const FormContext = React.createContext<ReturnType<typeof useFormContext> | null>(null)
+
+// FormContextProvider that always calls useFormContext at the top level
+const FormContextProvider = ({ children }: { children: React.ReactNode }) => {
+  let formContext = null
+  
+  try {
+    formContext = useFormContext()
+  } catch (e) {
+    // Form context not available, will remain null
+  }
+  
+  return (
+    <FormContext.Provider value={formContext}>
+      {children}
+    </FormContext.Provider>
+  )
+}
 
 const FormItem = React.forwardRef<
   HTMLDivElement,
@@ -111,7 +114,7 @@ const FormLabel = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
   const { error, formItemId } = useFormField()
-  
+
   return (
     <Label
       ref={ref}
@@ -128,7 +131,7 @@ const FormControl = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof Slot>
 >(({ ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
-  
+
   return (
     <Slot
       ref={ref}
@@ -150,7 +153,7 @@ const FormDescription = React.forwardRef<
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => {
   const { formDescriptionId } = useFormField()
-  
+
   return (
     <p
       ref={ref}
@@ -168,11 +171,11 @@ const FormMessage = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const { error, formMessageId } = useFormField()
   const body = error ? String(error?.message) : children
-  
+
   if (!body) {
     return null
   }
-  
+
   return (
     <p
       ref={ref}

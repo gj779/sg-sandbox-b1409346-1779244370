@@ -42,65 +42,45 @@ const FormField = <
   )
 }
 
-// Safe version of useFormField that doesn't throw errors
-const useSafeFormField = () => {
-  const fieldContext = React.useContext(FormFieldContext)
-  const itemContext = React.useContext(FormItemContext)
-  let formContext
-  
+// Create a FormContext wrapper to avoid direct useFormContext calls
+const FormContext = React.createContext<ReturnType<typeof useFormContext> | null>(null)
+
+// FormContextProvider component that safely provides form context
+const FormContextProvider = ({ children }: { children: React.ReactNode }) => {
+  // Always call useFormContext unconditionally at the top level
+  let formContext = null
   try {
     formContext = useFormContext()
   } catch (e) {
-    // Return default values if not in a form context
-    return {
-      id: itemContext?.id || "",
-      name: fieldContext?.name || "",
-      formItemId: `${itemContext?.id || ""}-form-item`,
-      formDescriptionId: `${itemContext?.id || ""}-form-item-description`,
-      formMessageId: `${itemContext?.id || ""}-form-item-message`,
-      error: undefined
-    }
+    // Form context not available, will use null
   }
   
-  if (!fieldContext || !formContext) {
-    // Return default values if missing contexts
-    return {
-      id: itemContext?.id || "",
-      name: fieldContext?.name || "",
-      formItemId: `${itemContext?.id || ""}-form-item`,
-      formDescriptionId: `${itemContext?.id || ""}-form-item-description`,
-      formMessageId: `${itemContext?.id || ""}-form-item-message`,
-      error: undefined
-    }
-  }
+  return (
+    <FormContext.Provider value={formContext}>
+      {children}
+    </FormContext.Provider>
+  )
+}
+
+// Fixed useFormField that doesn't conditionally call hooks
+const useFormField = () => {
+  const fieldContext = React.useContext(FormFieldContext)
+  const itemContext = React.useContext(FormItemContext)
+  const formContext = React.useContext(FormContext)
   
-  const { getFieldState, formState } = formContext
+  const fieldState = formContext && fieldContext.name 
+    ? formContext.getFieldState(fieldContext.name, formContext.formState) 
+    : {}
   
-  // Add a safe check for fieldContext.name
-  if (!fieldContext.name) {
-    return {
-      id: itemContext?.id || "",
-      name: "",
-      formItemId: `${itemContext?.id || ""}-form-item`,
-      formDescriptionId: `${itemContext?.id || ""}-form-item-description`,
-      formMessageId: `${itemContext?.id || ""}-form-item-message`,
-      error: undefined
-    }
-  }
-  
-  // Safely get field state
-  const fieldState = getFieldState(fieldContext.name, formState)
-  
-  // Safely access itemContext.id with a fallback
   const id = itemContext?.id || ""
   
   return {
     id,
-    name: fieldContext.name,
+    name: fieldContext?.name || "",
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
-    ...fieldState,
+    ...fieldState
   }
 }
 
@@ -118,7 +98,9 @@ const FormItem = React.forwardRef<
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div ref={ref} className={cn("space-y-2", className)} {...props} />
+      <FormContextProvider>
+        <div ref={ref} className={cn("space-y-2", className)} {...props} />
+      </FormContextProvider>
     </FormItemContext.Provider>
   )
 })
@@ -128,7 +110,7 @@ const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
-  const { error, formItemId } = useSafeFormField()
+  const { error, formItemId } = useFormField()
   
   return (
     <Label
@@ -145,7 +127,7 @@ const FormControl = React.forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
 >(({ ...props }, ref) => {
-  const { error, formItemId, formDescriptionId, formMessageId } = useSafeFormField()
+  const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
   
   return (
     <Slot
@@ -167,7 +149,7 @@ const FormDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => {
-  const { formDescriptionId } = useSafeFormField()
+  const { formDescriptionId } = useFormField()
   
   return (
     <p
@@ -184,7 +166,7 @@ const FormMessage = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, children, ...props }, ref) => {
-  const { error, formMessageId } = useSafeFormField()
+  const { error, formMessageId } = useFormField()
   const body = error ? String(error?.message) : children
   
   if (!body) {
@@ -205,7 +187,7 @@ const FormMessage = React.forwardRef<
 FormMessage.displayName = "FormMessage"
 
 export {
-  useSafeFormField as useFormField,
+  useFormField,
   Form,
   FormItem,
   FormLabel,

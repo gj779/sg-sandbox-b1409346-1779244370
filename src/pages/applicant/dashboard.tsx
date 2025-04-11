@@ -167,12 +167,15 @@ export default function ApplicantDashboard() {
         localStorage.setItem('applicant-tutorial-completed', 'true');
       }
       setTutorialCompleted(true);
+      setShowTutorial(false);
     } catch (error) {
       console.error("Error setting localStorage:", error);
     }
   };
 
   const formatDate = (date: Date) => {
+    if (!date) return "N/A";
+    
     try {
       return new Date(date).toLocaleDateString('en-US', {
         month: 'short',
@@ -185,7 +188,9 @@ export default function ApplicantDashboard() {
     }
   };
 
-  const formatSalary = (salary: { amount: number, period: string }) => {
+  const formatSalary = (salary: { amount: number, period: string } | undefined) => {
+    if (!salary) return "N/A";
+    
     try {
       if (salary.period === 'Hourly') {
         return `$${salary.amount}/hr`;

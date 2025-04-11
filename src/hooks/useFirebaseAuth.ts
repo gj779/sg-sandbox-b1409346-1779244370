@@ -348,8 +348,19 @@ export function useFirebaseAuth() {
         id: authState.user.uid,
         email: authState.user.email || '',
         userType: authState.userProfile?.userType || 'applicant',
-        isActive: authState.userProfile?.isActive || true,
-        updatedAt: new Date()
+        isActive: authState.userProfile?.isActive !== undefined ? authState.userProfile.isActive : true,
+        updatedAt: new Date(),
+        // Ensure all required fields have default values
+        firstName: updates.firstName || authState.userProfile?.firstName || '',
+        lastName: updates.lastName || authState.userProfile?.lastName || '',
+        bio: updates.bio || authState.userProfile?.bio || '',
+        preferredLocation: updates.preferredLocation || authState.userProfile?.preferredLocation || '',
+        skills: updates.skills || authState.userProfile?.skills || [],
+        experience: updates.experience || authState.userProfile?.experience || '',
+        education: updates.education || authState.userProfile?.education || '',
+        businessName: updates.businessName || authState.userProfile?.businessName || '',
+        businessAddress: updates.businessAddress || authState.userProfile?.businessAddress || '',
+        cuisineType: updates.cuisineType || authState.userProfile?.cuisineType || ''
       };
       
       // Try to update with Firebase service

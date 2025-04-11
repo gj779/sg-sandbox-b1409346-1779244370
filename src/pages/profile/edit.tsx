@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -84,20 +85,15 @@ export default function EditProfilePage() {
   const [userType, setUserType] = useState<"applicant" | "restaurant" | "admin" | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Determine which schema to use based on user type
-  const formSchema = userType === "applicant" 
-    ? applicantProfileSchema 
-    : restaurantProfileSchema;
-
   // Initialize form with react-hook-form
   const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(userType === "applicant" ? applicantProfileSchema : restaurantProfileSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
       phoneNumber: "",
-      // We'll set the type-specific fields in the useEffect
+      // Type-specific fields will be set in useEffect
     },
   });
 
@@ -105,11 +101,15 @@ export default function EditProfilePage() {
   const handleRefreshProfile = async () => {
     setIsRefreshing(true);
     try {
-      await refreshUserProfile();
-      toast({
-        title: "Profile refreshed",
-        description: "Your profile data has been refreshed.",
-      });
+      const refreshedProfile = await refreshUserProfile();
+      if (refreshedProfile) {
+        toast({
+          title: "Profile refreshed",
+          description: "Your profile data has been refreshed.",
+        });
+      } else {
+        throw new Error("Failed to refresh profile data");
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -177,7 +177,7 @@ export default function EditProfilePage() {
     }
   }, [userProfile, isLoading]);
 
-  // Improve the onSubmit function to handle form submission better
+  // Improved onSubmit function with better error handling
   const onSubmit = async (data: ProfileFormValues) => {
     setIsSubmitting(true);
     setFormError(null);
@@ -210,8 +210,10 @@ export default function EditProfilePage() {
         updateData.cuisineType = restaurantData.cuisineType || '';
       }
       
+      // Ensure required fields are present
       updateData.userType = userProfile.userType;
       updateData.isActive = userProfile.isActive !== undefined ? userProfile.isActive : true;
+      updateData.email = userProfile.email; // Ensure email is preserved
       
       // Update profile
       const updatedProfile = await updateUserProfile(updateData);
@@ -245,10 +247,14 @@ export default function EditProfilePage() {
     }
   };
 
+  // Show loading state
   if (isLoading) {
     return (
-      <div className="container py-12 flex justify-center items-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="container py-12 flex justify-center items-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading your profile...</p>
+        </div>
       </div>
     );
   }

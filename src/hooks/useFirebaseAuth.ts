@@ -77,22 +77,22 @@ export function useFirebaseAuth() {
             // If no profile, create a mock profile with basic user info
             const mockProfile: UserProfile = {
               id: user.uid,
-              email: user.email || "",
-              firstName: user.displayName?.split(' ')[0] || "User",
-              lastName: user.displayName?.split(' ')[1] || "",
-              userType: "applicant", // Default type
+              email: user.email || '',
+              firstName: user.displayName?.split(' ')[0] || 'User',
+              lastName: user.displayName?.split(' ')[1] || '',
+              userType: 'applicant', // Default type
               isActive: true,
               createdAt: new Date(),
               updatedAt: new Date(),
               // Add default values for required fields to prevent undefined errors
-              bio: "",
-              preferredLocation: "",
+              bio: '',
+              preferredLocation: '',
               skills: [],
-              experience: "",
-              education: "",
-              businessName: "",
-              businessAddress: "",
-              cuisineType: ""
+              experience: '',
+              education: '',
+              businessName: '',
+              businessAddress: '',
+              cuisineType: ''
             };
             
             setAuthState({
@@ -100,37 +100,37 @@ export function useFirebaseAuth() {
               user,
               userProfile: mockProfile,
               isLoading: false,
-              error: "Profile data incomplete. Some features may be limited.",
+              error: 'Profile data incomplete. Some features may be limited.',
             });
             
             // Try to create a basic profile in Firestore
             try {
               await firebaseAuthService.updateUserProfile(user.uid, mockProfile);
             } catch (createError) {
-              console.error("Failed to create basic profile:", createError);
+              console.error('Failed to create basic profile:', createError);
             }
           }
         } catch (error) {
-          console.error("Error loading user profile:", error);
+          console.error('Error loading user profile:', error);
           // Create a fallback profile with basic user info
           const fallbackProfile: UserProfile = {
             id: user.uid,
-            email: user.email || "",
-            firstName: user.displayName?.split(' ')[0] || "User",
-            lastName: user.displayName?.split(' ')[1] || "",
-            userType: "applicant", // Default type
+            email: user.email || '',
+            firstName: user.displayName?.split(' ')[0] || 'User',
+            lastName: user.displayName?.split(' ')[1] || '',
+            userType: 'applicant', // Default type
             isActive: true,
             createdAt: new Date(),
             updatedAt: new Date(),
             // Add default values for required fields
-            bio: "",
-            preferredLocation: "",
+            bio: '',
+            preferredLocation: '',
             skills: [],
-            experience: "",
-            education: "",
-            businessName: "",
-            businessAddress: "",
-            cuisineType: ""
+            experience: '',
+            education: '',
+            businessName: '',
+            businessAddress: '',
+            cuisineType: ''
           };
           
           setAuthState({
@@ -138,14 +138,14 @@ export function useFirebaseAuth() {
             user,
             userProfile: fallbackProfile,
             isLoading: false,
-            error: "Failed to load complete user profile. Using limited profile data.",
+            error: 'Failed to load complete user profile. Using limited profile data.',
           });
           
           // Try to create a basic profile in Firestore
           try {
             await firebaseAuthService.updateUserProfile(user.uid, fallbackProfile);
           } catch (createError) {
-            console.error("Failed to create fallback profile:", createError);
+            console.error('Failed to create fallback profile:', createError);
           }
         }
       } else {

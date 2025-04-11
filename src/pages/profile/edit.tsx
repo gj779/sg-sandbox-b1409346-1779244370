@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -76,7 +75,7 @@ const restaurantProfileSchema = z.object({
 type ProfileFormValues = z.infer<typeof applicantProfileSchema> | z.infer<typeof restaurantProfileSchema>;
 
 export default function EditProfilePage() {
-  const { userProfile, updateUserProfile, error, refreshUserProfile } = useFirebaseAuth();
+  const { userProfile, updateUserProfile, error: authError, refreshUserProfile } = useFirebaseAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,8 +83,9 @@ export default function EditProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [userType, setUserType] = useState<"applicant" | "restaurant" | "admin" | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formInitialized, setFormInitialized] = useState(false);
 
-  // Initialize form with react-hook-form
+  // Initialize form with react-hook-form and default values
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(userType === "applicant" ? applicantProfileSchema : restaurantProfileSchema),
     defaultValues: {
@@ -94,6 +94,15 @@ export default function EditProfilePage() {
       email: "",
       phoneNumber: "",
       // Type-specific fields will be set in useEffect
+      bio: "",
+      preferredLocation: "",
+      skills: "",
+      experience: "",
+      education: "",
+      businessName: "",
+      businessAddress: "",
+      businessDescription: "",
+      cuisineType: "",
     },
   });
 
@@ -107,6 +116,29 @@ export default function EditProfilePage() {
           title: "Profile refreshed",
           description: "Your profile data has been refreshed.",
         });
+        
+        // Update form values with refreshed profile data
+        setUserType(refreshedProfile.userType);
+        
+        // Common fields
+        form.setValue('firstName', refreshedProfile.firstName || '');
+        form.setValue('lastName', refreshedProfile.lastName || '');
+        form.setValue('email', refreshedProfile.email || '');
+        form.setValue('phoneNumber', refreshedProfile.phoneNumber || '');
+        
+        // User type specific fields
+        if (refreshedProfile.userType === 'applicant') {
+          form.setValue('bio', refreshedProfile.bio || '');
+          form.setValue('preferredLocation', refreshedProfile.preferredLocation || '');
+          form.setValue('skills', refreshedProfile.skills && refreshedProfile.skills.length > 0 ? refreshedProfile.skills.join(', ') : '');
+          form.setValue('experience', refreshedProfile.experience || '');
+          form.setValue('education', refreshedProfile.education || '');
+        } else if (refreshedProfile.userType === 'restaurant') {
+          form.setValue('businessName', refreshedProfile.businessName || '');
+          form.setValue('businessAddress', refreshedProfile.businessAddress || '');
+          form.setValue('businessDescription', refreshedProfile.bio || '');
+          form.setValue('cuisineType', refreshedProfile.cuisineType || '');
+        }
       } else {
         throw new Error("Failed to refresh profile data");
       }
@@ -147,6 +179,8 @@ export default function EditProfilePage() {
           form.setValue('businessDescription', userProfile.bio || '');
           form.setValue('cuisineType', userProfile.cuisineType || '');
         }
+        
+        setFormInitialized(true);
       } catch (error) {
         console.error('Error setting form values:', error);
         setFormError('Error loading profile data. Please try refreshing the page.');
@@ -274,12 +308,12 @@ export default function EditProfilePage() {
           </p>
         </div>
 
-        {error && (
+        {authError && (
           <Alert variant="default" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Warning</AlertTitle>
             <AlertDescription>
-              {error}
+              {authError}
               <Button 
                 variant="outline" 
                 size="sm" 

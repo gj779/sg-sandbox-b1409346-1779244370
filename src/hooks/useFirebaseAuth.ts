@@ -405,21 +405,21 @@ export function useFirebaseAuth() {
         // If no profile found, create a default one
         const defaultProfile: UserProfile = {
           id: authState.user.uid,
-          email: authState.user.email || "",
-          firstName: authState.user.displayName?.split(' ')[0] || "User",
-          lastName: authState.user.displayName?.split(' ')[1] || "",
-          userType: authState.userProfile?.userType || "applicant",
+          email: authState.user.email || '',
+          firstName: authState.user.displayName?.split(' ')[0] || 'User',
+          lastName: authState.user.displayName?.split(' ')[1] || '',
+          userType: authState.userProfile?.userType || 'applicant',
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
-          bio: "",
-          preferredLocation: "",
+          bio: '',
+          preferredLocation: '',
           skills: [],
-          experience: "",
-          education: "",
-          businessName: "",
-          businessAddress: "",
-          cuisineType: ""
+          experience: '',
+          education: '',
+          businessName: '',
+          businessAddress: '',
+          cuisineType: ''
         };
         
         try {
@@ -447,28 +447,28 @@ export function useFirebaseAuth() {
       // Create a fallback profile
       const fallbackProfile: UserProfile = {
         id: authState.user.uid,
-        email: authState.user.email || "",
-        firstName: authState.user.displayName?.split(' ')[0] || "User",
-        lastName: authState.user.displayName?.split(' ')[1] || "",
-        userType: authState.userProfile?.userType || "applicant",
+        email: authState.user.email || '',
+        firstName: authState.user.displayName?.split(' ')[0] || 'User',
+        lastName: authState.user.displayName?.split(' ')[1] || '',
+        userType: authState.userProfile?.userType || 'applicant',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-        bio: "",
-        preferredLocation: "",
+        bio: '',
+        preferredLocation: '',
         skills: [],
-        experience: "",
-        education: "",
-        businessName: "",
-        businessAddress: "",
-        cuisineType: ""
+        experience: '',
+        education: '',
+        businessName: '',
+        businessAddress: '',
+        cuisineType: ''
       };
       
       setAuthState(prev => ({
         ...prev,
         userProfile: fallbackProfile,
         isLoading: false,
-        error: error.message || "Failed to refresh user profile. Using fallback data.",
+        error: error.message || 'Failed to refresh user profile. Using fallback data.',
       }));
       return fallbackProfile;
     }

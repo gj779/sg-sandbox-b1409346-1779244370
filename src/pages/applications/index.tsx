@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -248,7 +249,7 @@ export default function ApplicationsPage() {
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Applications</SelectItem>
+                <SelectItem value="all">All Applications</SelectItem>
                 <SelectItem value="applied">Applied</SelectItem>
                 <SelectItem value="viewed">Viewed</SelectItem>
                 <SelectItem value="in_review">In Review</SelectItem>

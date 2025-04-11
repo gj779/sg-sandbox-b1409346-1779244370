@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -173,7 +172,7 @@ export default function ApplicantDashboard() {
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null | undefined) => {
     if (!date) return "N/A";
     
     try {

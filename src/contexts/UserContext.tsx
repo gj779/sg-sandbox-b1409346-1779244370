@@ -10,9 +10,11 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  userType?: UserRole; // Add userType for compatibility with useFirebaseAuth
   profileComplete: boolean;
   firstName?: string;
   lastName?: string;
+  isActive?: boolean; // Add isActive for compatibility with useFirebaseAuth
 }
 
 interface UserContextType {
@@ -42,6 +44,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           const parsedUser = JSON.parse(storedUser);
           // Validate the user object has required fields
           if (parsedUser && parsedUser.id && parsedUser.email && parsedUser.role) {
+            // Ensure userType is set for compatibility
+            if (!parsedUser.userType) {
+              parsedUser.userType = parsedUser.role;
+            }
+            // Ensure isActive is set for compatibility
+            if (parsedUser.isActive === undefined) {
+              parsedUser.isActive = true;
+            }
             setUser(parsedUser);
           } else {
             console.error('Invalid user data in localStorage');
@@ -99,6 +109,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         lastName,
         email,
         role,
+        userType: role, // Set userType to match role for compatibility
+        isActive: true, // Set isActive for compatibility
         profileComplete: false
       };
       
@@ -167,6 +179,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         lastName,
         email,
         role,
+        userType: role, // Set userType to match role for compatibility
+        isActive: true, // Set isActive for compatibility
         profileComplete: false
       };
       

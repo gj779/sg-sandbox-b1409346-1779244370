@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -128,28 +127,28 @@ export default function EditProfilePage() {
       setIsLoading(false);
       setUserType(userProfile.userType);
       
-      // Common fields
-      form.setValue("firstName", userProfile.firstName || "");
-      form.setValue("lastName", userProfile.lastName || "");
-      form.setValue("email", userProfile.email || "");
-      form.setValue("phoneNumber", userProfile.phoneNumber || "");
+      // Common fields - add null checks to prevent undefined errors
+      form.setValue('firstName', userProfile.firstName || '');
+      form.setValue('lastName', userProfile.lastName || '');
+      form.setValue('email', userProfile.email || '');
+      form.setValue('phoneNumber', userProfile.phoneNumber || '');
       
       // User type specific fields
-      if (userProfile.userType === "applicant") {
-        form.setValue("bio", userProfile.bio || "");
-        form.setValue("preferredLocation", userProfile.preferredLocation || "");
-        form.setValue("skills", userProfile.skills ? userProfile.skills.join(", ") : "");
-        form.setValue("experience", userProfile.experience || "");
-        form.setValue("education", userProfile.education || "");
-      } else if (userProfile.userType === "restaurant") {
-        form.setValue("businessName", userProfile.businessName || "");
-        form.setValue("businessAddress", userProfile.businessAddress || "");
-        form.setValue("businessDescription", userProfile.bio || "");
-        form.setValue("cuisineType", userProfile.cuisineType || "");
+      if (userProfile.userType === 'applicant') {
+        form.setValue('bio', userProfile.bio || '');
+        form.setValue('preferredLocation', userProfile.preferredLocation || '');
+        form.setValue('skills', userProfile.skills && userProfile.skills.length > 0 ? userProfile.skills.join(', ') : '');
+        form.setValue('experience', userProfile.experience || '');
+        form.setValue('education', userProfile.education || '');
+      } else if (userProfile.userType === 'restaurant') {
+        form.setValue('businessName', userProfile.businessName || '');
+        form.setValue('businessAddress', userProfile.businessAddress || '');
+        form.setValue('businessDescription', userProfile.bio || '');
+        form.setValue('cuisineType', userProfile.cuisineType || '');
       }
     } else if (!isLoading) {
       // If we're not loading and there's no profile, there's a problem
-      setFormError("Could not load profile data. Please try refreshing or logging in again.");
+      setFormError('Could not load profile data. Please try refreshing or logging in again.');
     }
   }, [userProfile, form, isLoading]);
 
@@ -182,23 +181,23 @@ export default function EditProfilePage() {
       const updateData: any = {
         firstName: data.firstName,
         lastName: data.lastName,
-        phoneNumber: data.phoneNumber,
+        phoneNumber: data.phoneNumber || '',
       };
       
       // Add user type specific fields
-      if (userType === "applicant") {
+      if (userType === 'applicant') {
         const applicantData = data as z.infer<typeof applicantProfileSchema>;
-        updateData.bio = applicantData.bio;
-        updateData.preferredLocation = applicantData.preferredLocation;
-        updateData.skills = applicantData.skills ? applicantData.skills.split(",").map((s: string) => s.trim()) : [];
-        updateData.experience = applicantData.experience;
-        updateData.education = applicantData.education;
-      } else if (userType === "restaurant") {
+        updateData.bio = applicantData.bio || '';
+        updateData.preferredLocation = applicantData.preferredLocation || '';
+        updateData.skills = applicantData.skills ? applicantData.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+        updateData.experience = applicantData.experience || '';
+        updateData.education = applicantData.education || '';
+      } else if (userType === 'restaurant') {
         const restaurantData = data as z.infer<typeof restaurantProfileSchema>;
-        updateData.businessName = restaurantData.businessName;
-        updateData.businessAddress = restaurantData.businessAddress;
-        updateData.bio = restaurantData.businessDescription; // Map to bio field in the database
-        updateData.cuisineType = restaurantData.cuisineType;
+        updateData.businessName = restaurantData.businessName || '';
+        updateData.businessAddress = restaurantData.businessAddress || '';
+        updateData.bio = restaurantData.businessDescription || ''; // Map to bio field in the database
+        updateData.cuisineType = restaurantData.cuisineType || '';
       }
       
       // Update profile
@@ -206,27 +205,27 @@ export default function EditProfilePage() {
       
       if (updatedProfile) {
         toast({
-          title: "Profile updated",
-          description: "Your profile has been updated successfully.",
-          variant: "default",
+          title: 'Profile updated',
+          description: 'Your profile has been updated successfully.',
+          variant: 'default',
         });
         
         // Redirect to dashboard
-        const dashboardPath = userType === "applicant" 
-          ? "/applicant/dashboard" 
-          : "/restaurant/dashboard";
+        const dashboardPath = userType === 'applicant' 
+          ? '/applicant/dashboard' 
+          : '/restaurant/dashboard';
         
         router.push(dashboardPath);
       } else {
-        throw new Error("Failed to update profile. Please try again.");
+        throw new Error('Failed to update profile. Please try again.');
       }
     } catch (error: any) {
-      console.error("Error updating profile:", error);
-      setFormError(error.message || "Failed to update profile. Please try again.");
+      console.error('Error updating profile:', error);
+      setFormError(error.message || 'Failed to update profile. Please try again.');
       toast({
-        title: "Error",
-        description: error.message || "Failed to update profile. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to update profile. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);

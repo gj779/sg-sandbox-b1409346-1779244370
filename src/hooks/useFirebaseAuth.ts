@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -175,27 +174,28 @@ export function useFirebaseAuth() {
       if (!userProfile) {
         const defaultProfile: UserProfile = {
           id: user.uid,
-          email: user.email || "",
-          firstName: user.displayName?.split(' ')[0] || "User",
-          lastName: user.displayName?.split(' ')[1] || "",
-          userType: email.includes("restaurant") ? "restaurant" : "applicant",
+          email: user.email || '',
+          firstName: user.displayName?.split(' ')[0] || 'User',
+          lastName: user.displayName?.split(' ')[1] || '',
+          userType: email.includes('restaurant') ? 'restaurant' : 'applicant',
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
-          bio: "",
-          preferredLocation: "",
+          bio: '',
+          preferredLocation: '',
           skills: [],
-          experience: "",
-          education: "",
-          businessName: "",
-          businessAddress: "",
-          cuisineType: ""
+          experience: '',
+          education: '',
+          businessName: '',
+          businessAddress: '',
+          cuisineType: ''
         };
         
         try {
-          finalUserProfile = await firebaseAuthService.updateUserProfile(user.uid, defaultProfile) || defaultProfile;
+          const updatedProfile = await firebaseAuthService.updateUserProfile(user.uid, defaultProfile);
+          finalUserProfile = updatedProfile || defaultProfile;
         } catch (error) {
-          console.error("Failed to create default profile:", error);
+          console.error('Failed to create default profile:', error);
           finalUserProfile = defaultProfile;
         }
       }
@@ -218,7 +218,7 @@ export function useFirebaseAuth() {
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message || "Failed to sign in",
+        error: error.message || 'Failed to sign in',
       }));
       throw error;
     }
@@ -344,7 +344,7 @@ export function useFirebaseAuth() {
         ...(authState.userProfile || {}),
         ...updates,
         id: authState.user.uid,
-        email: authState.user.email || "",
+        email: authState.user.email || '',
         updatedAt: new Date()
       } as UserProfile;
       
@@ -367,12 +367,12 @@ export function useFirebaseAuth() {
         ...prev,
         userProfile: finalProfile,
         isLoading: false,
-        error: updatedProfile ? null : "Profile updated locally only. Changes may not persist after logout.",
+        error: updatedProfile ? null : 'Profile updated locally only. Changes may not persist after logout.',
       }));
       
       return finalProfile;
     } catch (error: any) {
-      console.error("Profile update error:", error);
+      console.error('Profile update error:', error);
       setAuthState(prev => ({
         ...prev,
         isLoading: false,

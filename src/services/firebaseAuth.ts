@@ -113,12 +113,24 @@ export const firebaseAuthService = {
   // Sign in user
   async signIn(email: string, password: string): Promise<{ user: User; userProfile: UserProfile | null }> {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Trim email and password to prevent whitespace issues
+      const trimmedEmail = email.trim();
+      const trimmedPassword = password;
+      
+      console.log(`Attempting to sign in with email: ${trimmedEmail}`);
+      
+      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
       const user = userCredential.user;
+      
+      console.log(`User signed in successfully: ${user.uid}`);
       
       // Get user profile from Firestore
       const userProfileDoc = await getDoc(doc(db, 'users', user.uid));
       const userProfile = userProfileDoc.exists() ? userProfileDoc.data() as UserProfile : null;
+      
+      if (!userProfile) {
+        console.log(`No profile found for user ${user.uid}, will create default profile`);
+      }
       
       return { user, userProfile };
     } catch (error: any) {
@@ -130,6 +142,7 @@ export const firebaseAuthService = {
       if (error.code) {
         switch (error.code) {
           case 'auth/invalid-credential':
+          case 'auth/invalid-login-credentials':
           case 'auth/user-not-found':
           case 'auth/wrong-password':
             errorMessage = 'Invalid email or password. Please check your credentials and try again.';
@@ -147,7 +160,7 @@ export const firebaseAuthService = {
             errorMessage = 'Network error. Please check your internet connection and try again.';
             break;
           default:
-            errorMessage = error.message ? error.message.replace(/@/g, 'at') : errorMessage;
+            errorMessage = error.message ? error.message.replace(/@/g, ' at ') : errorMessage;
         }
       }
       

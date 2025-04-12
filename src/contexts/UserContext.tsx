@@ -60,13 +60,45 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   // Improved login function with better error handling
   const login = async (email: string, password: string) => {
     try {
-      return await signIn(email, password);
+      console.log(`Attempting to login with email: ${email}`);
+      const result = await signIn(email, password);
+      console.log('Login successful');
+      return result;
     } catch (error: any) {
       console.error('Login error in context:', error);
+      
       // Ensure we're returning a clean error message
-      const errorMessage = error && typeof error === 'object' && 'message' in error 
-        ? String(error.message).replace(/@/g, ' at ') 
-        : 'Failed to sign in';
+      let errorMessage = 'Failed to sign in. Please check your credentials and try again.';
+      
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = String(error.message).replace(/@/g, ' at ');
+        } else if ('code' in error) {
+          // Handle Firebase error codes
+          switch (String(error.code)) {
+            case 'auth/invalid-credential':
+            case 'auth/invalid-login-credentials':
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+              errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+              break;
+            case 'auth/invalid-email':
+              errorMessage = 'Invalid email format. Please enter a valid email address.';
+              break;
+            case 'auth/user-disabled':
+              errorMessage = 'This account has been disabled. Please contact support.';
+              break;
+            case 'auth/too-many-requests':
+              errorMessage = 'Too many unsuccessful login attempts. Please try again later or reset your password.';
+              break;
+            case 'auth/network-request-failed':
+              errorMessage = 'Network error. Please check your internet connection and try again.';
+              break;
+          }
+        }
+      }
+      
+      console.error('Login error:', errorMessage);
       throw new Error(errorMessage);
     }
   };

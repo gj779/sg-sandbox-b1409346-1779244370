@@ -103,16 +103,19 @@ export default function EditProfilePage() {
   // Update form resolver when user type changes
   useEffect(() => {
     if (userType) {
-      // Fix: Use proper reset options without 'resolver' which is causing the TS error
+      // Fix: Use proper reset options without accessing private properties
       form.clearErrors();
       
-      // Create a new form with the correct resolver
+      // Reset the form with the current values but use the new resolver
+      // This is the proper way to update the resolver without accessing private properties
+      const currentValues = form.getValues();
+      
+      // Re-create the form with the new resolver
       const newResolver = zodResolver(
         userType === 'applicant' ? applicantProfileSchema : restaurantProfileSchema
       );
       
-      // Keep current values but update the validation schema
-      const currentValues = form.getValues();
+      // Reset the form with current values and trigger validation
       form.reset(currentValues, { 
         keepValues: true,
         keepDirty: false,
@@ -122,8 +125,8 @@ export default function EditProfilePage() {
         keepIsValid: false
       });
       
-      // Update the resolver manually
-      form._options.resolver = newResolver;
+      // Trigger validation with the new schema
+      form.trigger();
     }
   }, [userType, form]);
 
@@ -132,7 +135,10 @@ export default function EditProfilePage() {
     if (!profile) return;
     
     try {
-      // First reset the form to clear any previous data
+      // Set user type first to ensure correct schema validation
+      setUserType(profile.userType);
+      
+      // Reset the form with empty values to clear previous data
       form.reset({
         firstName: '',
         lastName: '',
@@ -156,44 +162,58 @@ export default function EditProfilePage() {
         keepIsValid: false
       });
       
-      // Set user type first to ensure correct schema validation
-      setUserType(profile.userType);
-      
-      // Delay setting values slightly to ensure user type has been processed
+      // Use a small timeout to ensure user type state is updated
       setTimeout(() => {
         // Common fields
-        form.setValue('firstName', profile.firstName || '', { shouldValidate: true });
-        form.setValue('lastName', profile.lastName || '', { shouldValidate: true });
-        form.setValue('email', profile.email || '', { shouldValidate: true });
-        form.setValue('phoneNumber', profile.phoneNumber || '', { shouldValidate: true });
+        form.setValue('firstName', profile.firstName || '', { shouldValidate: false });
+        form.setValue('lastName', profile.lastName || '', { shouldValidate: false });
+        form.setValue('email', profile.email || '', { shouldValidate: false });
+        form.setValue('phoneNumber', profile.phoneNumber || '', { shouldValidate: false });
         
         // User type specific fields
         if (profile.userType === 'applicant') {
-          form.setValue('bio', profile.bio || '', { shouldValidate: true });
-          form.setValue('preferredLocation', profile.preferredLocation || '', { shouldValidate: true });
-          form.setValue('skills', profile.skills && Array.isArray(profile.skills) ? profile.skills.join(', ') : '', { shouldValidate: true });
-          form.setValue('experience', profile.experience || '', { shouldValidate: true });
-          form.setValue('education', profile.education || '', { shouldValidate: true });
+          form.setValue('bio', profile.bio || '', { shouldValidate: false });
+          form.setValue('preferredLocation', profile.preferredLocation || '', { shouldValidate: false });
+          form.setValue('skills', profile.skills && Array.isArray(profile.skills) ? profile.skills.join(', ') : '', { shouldValidate: false });
+          form.setValue('experience', profile.experience || '', { shouldValidate: false });
+          form.setValue('education', profile.education || '', { shouldValidate: false });
         } else if (profile.userType === 'restaurant') {
-          form.setValue('businessName', profile.businessName || '', { shouldValidate: true });
-          form.setValue('businessAddress', profile.businessAddress || '', { shouldValidate: true });
-          form.setValue('businessDescription', profile.bio || '', { shouldValidate: true });
-          form.setValue('cuisineType', profile.cuisineType || '', { shouldValidate: true });
+          form.setValue('businessName', profile.businessName || '', { shouldValidate: false });
+          form.setValue('businessAddress', profile.businessAddress || '', { shouldValidate: false });
+          form.setValue('businessDescription', profile.bio || '', { shouldValidate: false });
+          form.setValue('cuisineType', profile.cuisineType || '', { shouldValidate: false });
         }
         
-        // Mark form as pristine after setting values
-        form.reset(form.getValues(), { 
-          keepValues: true,
-          keepDirty: false,
-          keepErrors: false,
-          keepTouched: false
-        });
-      }, 0);
+        // Trigger validation after all fields are set
+        form.trigger();
+      }, 100);
     } catch (error) {
       console.error('Error setting form values:', error);
       setFormError('Error loading profile data. Please try refreshing the page.');
     }
   }, [form]);
+
+  // Load user profile data into form
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (userProfile) {
+        try {
+          setIsLoading(true);
+          populateFormWithProfileData(userProfile);
+        } catch (error) {
+          console.error('Error loading profile:', error);
+          setFormError('Error loading profile data. Please try refreshing the page.');
+        } finally {
+          setIsLoading(false);
+        }
+      } else if (!isLoading) {
+        // If we're not loading and there's no profile, there's a problem
+        setFormError('Could not load profile data. Please try refreshing or logging in again.');
+      }
+    };
+    
+    loadProfile();
+  }, [userProfile, populateFormWithProfileData, isLoading]);
 
   // Handle refreshing profile data
   const handleRefreshProfile = async () => {
@@ -202,7 +222,21 @@ export default function EditProfilePage() {
     
     try {
       // Clear form before refreshing to avoid validation errors during refresh
-      form.reset({}, { 
+      form.reset({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        bio: '',
+        preferredLocation: '',
+        skills: '',
+        experience: '',
+        education: '',
+        businessName: '',
+        businessAddress: '',
+        businessDescription: '',
+        cuisineType: '',
+      }, { 
         keepValues: false,
         keepDirty: false,
         keepErrors: false,
@@ -214,18 +248,12 @@ export default function EditProfilePage() {
       const refreshedProfile = await refreshUserProfile();
       
       if (refreshedProfile) {
-        // Set user type first, then populate form
-        setUserType(refreshedProfile.userType);
+        populateFormWithProfileData(refreshedProfile);
         
-        // Wait for state update before populating form
-        setTimeout(() => {
-          populateFormWithProfileData(refreshedProfile);
-          
-          toast({
-            title: 'Profile refreshed',
-            description: 'Your profile data has been refreshed successfully.',
-          });
-        }, 0);
+        toast({
+          title: 'Profile refreshed',
+          description: 'Your profile data has been refreshed successfully.',
+        });
       } else {
         throw new Error('Failed to refresh profile data');
       }
@@ -242,44 +270,6 @@ export default function EditProfilePage() {
       setIsRefreshing(false);
     }
   };
-
-  // Load user profile data into form
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (userProfile) {
-        try {
-          setIsLoading(true);
-          // Clear form before loading new data
-          form.reset({}, { 
-            keepValues: false,
-            keepDirty: false,
-            keepErrors: false,
-            keepTouched: false,
-            keepIsSubmitted: false,
-            keepIsValid: false
-          });
-          
-          // Set user type first, then populate form
-          setUserType(userProfile.userType);
-          
-          // Wait for state update before populating form
-          setTimeout(() => {
-            populateFormWithProfileData(userProfile);
-            setIsLoading(false);
-          }, 0);
-        } catch (error) {
-          console.error('Error loading profile:', error);
-          setFormError('Error loading profile data. Please try refreshing the page.');
-          setIsLoading(false);
-        }
-      } else if (!isLoading) {
-        // If we're not loading and there's no profile, there's a problem
-        setFormError('Could not load profile data. Please try refreshing or logging in again.');
-      }
-    };
-    
-    loadProfile();
-  }, [userProfile, form, populateFormWithProfileData]);
 
   // Redirect if not authenticated
   useEffect(() => {

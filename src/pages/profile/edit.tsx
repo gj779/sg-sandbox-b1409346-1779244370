@@ -190,12 +190,17 @@ export default function EditProfilePage() {
     }
   }, [form]);
 
-  // Fix: Simplified loading state management - only depend on userProfile
+  // Fix: Simplified loading state management - only depend on userProfile and authLoading
   useEffect(() => {
+    // If we have a profile, we're not loading
     if (userProfile) {
       setIsLoading(false);
+    } else if (!authLoading) {
+      // If auth is not loading and there's no profile, we're not loading either
+      // but the user might not be authenticated
+      setIsLoading(false);
     }
-  }, [userProfile]);
+  }, [userProfile, authLoading]);
 
   // Fix: Improved profile data loading logic
   useEffect(() => {
@@ -266,16 +271,21 @@ export default function EditProfilePage() {
     }
   };
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated - use a shorter timeout and check more conditions
   useEffect(() => {
-    const checkAuth = setTimeout(() => {
-      if (!userProfile && !authLoading) {
+    // Only redirect if:
+    // 1. Auth is not loading (we know the auth state)
+    // 2. There's no user profile (user is not authenticated)
+    // 3. We're not already loading (avoid redirect during initial load)
+    if (!authLoading && !userProfile && !isLoading) {
+      console.log('Not authenticated, redirecting to login');
+      const redirectTimer = setTimeout(() => {
         router.push("/auth/login?redirect=/profile/edit");
-      }
-    }, 1000); // Give it a second to load
+      }, 500); // Shorter timeout
 
-    return () => clearTimeout(checkAuth);
-  }, [userProfile, authLoading, router]);
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [userProfile, authLoading, router, isLoading]);
 
   // Fix: Remove circular dependency in loading state logic
   // The previous useEffect that depended on isLoading and also set isLoading has been removed

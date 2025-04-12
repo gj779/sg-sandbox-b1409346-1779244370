@@ -77,6 +77,14 @@ export function useFirebaseAuth() {
       
       if (!isMounted) return;
       
+      // Always set loading to true when auth state changes
+      if (isMounted) {
+        setAuthState(prev => ({
+          ...prev,
+          isLoading: true
+        }));
+      }
+      
       if (user) {
         try {
           // Get user profile from Firestore

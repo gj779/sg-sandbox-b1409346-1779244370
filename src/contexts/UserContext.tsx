@@ -65,7 +65,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       console.error('Login error in context:', error);
       // Ensure we're returning a clean error message
       const errorMessage = error && typeof error === 'object' && 'message' in error 
-        ? String(error.message) 
+        ? String(error.message).replace(/@/g, ' at ') 
         : 'Failed to sign in';
       throw new Error(errorMessage);
     }

@@ -160,6 +160,9 @@ export default function RestaurantDashboard() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialCompleted, setTutorialCompleted] = useState(false);
 
+  // Get the user's name safely
+  const userName = user?.firstName || 'User';
+
   // Check if user is authenticated
   useEffect(() => {
     if (!isAuthenticated) {
@@ -249,7 +252,7 @@ export default function RestaurantDashboard() {
         <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-8'>
           <div>
             <h1 className='text-3xl font-bold tracking-tight mb-2'>Restaurant Dashboard</h1>
-            <p className='text-muted-foreground'>Welcome back, {user?.name || 'User'}</p>
+            <p className='text-muted-foreground'>Welcome back, {userName}</p>
           </div>
           <div className='flex gap-2 mt-4 md:mt-0'>
             <Link href='/restaurant/create-listing'>

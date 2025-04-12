@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -9,7 +8,7 @@ import { useUser } from "@/contexts/UserContext";
 
 export default function AdminSettings() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useUser();
+  const { userProfile, isAuthenticated, isLoading } = useUser();
 
   useEffect(() => {
     // Redirect if not authenticated or not admin
@@ -19,12 +18,12 @@ export default function AdminSettings() {
         return;
       }
       
-      if (!user || user.role !== 'admin') {
+      if (!userProfile || userProfile.userType !== 'admin') {
         router.push('/');
         return;
       }
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, userProfile, router]);
 
   // Safe early return while loading
   if (isLoading) {
@@ -39,7 +38,7 @@ export default function AdminSettings() {
   }
 
   // Safe early return if not admin
-  if (!user || user.role !== 'admin') {
+  if (!userProfile || userProfile.userType !== 'admin') {
     return (
       <div className="container flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-2">

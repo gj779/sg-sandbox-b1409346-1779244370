@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -69,7 +68,7 @@ const restaurantProfileSchema = z.object({
 type ProfileFormValues = z.infer<typeof applicantProfileSchema> | z.infer<typeof restaurantProfileSchema>;
 
 export default function EditProfilePage() {
-  const { userProfile, updateUserProfile, error: authError, refreshUserProfile } = useFirebaseAuth();
+  const { userProfile, updateUserProfile, error: authError, refreshUserProfile, isLoading: authLoading } = useFirebaseAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,6 +100,15 @@ export default function EditProfilePage() {
     mode: "onChange"
   });
 
+  // Debug logging to track state changes
+  useEffect(() => {
+    console.log('Auth state changed:', { 
+      authLoading, 
+      userProfile: userProfile ? 'exists' : 'null',
+      isLoading
+    });
+  }, [authLoading, userProfile, isLoading]);
+
   // When user type changes, recreate the form with the appropriate schema
   useEffect(() => {
     if (userType) {
@@ -129,6 +137,8 @@ export default function EditProfilePage() {
     if (!profile) return;
     
     try {
+      console.log('Populating form with profile data:', profile.userType);
+      
       // First reset the form to clear any previous data
       form.reset({
         firstName: "",
@@ -180,27 +190,32 @@ export default function EditProfilePage() {
     }
   }, [form]);
 
-  // Load user profile data into form
+  // Fix: Simplified loading state management - only depend on userProfile
+  useEffect(() => {
+    if (userProfile) {
+      setIsLoading(false);
+    }
+  }, [userProfile]);
+
+  // Fix: Improved profile data loading logic
   useEffect(() => {
     const loadProfile = async () => {
       if (userProfile) {
         try {
-          setIsLoading(true);
+          // Don't set isLoading to true here since we already have the profile
           populateFormWithProfileData(userProfile);
         } catch (error) {
           console.error("Error loading profile:", error);
           setFormError("Error loading profile data. Please try refreshing the page.");
-        } finally {
-          setIsLoading(false);
         }
-      } else if (!isLoading) {
-        // If we're not loading and there's no profile, there's a problem
+      } else if (!authLoading) {
+        // If auth is not loading and there's no profile, there's a problem
         setFormError("Could not load profile data. Please try refreshing or logging in again.");
       }
     };
     
     loadProfile();
-  }, [userProfile, populateFormWithProfileData, isLoading]);
+  }, [userProfile, populateFormWithProfileData, authLoading]);
 
   // Handle refreshing profile data
   const handleRefreshProfile = async () => {
@@ -254,22 +269,16 @@ export default function EditProfilePage() {
   // Redirect if not authenticated
   useEffect(() => {
     const checkAuth = setTimeout(() => {
-      if (!userProfile && !isLoading) {
+      if (!userProfile && !authLoading) {
         router.push("/auth/login?redirect=/profile/edit");
       }
     }, 1000); // Give it a second to load
 
     return () => clearTimeout(checkAuth);
-  }, [userProfile, isLoading, router]);
+  }, [userProfile, authLoading, router]);
 
-  // Set loading state based on auth state
-  useEffect(() => {
-    if (!userProfile && isLoading) {
-      setIsLoading(true);
-    } else {
-      setIsLoading(false);
-    }
-  }, [userProfile, isLoading]);
+  // Fix: Remove circular dependency in loading state logic
+  // The previous useEffect that depended on isLoading and also set isLoading has been removed
 
   // Improved onSubmit function with better error handling
   const onSubmit = async (data: ProfileFormValues) => {
@@ -346,8 +355,8 @@ export default function EditProfilePage() {
     }
   };
 
-  // Show loading state
-  if (isLoading) {
+  // Show loading state - now depends on both local isLoading and auth isLoading
+  if (isLoading || authLoading) {
     return (
       <div className="container py-12 flex justify-center items-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">

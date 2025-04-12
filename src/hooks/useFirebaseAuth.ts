@@ -57,13 +57,32 @@ export function useFirebaseAuth() {
   
   const router = useRouter();
 
+  // Add debug logging to track auth state changes
+  useEffect(() => {
+    console.log('Auth state updated:', { 
+      isAuthenticated: authState.isAuthenticated,
+      hasUser: !!authState.user,
+      hasProfile: !!authState.userProfile,
+      isLoading: authState.isLoading
+    });
+  }, [authState]);
+
   // Listen for auth state changes
   useEffect(() => {
+    console.log('Setting up auth state observer');
+    let isMounted = true;
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth state changed:', user ? `User ${user.uid}` : 'No user');
+      
+      if (!isMounted) return;
+      
       if (user) {
         try {
           // Get user profile from Firestore
+          console.log('Fetching user profile from Firestore');
           const userProfile = await firebaseAuthService.getUserProfile(user.uid);
+          console.log('Profile fetch result:', userProfile ? 'Profile found' : 'No profile found');
           
           // If we got a profile back, set it in state
           if (userProfile) {
@@ -89,15 +108,18 @@ export function useFirebaseAuth() {
               cuisineType: userProfile.cuisineType || ''
             };
             
-            setAuthState({
-              isAuthenticated: true,
-              user,
-              userProfile: typedUserProfile,
-              isLoading: false,
-              error: null,
-            });
+            if (isMounted) {
+              setAuthState({
+                isAuthenticated: true,
+                user,
+                userProfile: typedUserProfile,
+                isLoading: false,
+                error: null,
+              });
+            }
           } else {
             // If no profile, create a mock profile with basic user info
+            console.log('Creating mock profile for user');
             const mockProfile: UserProfile = {
               id: user.uid,
               email: user.email || '',
@@ -119,16 +141,19 @@ export function useFirebaseAuth() {
               cuisineType: ''
             };
             
-            setAuthState({
-              isAuthenticated: true,
-              user,
-              userProfile: mockProfile,
-              isLoading: false,
-              error: 'Profile data incomplete. Some features may be limited.',
-            });
+            if (isMounted) {
+              setAuthState({
+                isAuthenticated: true,
+                user,
+                userProfile: mockProfile,
+                isLoading: false,
+                error: 'Profile data incomplete. Some features may be limited.',
+              });
+            }
             
             // Try to create a basic profile in Firestore
             try {
+              console.log('Attempting to create basic profile in Firestore');
               await firebaseAuthService.updateUserProfile(user.uid, mockProfile);
             } catch (createError) {
               console.error('Failed to create basic profile:', createError);
@@ -158,13 +183,15 @@ export function useFirebaseAuth() {
             cuisineType: ''
           };
           
-          setAuthState({
-            isAuthenticated: true,
-            user,
-            userProfile: fallbackProfile,
-            isLoading: false,
-            error: 'Failed to load complete user profile. Using limited profile data.',
-          });
+          if (isMounted) {
+            setAuthState({
+              isAuthenticated: true,
+              user,
+              userProfile: fallbackProfile,
+              isLoading: false,
+              error: 'Failed to load complete user profile. Using limited profile data.',
+            });
+          }
           
           // Try to create a basic profile in Firestore
           try {
@@ -174,17 +201,22 @@ export function useFirebaseAuth() {
           }
         }
       } else {
-        setAuthState({
-          isAuthenticated: false,
-          user: null,
-          userProfile: null,
-          isLoading: false,
-          error: null,
-        });
+        if (isMounted) {
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+            userProfile: null,
+            isLoading: false,
+            error: null,
+          });
+        }
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   // Sign in function
@@ -493,13 +525,17 @@ export function useFirebaseAuth() {
   // Refresh user profile - useful when profile data might have changed
   const refreshUserProfile = useCallback(async () => {
     if (!authState.user?.uid) {
+      console.log('Cannot refresh profile: No authenticated user');
       return null;
     }
     
+    console.log('Refreshing user profile');
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      console.log('Fetching fresh profile data from Firestore');
       const userProfile = await firebaseAuthService.getUserProfile(authState.user.uid);
+      console.log('Profile refresh result:', userProfile ? 'Profile found' : 'No profile found');
       
       if (userProfile) {
         // Convert the Firebase UserProfile to our local UserProfile type
@@ -534,6 +570,7 @@ export function useFirebaseAuth() {
         return typedUserProfile;
       } else {
         // If no profile found, create a default one
+        console.log('No profile found, creating default profile');
         const defaultProfile: UserProfile = {
           id: authState.user.uid,
           email: authState.user.email || '',
@@ -556,6 +593,7 @@ export function useFirebaseAuth() {
         
         try {
           // Create a new profile in Firebase
+          console.log('Attempting to create new profile in Firestore');
           const updatedProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, defaultProfile);
           
           // If Firebase update succeeds, use that profile, otherwise use our default profile

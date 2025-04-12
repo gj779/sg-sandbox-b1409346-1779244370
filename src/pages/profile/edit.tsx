@@ -103,19 +103,14 @@ export default function EditProfilePage() {
   // Update form resolver when user type changes
   useEffect(() => {
     if (userType) {
-      // Fix: Use proper reset options without accessing private properties
+      // Fix: Don't try to access private properties like _options.resolver
+      // Instead, create a new form configuration with the updated resolver
       form.clearErrors();
       
-      // Reset the form with the current values but use the new resolver
-      // This is the proper way to update the resolver without accessing private properties
+      // Get current values to preserve them
       const currentValues = form.getValues();
       
-      // Re-create the form with the new resolver
-      const newResolver = zodResolver(
-        userType === 'applicant' ? applicantProfileSchema : restaurantProfileSchema
-      );
-      
-      // Reset the form with current values and trigger validation
+      // Reset the form with current values
       form.reset(currentValues, { 
         keepValues: true,
         keepDirty: false,

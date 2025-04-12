@@ -112,14 +112,23 @@ export const firebaseAuthService = {
 
   // Sign in user
   async signIn(email: string, password: string): Promise<{ user: User; userProfile: UserProfile | null }> {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    // Get user profile from Firestore
-    const userProfileDoc = await getDoc(doc(db, 'users', user.uid));
-    const userProfile = userProfileDoc.exists() ? userProfileDoc.data() as UserProfile : null;
-    
-    return { user, userProfile };
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Get user profile from Firestore
+      const userProfileDoc = await getDoc(doc(db, 'users', user.uid));
+      const userProfile = userProfileDoc.exists() ? userProfileDoc.data() as UserProfile : null;
+      
+      return { user, userProfile };
+    } catch (error: any) {
+      // Improve error message to avoid @ symbol in error message
+      const errorMessage = error.code === 'auth/invalid-credential' 
+        ? 'Invalid email or password. Please check your credentials and try again.'
+        : error.message.replace(/@/g, 'at');
+      
+      throw new Error(errorMessage);
+    }
   },
 
   // Get dashboard path based on user type

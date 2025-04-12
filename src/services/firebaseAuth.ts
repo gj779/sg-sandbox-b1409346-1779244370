@@ -122,10 +122,34 @@ export const firebaseAuthService = {
       
       return { user, userProfile };
     } catch (error: any) {
-      // Improve error message to avoid @ symbol in error message
-      const errorMessage = error.code === 'auth/invalid-credential' 
-        ? 'Invalid email or password. Please check your credentials and try again.'
-        : error.message.replace(/@/g, 'at');
+      console.error('Firebase auth error:', error);
+      
+      // Provide more user-friendly error messages based on Firebase error codes
+      let errorMessage = 'An error occurred during sign in. Please try again.';
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/invalid-credential':
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email format. Please enter a valid email address.';
+            break;
+          case 'auth/user-disabled':
+            errorMessage = 'This account has been disabled. Please contact support.';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Too many unsuccessful login attempts. Please try again later or reset your password.';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your internet connection and try again.';
+            break;
+          default:
+            errorMessage = error.message ? error.message.replace(/@/g, 'at') : errorMessage;
+        }
+      }
       
       throw new Error(errorMessage);
     }

@@ -11,6 +11,7 @@ import {
   FieldValues,
   FormProvider,
   useFormContext,
+  FieldError
 } from "react-hook-form"
 
 import { cn } from "@/lib/utils"
@@ -42,24 +43,24 @@ const FormField = <
   )
 }
 
-// Create a FormContext to avoid direct useFormContext calls
+// Create a global form context that doesn't rely on useFormContext being called conditionally
 const FormContext = React.createContext<ReturnType<typeof useFormContext> | null>(null)
 
-// FormContextProvider that always calls useFormContext at the top level
+// This component must be used at the top level where useFormContext is valid
 const FormContextProvider = ({ children }: { children: React.ReactNode }) => {
-  // Always call useFormContext at the top level, but handle errors gracefully
-  const formContextValue = React.useMemo(() => {
-    try {
-      // This will throw if used outside of a FormProvider
-      return useFormContext()
-    } catch (e) {
-      // Return null if not within a form context
-      return null
-    }
-  }, [])
-
+  // We'll try to use the form context, but handle the case where we're not in a form
+  let formContext: ReturnType<typeof useFormContext> | null = null
+  
+  try {
+    // This is safe because it's at the top level of a component
+    formContext = useFormContext()
+  } catch (e) {
+    // If we're not in a form context, this will be null
+    formContext = null
+  }
+  
   return (
-    <FormContext.Provider value={formContextValue}>
+    <FormContext.Provider value={formContext}>
       {children}
     </FormContext.Provider>
   )
@@ -71,15 +72,25 @@ type FormItemContextValue = {
 
 const FormItemContext = React.createContext<FormItemContextValue | undefined>(undefined)
 
+// Define the return type explicitly to include error
+interface UseFormFieldReturn {
+  id: string
+  name: string
+  formItemId: string
+  formDescriptionId: string
+  formMessageId: string
+  error?: FieldError
+}
+
 // Fixed useFormField hook that doesn't conditionally call hooks
-const useFormField = () => {
+const useFormField = (): UseFormFieldReturn => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
   const formContext = React.useContext(FormContext)
   
   const id = itemContext?.id || ""
   
-  // Safe access to field state - no conditional hook calls
+  // Get field state safely
   const fieldState = React.useMemo(() => {
     if (!formContext || !fieldContext?.name) return {}
     return formContext.getFieldState(fieldContext.name, formContext.formState)
@@ -91,7 +102,7 @@ const useFormField = () => {
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
-    ...fieldState,
+    error: fieldState.error,
   }
 }
 

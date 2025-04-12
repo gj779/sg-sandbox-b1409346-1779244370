@@ -232,11 +232,15 @@ export function useFirebaseAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      // Try to sign in with Firebase
+      console.log(`Attempting to sign in with email: ${email}`);
       const { user, userProfile } = await firebaseAuthService.signIn(email, password);
+      console.log('Sign in successful, user:', user.uid);
       
       // Create a default profile if none exists
       let finalUserProfile: UserProfile;
       if (!userProfile) {
+        console.log('No user profile found, creating default profile');
         const defaultProfile: UserProfile = {
           id: user.uid,
           email: user.email || '',
@@ -258,6 +262,7 @@ export function useFirebaseAuth() {
         };
         
         try {
+          console.log('Updating user profile in Firestore');
           const updatedProfile = await firebaseAuthService.updateUserProfile(user.uid, defaultProfile);
           finalUserProfile = updatedProfile || defaultProfile;
         } catch (error) {
@@ -266,6 +271,7 @@ export function useFirebaseAuth() {
         }
       } else {
         // Convert Firebase UserProfile to our local UserProfile type
+        console.log('Using existing user profile');
         finalUserProfile = {
           id: userProfile.id,
           email: userProfile.email,
@@ -290,6 +296,7 @@ export function useFirebaseAuth() {
       
       // Get the correct dashboard path based on user type
       const dashboardPath = firebaseAuthService.getDashboardPath(finalUserProfile?.userType);
+      console.log('Dashboard path:', dashboardPath);
       
       // Update auth state with user info
       setAuthState({
@@ -303,6 +310,7 @@ export function useFirebaseAuth() {
       // Return both the user profile and the dashboard path
       return { userProfile: finalUserProfile, dashboardPath };
     } catch (error: any) {
+      console.error('Sign in error:', error);
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
@@ -449,6 +457,8 @@ export function useFirebaseAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      console.log('Updating user profile:', updates);
+      
       // Create a merged profile as a fallback
       const mergedProfile: UserProfile = {
         ...(authState.userProfile || {}) as UserProfile,
@@ -477,6 +487,7 @@ export function useFirebaseAuth() {
       
       try {
         // Call the Firebase service to update the profile
+        console.log('Updating profile in Firestore');
         const firebaseUpdatedProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, updates);
         
         if (firebaseUpdatedProfile) {
@@ -509,6 +520,7 @@ export function useFirebaseAuth() {
       
       // If Firebase update succeeds, use that profile, otherwise use our merged profile
       const finalProfile = updatedProfile || mergedProfile;
+      console.log('Final profile after update:', finalProfile);
       
       // Update the local state
       setAuthState(prev => ({
@@ -631,7 +643,7 @@ export function useFirebaseAuth() {
       
       // Improved error handling - ensure we don't pass raw error objects
       const errorMessage = error && typeof error === 'object' && 'message' in error 
-        ? String(error.message) 
+        ? String(error.message).replace(/@/g, ' at ') 
         : 'Failed to refresh user profile';
       
       // Create a fallback profile

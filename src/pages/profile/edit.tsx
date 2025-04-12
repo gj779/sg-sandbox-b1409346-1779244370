@@ -224,13 +224,13 @@ export default function EditProfilePage() {
           // Don't set isLoading to true here since we already have the profile
           populateFormWithProfileData(userProfile);
         } catch (error) {
-          console.error("Error loading profile:", error);
-          setFormError("Error loading profile data. Please try refreshing the page.");
+          console.error('Error loading profile:', error);
+          setFormError('Error loading profile data. Please try refreshing the page.');
         }
       } else if (!authLoading) {
         // If auth is not loading and there's no profile, there's a problem
         console.log('No profile available and auth is not loading');
-        setFormError("Could not load profile data. Please try refreshing or logging in again.");
+        setFormError('Could not load profile data. Please try refreshing or logging in again.');
       }
     };
     
@@ -246,19 +246,19 @@ export default function EditProfilePage() {
       console.log('Refreshing profile data');
       // Clear form before refreshing to avoid validation errors during refresh
       form.reset({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phoneNumber: "",
-        bio: "",
-        preferredLocation: "",
-        skills: "",
-        experience: "",
-        education: "",
-        businessName: "",
-        businessAddress: "",
-        businessDescription: "",
-        cuisineType: "",
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        bio: '',
+        preferredLocation: '',
+        skills: '',
+        experience: '',
+        education: '',
+        businessName: '',
+        businessAddress: '',
+        businessDescription: '',
+        cuisineType: '',
       });
       
       const refreshedProfile = await refreshUserProfile();
@@ -268,20 +268,20 @@ export default function EditProfilePage() {
         populateFormWithProfileData(refreshedProfile);
         
         toast({
-          title: "Profile refreshed",
-          description: "Your profile data has been refreshed successfully.",
+          title: 'Profile refreshed',
+          description: 'Your profile data has been refreshed successfully.',
         });
       } else {
-        throw new Error("Failed to refresh profile data");
+        throw new Error('Failed to refresh profile data');
       }
     } catch (error: any) {
-      console.error("Error refreshing profile:", error);
-      setFormError(error.message || "Failed to refresh profile data. Please try again.");
+      console.error('Error refreshing profile:', error);
+      setFormError(error.message || 'Failed to refresh profile data. Please try again.');
       
       toast({
-        title: "Error",
-        description: "Failed to refresh profile data. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to refresh profile data. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsRefreshing(false);
@@ -294,12 +294,11 @@ export default function EditProfilePage() {
     // 1. Auth is not loading (we know the auth state)
     // 2. There's no user profile (user is not authenticated)
     // 3. We're not already loading (avoid redirect during initial load)
-    // 4. We've waited a reasonable time for auth to complete
     if (!authLoading && !userProfile && !isLoading) {
       console.log('Not authenticated, preparing to redirect to login');
       const redirectTimer = setTimeout(() => {
         console.log('Redirecting to login page');
-        router.push("/auth/login?redirect=/profile/edit");
+        router.push('/auth/login?redirect=/profile/edit');
       }, 1500); // Longer timeout to give auth more time
 
       return () => clearTimeout(redirectTimer);

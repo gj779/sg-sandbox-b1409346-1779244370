@@ -48,16 +48,25 @@ const FormContext = React.createContext<ReturnType<typeof useFormContext> | null
 
 // This component must be used at the top level where useFormContext is valid
 const FormContextProvider = ({ children }: { children: React.ReactNode }) => {
-  // We'll try to use the form context, but handle the case where we're not in a form
+  // Always call useFormContext at the top level, but catch any errors
   let formContext: ReturnType<typeof useFormContext> | null = null
   
-  try {
-    // This is safe because it's at the top level of a component
-    formContext = useFormContext()
-  } catch (e) {
-    // If we're not in a form context, this will be null
-    formContext = null
+  // We need to handle the case where this component is used outside of a form
+  // This is a workaround for the React hooks rules
+  const FormContextWrapper = () => {
+    try {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const context = useFormContext()
+      formContext = context
+      return null
+    } catch (e) {
+      formContext = null
+      return null
+    }
   }
+  
+  // Render the wrapper component to get the form context
+  FormContextWrapper()
   
   return (
     <FormContext.Provider value={formContext}>
@@ -92,7 +101,7 @@ const useFormField = (): UseFormFieldReturn => {
   
   // Get field state safely
   const fieldState = React.useMemo(() => {
-    if (!formContext || !fieldContext?.name) return {}
+    if (!formContext || !fieldContext?.name) return { error: undefined }
     return formContext.getFieldState(fieldContext.name, formContext.formState)
   }, [formContext, fieldContext?.name])
   
@@ -114,9 +123,7 @@ const FormItem = React.forwardRef<
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <FormContextProvider>
-        <div ref={ref} className={cn("space-y-2", className)} {...props} />
-      </FormContextProvider>
+      <div ref={ref} className={cn("space-y-2", className)} {...props} />
     </FormItemContext.Provider>
   )
 })

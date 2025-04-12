@@ -171,6 +171,8 @@ export const firebaseAuthService = {
       } as UserProfile;
     } catch (error) {
       console.error(`Error getting user profile for ${userId}:`, error);
+      // Ensure we return null instead of throwing an error
+      // This allows the calling code to handle the missing profile gracefully
       return null;
     }
   },
@@ -213,7 +215,11 @@ export const firebaseAuthService = {
       return mergedProfile as UserProfile;
     } catch (error) {
       console.error(`Error updating user profile for ${userId}:`, error);
-      throw new Error(`Failed to update profile: ${error instanceof Error ? error.message : String(error)}`);
+      // Improve error message to avoid @ symbol in error message
+      const errorMessage = error instanceof Error 
+        ? error.message.replace('@', 'at') 
+        : 'Failed to update profile';
+      throw new Error(errorMessage);
     }
   }
 };

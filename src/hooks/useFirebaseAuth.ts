@@ -628,6 +628,12 @@ export function useFirebaseAuth() {
       }
     } catch (error: any) {
       console.error('Error refreshing profile:', error);
+      
+      // Improved error handling - ensure we don't pass raw error objects
+      const errorMessage = error && typeof error === 'object' && 'message' in error 
+        ? String(error.message) 
+        : 'Failed to refresh user profile';
+      
       // Create a fallback profile
       const fallbackProfile: UserProfile = {
         id: authState.user.uid,
@@ -653,8 +659,9 @@ export function useFirebaseAuth() {
         ...prev,
         userProfile: fallbackProfile,
         isLoading: false,
-        error: error.message || 'Failed to refresh user profile. Using fallback data.',
+        error: errorMessage,
       }));
+      
       return fallbackProfile;
     }
   }, [authState.user, authState.userProfile]);

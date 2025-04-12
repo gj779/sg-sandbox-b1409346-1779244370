@@ -1,284 +1,101 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/router";
+import { useFirebaseAuth, UserProfile } from '@/hooks/useFirebaseAuth';
+import { User } from 'firebase/auth';
 
-// Define user types
-export type UserRole = "applicant" | "restaurant" | "admin" | null;
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  userType?: UserRole; // Add userType for compatibility with useFirebaseAuth
-  profileComplete: boolean;
-  firstName?: string;
-  lastName?: string;
-  isActive?: boolean; // Add isActive for compatibility with useFirebaseAuth
-  // Add additional fields for compatibility with useFirebaseAuth
-  phoneNumber?: string;
-  bio?: string;
-  preferredLocation?: string;
-  skills?: string[];
-  experience?: string;
-  education?: string;
-  businessName?: string;
-  businessAddress?: string;
-  cuisineType?: string;
-}
-
+// Define the shape of the context
 interface UserContextType {
   user: User | null;
+  userProfile: UserProfile | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ userProfile: any, dashboardPath: string }>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
-  logout: () => void;
+  error: string | null;
   isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<{
+    userProfile: UserProfile;
+    dashboardPath: string;
+  }>;
+  logout: () => Promise<void>;
+  signUp: (userData: {
+    email: string;
+    password: string;
+    userType: 'applicant' | 'restaurant';
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+  }) => Promise<{
+    user: User;
+    userProfile: UserProfile;
+  }>;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<UserProfile | null>;
+  refreshUserProfile: () => Promise<UserProfile | null>;
 }
 
+// Create the context with a default value
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// Create a provider component
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    user,
+    userProfile,
+    isLoading,
+    error,
+    isAuthenticated,
+    signIn,
+    signOut,
+    signUp,
+    updateUserProfile,
+    refreshUserProfile,
+  } = useFirebaseAuth();
+
   const router = useRouter();
 
-  // Check for existing session on mount
+  // Handle error logging
   useEffect(() => {
-    try {
-      // In a real app, this would check localStorage or a token cookie
-      const storedUser = typeof window !== 'undefined' ? localStorage.getItem('staffspace_user') : null;
-      
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          // Validate the user object has required fields
-          if (parsedUser && parsedUser.id && parsedUser.email && parsedUser.role) {
-            // Ensure userType is set for compatibility
-            if (!parsedUser.userType) {
-              parsedUser.userType = parsedUser.role;
-            }
-            // Ensure isActive is set for compatibility
-            if (parsedUser.isActive === undefined) {
-              parsedUser.isActive = true;
-            }
-            // Ensure other fields have default values for compatibility
-            parsedUser.bio = parsedUser.bio || '';
-            parsedUser.preferredLocation = parsedUser.preferredLocation || '';
-            parsedUser.skills = parsedUser.skills || [];
-            parsedUser.experience = parsedUser.experience || '';
-            parsedUser.education = parsedUser.education || '';
-            parsedUser.businessName = parsedUser.businessName || '';
-            parsedUser.businessAddress = parsedUser.businessAddress || '';
-            parsedUser.cuisineType = parsedUser.cuisineType || '';
-            
-            setUser(parsedUser);
-          } else {
-            console.error('Invalid user data in localStorage');
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('staffspace_user');
-            }
-          }
-        } catch (error) {
-          console.error('Failed to parse stored user', error);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('staffspace_user');
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error checking authentication:', error);
-    } finally {
-      setIsLoading(false);
+    if (error) {
+      console.error('Auth error:', error);
     }
-  }, []);
+  }, [error]);
 
-  // Login function
-  const login = async (email: string, password: string): Promise<{ userProfile: any, dashboardPath: string }> => {
-    if (!email || !password) {
-      throw new Error('Email and password are required');
-    }
-    
-    setIsLoading(true);
-    
+  // Improved login function with better error handling
+  const login = async (email: string, password: string) => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Determine user role based on email (for demo purposes)
-      let role: UserRole = 'applicant';
-      
-      // Check if it's the admin email - ensure lowercase comparison
-      if (email.toLowerCase() === 'staffspace@gmail.com') {
-        role = 'admin';
-        console.log('Admin login detected');
-      } else if (email.includes('restaurant')) {
-        role = 'restaurant';
-      }
-      
-      // Get first part of email as name
-      const name = email.split('@')[0];
-      const firstName = name;
-      const lastName = '';
-      
-      // Create mock user
-      const mockUser: User = {
-        id: `user_${Math.random().toString(36).substring(2, 9)}`,
-        name,
-        firstName,
-        lastName,
-        email,
-        role,
-        userType: role, // Set userType to match role for compatibility
-        isActive: true, // Set isActive for compatibility
-        profileComplete: false,
-        // Add default values for additional fields
-        phoneNumber: '',
-        bio: '',
-        preferredLocation: '',
-        skills: [],
-        experience: '',
-        education: '',
-        businessName: '',
-        businessAddress: '',
-        cuisineType: ''
-      };
-      
-      // Save to state and localStorage
-      setUser(mockUser);
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('staffspace_user', JSON.stringify(mockUser));
-        } catch (storageError) {
-          console.error('Error saving user to localStorage:', storageError);
-          // Continue even if localStorage fails
-        }
-      }
-      
-      // Determine dashboard path based on role
-      let dashboardPath = '/';
-      if (role === 'admin') {
-        dashboardPath = '/admin/dashboard';
-      } else if (role === 'restaurant') {
-        dashboardPath = '/restaurant/dashboard';
-      } else if (role === 'applicant') {
-        dashboardPath = '/applicant/dashboard';
-      }
-      
-      // Create a userProfile object that matches what the login page expects
-      const userProfile = {
-        id: mockUser.id,
-        email: mockUser.email,
-        userType: mockUser.role,
-        firstName: mockUser.firstName || mockUser.name,
-        lastName: mockUser.lastName || '',
-        isActive: true,
-        // Include additional fields
-        phoneNumber: mockUser.phoneNumber || '',
-        bio: mockUser.bio || '',
-        preferredLocation: mockUser.preferredLocation || '',
-        skills: mockUser.skills || [],
-        experience: mockUser.experience || '',
-        education: mockUser.education || '',
-        businessName: mockUser.businessName || '',
-        businessAddress: mockUser.businessAddress || '',
-        cuisineType: mockUser.cuisineType || ''
-      };
-      
-      return { userProfile, dashboardPath };
-    } catch (error) {
-      console.error('Login error:', error);
-      throw new Error('Failed to sign in. Please check your credentials.');
-    } finally {
-      setIsLoading(false);
+      return await signIn(email, password);
+    } catch (error: any) {
+      console.error('Login error in context:', error);
+      // Ensure we're returning a clean error message
+      const errorMessage = error && typeof error === 'object' && 'message' in error 
+        ? String(error.message) 
+        : 'Failed to sign in';
+      throw new Error(errorMessage);
     }
   };
 
-  // Register function
-  const register = async (name: string, email: string, password: string, role: UserRole): Promise<void> => {
-    if (!name || !email || !password || !role) {
-      throw new Error('All fields are required for registration');
-    }
-    
-    setIsLoading(true);
-    
+  // Logout function with redirect
+  const logout = async () => {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Split name into first and last name
-      const nameParts = name.split(' ');
-      const firstName = nameParts[0];
-      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-      
-      // Create mock user
-      const mockUser: User = {
-        id: `user_${Math.random().toString(36).substring(2, 9)}`,
-        name,
-        firstName,
-        lastName,
-        email,
-        role,
-        userType: role, // Set userType to match role for compatibility
-        isActive: true, // Set isActive for compatibility
-        profileComplete: false,
-        // Add default values for additional fields
-        phoneNumber: '',
-        bio: '',
-        preferredLocation: '',
-        skills: [],
-        experience: '',
-        education: '',
-        businessName: '',
-        businessAddress: '',
-        cuisineType: ''
-      };
-      
-      // Save to state and localStorage
-      setUser(mockUser);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('staffspace_user', JSON.stringify(mockUser));
-      }
-      
-      // Redirect based on role
-      if (role === 'applicant') {
-        router.push('/applicant/create-resume');
-      } else if (role === 'restaurant') {
-        router.push('/restaurant/setup-profile');
-      } else if (role === 'admin') {
-        router.push('/admin/dashboard');
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw new Error('Failed to register. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Logout function
-  const logout = () => {
-    try {
-      setUser(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('staffspace_user');
-      }
+      await signOut();
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if there's an error, still try to clear the user state
-      setUser(null);
+      throw error;
     }
   };
 
+  // Provide the auth context to children components
   return (
     <UserContext.Provider
       value={{
         user,
+        userProfile,
         isLoading,
+        error,
+        isAuthenticated,
         login,
-        register,
         logout,
-        isAuthenticated: !!user,
+        signUp,
+        updateUserProfile,
+        refreshUserProfile,
       }}
     >
       {children}
@@ -286,7 +103,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Custom hook to use the user context
+// Custom hook to use the auth context
 export const useUser = () => {
   const context = useContext(UserContext);
   if (context === undefined) {

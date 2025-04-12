@@ -61,7 +61,7 @@ export default function Logo({
     );
   }
   
-  const logoSrc = "/icon-s-blue-m8umsa8t.svg";
+  const logoSrc = '/images/icon-s-blue-m8umsa8t.svg';
   
   return (
     <div className={`flex items-center gap-2 ${className}`}>

@@ -217,7 +217,7 @@ export const firebaseAuthService = {
       console.error(`Error updating user profile for ${userId}:`, error);
       // Improve error message to avoid @ symbol in error message
       const errorMessage = error instanceof Error 
-        ? error.message.replace('@', 'at') 
+        ? error.message.replace(/@/g, 'at') 
         : 'Failed to update profile';
       throw new Error(errorMessage);
     }

@@ -79,11 +79,11 @@ export default function LoginPage() {
       const redirectPath = router.query.redirect as string || dashboardPath;
       
       // Prevent navigation to the same URL
-      if (redirectPath === router.asPath) {
+      if (redirectPath && redirectPath === router.asPath) {
         console.log('Avoiding navigation to the same URL:', redirectPath);
         router.push(dashboardPath);
       } else {
-        router.push(redirectPath);
+        router.push(redirectPath || dashboardPath);
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -115,10 +115,6 @@ export default function LoginPage() {
             <TabsTrigger value="restaurant" className="flex items-center gap-2">
               <ChefHat className="h-4 w-4" />
               Restaurant
-            </TabsTrigger>
-            <TabsTrigger value="admin" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Admin
             </TabsTrigger>
           </TabsList>
 

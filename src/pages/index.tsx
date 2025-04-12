@@ -108,37 +108,42 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-primary/5 py-16">
-        <div className="container px-4 md:px-6">
-          <div className="rounded-lg bg-card p-8 shadow-lg border">
-            <div className="grid gap-6 lg:grid-cols-2 items-center">
+      <section className='bg-primary/5 py-16'>
+        <div className='container px-4 md:px-6'>
+          <div className='rounded-lg bg-card p-8 shadow-lg border'>
+            <div className='grid gap-6 lg:grid-cols-2 items-center'>
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold tracking-tighter mb-4">
+                <h2 className='text-2xl md:text-3xl font-bold tracking-tighter mb-4'>
                   Ready to Get Started?
                 </h2>
-                <p className="text-muted-foreground md:text-lg mb-6">
+                <p className='text-muted-foreground md:text-lg mb-6'>
                   Create your account today and start connecting with restaurants or talented staff members.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href="/auth/register?type=applicant" passHref>
-                    <Button size="lg" className="w-full sm:w-auto">
+                <div className='flex flex-col sm:flex-row gap-4'>
+                  <Link href='/auth/register?type=applicant' passHref>
+                    <Button size='lg' className='w-full sm:w-auto'>
                       Job Seeker Sign Up
                     </Button>
                   </Link>
-                  <Link href="/auth/register?type=restaurant" passHref>
-                    <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                  <Link href='/auth/register?type=restaurant' passHref>
+                    <Button size='lg' variant='outline' className='w-full sm:w-auto'>
                       Restaurant Sign Up
                     </Button>
                   </Link>
                 </div>
+                <div className='mt-4'>
+                  <Link href='/pricing' className='text-primary hover:underline'>
+                    View our pricing plans →
+                  </Link>
+                </div>
               </div>
-              <div className="lg:pl-10">
-                <div className="text-center lg:text-left">
-                  <div className="text-4xl font-bold text-primary mb-2">10,000+</div>
-                  <p className="text-muted-foreground">Restaurant professionals already on the platform</p>
+              <div className='lg:pl-10'>
+                <div className='text-center lg:text-left'>
+                  <div className='text-4xl font-bold text-primary mb-2'>10,000+</div>
+                  <p className='text-muted-foreground'>Restaurant professionals already on the platform</p>
                   
-                  <div className="text-4xl font-bold text-primary mt-6 mb-2">5,000+</div>
-                  <p className="text-muted-foreground">Restaurant partners finding staff</p>
+                  <div className='text-4xl font-bold text-primary mt-6 mb-2'>5,000+</div>
+                  <p className='text-muted-foreground'>Restaurant partners finding staff</p>
                 </div>
               </div>
             </div>

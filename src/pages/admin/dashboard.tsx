@@ -71,7 +71,7 @@ type Activity = UserRegisteredActivity | JobCreatedActivity | ApplicationSubmitt
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useUser();
+  const { user, userProfile, isAuthenticated, isLoading } = useUser();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -111,7 +111,7 @@ export default function AdminDashboard() {
           return;
         }
         
-        if (!user || user.role !== 'admin') {
+        if (!userProfile || userProfile.userType !== 'admin') {
           console.log('User is not admin, redirecting to home');
           router.push('/');
           return;
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
         router.push('/');
       }
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [isLoading, isAuthenticated, userProfile, router]);
 
   // Safe early return while loading
   if (isLoading || isLoadingData) {
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
   }
 
   // Safe early return if not admin
-  if (!user || user.role !== 'admin') {
+  if (!userProfile || userProfile.userType !== 'admin') {
     return (
       <div className='container flex items-center justify-center min-h-screen'>
         <div className='flex flex-col items-center gap-2'>

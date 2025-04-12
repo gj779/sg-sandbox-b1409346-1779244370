@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChefHat, Briefcase, Shield } from "lucide-react";
+import { ChefHat, Briefcase } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -83,7 +83,8 @@ export default function LoginPage() {
         console.log('Avoiding navigation to the same URL:', redirectPath);
         router.push(dashboardPath);
       } else {
-        router.push(redirectPath || dashboardPath);
+        // Use router.replace instead of push to avoid the navigation error
+        router.replace(redirectPath || dashboardPath);
       }
     } catch (err: any) {
       console.error('Login error:', err);

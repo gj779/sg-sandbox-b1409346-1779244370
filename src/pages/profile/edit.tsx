@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -30,7 +31,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import * as z from "zod";
 import { 
   Save,
@@ -76,37 +77,33 @@ export default function EditProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [userType, setUserType] = useState<"applicant" | "restaurant" | "admin" | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
-
-  // Initialize form with dynamic resolver based on user type
+  
+  // Create a form instance with the appropriate schema based on user type
   const form = useForm<ProfileFormValues>({
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phoneNumber: '',
-      bio: '',
-      preferredLocation: '',
-      skills: '',
-      experience: '',
-      education: '',
-      businessName: '',
-      businessAddress: '',
-      businessDescription: '',
-      cuisineType: '',
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
+      bio: "",
+      preferredLocation: "",
+      skills: "",
+      experience: "",
+      education: "",
+      businessName: "",
+      businessAddress: "",
+      businessDescription: "",
+      cuisineType: "",
     },
     resolver: zodResolver(
-      userType === 'applicant' ? applicantProfileSchema : restaurantProfileSchema
+      userType === "applicant" ? applicantProfileSchema : restaurantProfileSchema
     ),
-    mode: 'onChange' // Validate on change for better user experience
+    mode: "onChange"
   });
 
-  // Update form resolver when user type changes
+  // When user type changes, recreate the form with the appropriate schema
   useEffect(() => {
     if (userType) {
-      // Fix: Don't try to access private properties like _options.resolver
-      // Instead, create a new form configuration with the updated resolver
-      form.clearErrors();
-      
       // Get current values to preserve them
       const currentValues = form.getValues();
       
@@ -121,7 +118,9 @@ export default function EditProfilePage() {
       });
       
       // Trigger validation with the new schema
-      form.trigger();
+      setTimeout(() => {
+        form.trigger();
+      }, 0);
     }
   }, [userType, form]);
 
@@ -130,61 +129,54 @@ export default function EditProfilePage() {
     if (!profile) return;
     
     try {
+      // First reset the form to clear any previous data
+      form.reset({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phoneNumber: "",
+        bio: "",
+        preferredLocation: "",
+        skills: "",
+        experience: "",
+        education: "",
+        businessName: "",
+        businessAddress: "",
+        businessDescription: "",
+        cuisineType: "",
+      });
+      
       // Set user type first to ensure correct schema validation
       setUserType(profile.userType);
-      
-      // Reset the form with empty values to clear previous data
-      form.reset({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phoneNumber: '',
-        bio: '',
-        preferredLocation: '',
-        skills: '',
-        experience: '',
-        education: '',
-        businessName: '',
-        businessAddress: '',
-        businessDescription: '',
-        cuisineType: '',
-      }, {
-        keepValues: false,
-        keepDirty: false,
-        keepErrors: false,
-        keepTouched: false,
-        keepIsSubmitted: false,
-        keepIsValid: false
-      });
       
       // Use a small timeout to ensure user type state is updated
       setTimeout(() => {
         // Common fields
-        form.setValue('firstName', profile.firstName || '', { shouldValidate: false });
-        form.setValue('lastName', profile.lastName || '', { shouldValidate: false });
-        form.setValue('email', profile.email || '', { shouldValidate: false });
-        form.setValue('phoneNumber', profile.phoneNumber || '', { shouldValidate: false });
+        form.setValue("firstName", profile.firstName || "", { shouldValidate: false });
+        form.setValue("lastName", profile.lastName || "", { shouldValidate: false });
+        form.setValue("email", profile.email || "", { shouldValidate: false });
+        form.setValue("phoneNumber", profile.phoneNumber || "", { shouldValidate: false });
         
         // User type specific fields
-        if (profile.userType === 'applicant') {
-          form.setValue('bio', profile.bio || '', { shouldValidate: false });
-          form.setValue('preferredLocation', profile.preferredLocation || '', { shouldValidate: false });
-          form.setValue('skills', profile.skills && Array.isArray(profile.skills) ? profile.skills.join(', ') : '', { shouldValidate: false });
-          form.setValue('experience', profile.experience || '', { shouldValidate: false });
-          form.setValue('education', profile.education || '', { shouldValidate: false });
-        } else if (profile.userType === 'restaurant') {
-          form.setValue('businessName', profile.businessName || '', { shouldValidate: false });
-          form.setValue('businessAddress', profile.businessAddress || '', { shouldValidate: false });
-          form.setValue('businessDescription', profile.bio || '', { shouldValidate: false });
-          form.setValue('cuisineType', profile.cuisineType || '', { shouldValidate: false });
+        if (profile.userType === "applicant") {
+          form.setValue("bio", profile.bio || "", { shouldValidate: false });
+          form.setValue("preferredLocation", profile.preferredLocation || "", { shouldValidate: false });
+          form.setValue("skills", profile.skills && Array.isArray(profile.skills) ? profile.skills.join(", ") : "", { shouldValidate: false });
+          form.setValue("experience", profile.experience || "", { shouldValidate: false });
+          form.setValue("education", profile.education || "", { shouldValidate: false });
+        } else if (profile.userType === "restaurant") {
+          form.setValue("businessName", profile.businessName || "", { shouldValidate: false });
+          form.setValue("businessAddress", profile.businessAddress || "", { shouldValidate: false });
+          form.setValue("businessDescription", profile.bio || "", { shouldValidate: false });
+          form.setValue("cuisineType", profile.cuisineType || "", { shouldValidate: false });
         }
         
         // Trigger validation after all fields are set
         form.trigger();
       }, 100);
     } catch (error) {
-      console.error('Error setting form values:', error);
-      setFormError('Error loading profile data. Please try refreshing the page.');
+      console.error("Error setting form values:", error);
+      setFormError("Error loading profile data. Please try refreshing the page.");
     }
   }, [form]);
 
@@ -196,14 +188,14 @@ export default function EditProfilePage() {
           setIsLoading(true);
           populateFormWithProfileData(userProfile);
         } catch (error) {
-          console.error('Error loading profile:', error);
-          setFormError('Error loading profile data. Please try refreshing the page.');
+          console.error("Error loading profile:", error);
+          setFormError("Error loading profile data. Please try refreshing the page.");
         } finally {
           setIsLoading(false);
         }
       } else if (!isLoading) {
         // If we're not loading and there's no profile, there's a problem
-        setFormError('Could not load profile data. Please try refreshing or logging in again.');
+        setFormError("Could not load profile data. Please try refreshing or logging in again.");
       }
     };
     
@@ -218,26 +210,19 @@ export default function EditProfilePage() {
     try {
       // Clear form before refreshing to avoid validation errors during refresh
       form.reset({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phoneNumber: '',
-        bio: '',
-        preferredLocation: '',
-        skills: '',
-        experience: '',
-        education: '',
-        businessName: '',
-        businessAddress: '',
-        businessDescription: '',
-        cuisineType: '',
-      }, { 
-        keepValues: false,
-        keepDirty: false,
-        keepErrors: false,
-        keepTouched: false,
-        keepIsSubmitted: false,
-        keepIsValid: false
+        firstName: "",
+        lastName: "",
+        email: "",
+        phoneNumber: "",
+        bio: "",
+        preferredLocation: "",
+        skills: "",
+        experience: "",
+        education: "",
+        businessName: "",
+        businessAddress: "",
+        businessDescription: "",
+        cuisineType: "",
       });
       
       const refreshedProfile = await refreshUserProfile();
@@ -246,20 +231,20 @@ export default function EditProfilePage() {
         populateFormWithProfileData(refreshedProfile);
         
         toast({
-          title: 'Profile refreshed',
-          description: 'Your profile data has been refreshed successfully.',
+          title: "Profile refreshed",
+          description: "Your profile data has been refreshed successfully.",
         });
       } else {
-        throw new Error('Failed to refresh profile data');
+        throw new Error("Failed to refresh profile data");
       }
     } catch (error: any) {
-      console.error('Error refreshing profile:', error);
-      setFormError(error.message || 'Failed to refresh profile data. Please try again.');
+      console.error("Error refreshing profile:", error);
+      setFormError(error.message || "Failed to refresh profile data. Please try again.");
       
       toast({
-        title: 'Error',
-        description: 'Failed to refresh profile data. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to refresh profile data. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsRefreshing(false);
@@ -293,39 +278,39 @@ export default function EditProfilePage() {
     
     try {
       if (!userProfile) {
-        throw new Error('User profile not found. Please try logging in again.');
+        throw new Error("User profile not found. Please try logging in again.");
       }
 
       if (!userType) {
-        throw new Error('User type not determined. Please refresh the page and try again.');
+        throw new Error("User type not determined. Please refresh the page and try again.");
       }
 
       // Prepare update data based on user type
       const updateData: any = {
         firstName: data.firstName,
         lastName: data.lastName,
-        phoneNumber: data.phoneNumber || '',
+        phoneNumber: data.phoneNumber || "",
         userType: userType, // Ensure user type is included
         isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
         email: userProfile.email, // Ensure email is preserved
       };
       
       // Add user type specific fields
-      if (userType === 'applicant') {
+      if (userType === "applicant") {
         const applicantData = data as z.infer<typeof applicantProfileSchema>;
-        updateData.bio = applicantData.bio || '';
-        updateData.preferredLocation = applicantData.preferredLocation || '';
+        updateData.bio = applicantData.bio || "";
+        updateData.preferredLocation = applicantData.preferredLocation || "";
         updateData.skills = applicantData.skills 
-          ? applicantData.skills.split(',').map((s: string) => s.trim()).filter(Boolean) 
+          ? applicantData.skills.split(",").map((s: string) => s.trim()).filter(Boolean) 
           : [];
-        updateData.experience = applicantData.experience || '';
-        updateData.education = applicantData.education || '';
-      } else if (userType === 'restaurant') {
+        updateData.experience = applicantData.experience || "";
+        updateData.education = applicantData.education || "";
+      } else if (userType === "restaurant") {
         const restaurantData = data as z.infer<typeof restaurantProfileSchema>;
-        updateData.businessName = restaurantData.businessName || '';
-        updateData.businessAddress = restaurantData.businessAddress || '';
-        updateData.bio = restaurantData.businessDescription || ''; // Map to bio field in the database
-        updateData.cuisineType = restaurantData.cuisineType || '';
+        updateData.businessName = restaurantData.businessName || "";
+        updateData.businessAddress = restaurantData.businessAddress || "";
+        updateData.bio = restaurantData.businessDescription || ""; // Map to bio field in the database
+        updateData.cuisineType = restaurantData.cuisineType || "";
       }
       
       // Update profile
@@ -333,28 +318,28 @@ export default function EditProfilePage() {
       
       if (updatedProfile) {
         toast({
-          title: 'Profile updated',
-          description: 'Your profile has been updated successfully.',
-          variant: 'default',
+          title: "Profile updated",
+          description: "Your profile has been updated successfully.",
+          variant: "default",
         });
         
         // Redirect to dashboard
-        const dashboardPath = userType === 'applicant' 
-          ? '/applicant/dashboard' 
-          : '/restaurant/dashboard';
+        const dashboardPath = userType === "applicant" 
+          ? "/applicant/dashboard" 
+          : "/restaurant/dashboard";
         
         router.push(dashboardPath);
       } else {
-        throw new Error('Failed to update profile. Please try again.');
+        throw new Error("Failed to update profile. Please try again.");
       }
     } catch (error: any) {
-      console.error('Error updating profile:', error);
-      setFormError(error.message || 'Failed to update profile. Please try again.');
+      console.error("Error updating profile:", error);
+      setFormError(error.message || "Failed to update profile. Please try again.");
       
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to update profile. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to update profile. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);

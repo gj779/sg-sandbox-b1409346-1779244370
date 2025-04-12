@@ -246,7 +246,7 @@ export default function ApplicantDashboard() {
   }
 
   // Get the user's name safely
-  const userName = user?.name || 'User';
+  const userName = user?.firstName || 'User';
 
   return (
     <>

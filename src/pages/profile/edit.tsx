@@ -112,6 +112,7 @@ export default function EditProfilePage() {
   // When user type changes, recreate the form with the appropriate schema
   useEffect(() => {
     if (userType) {
+      console.log('User type changed to:', userType);
       // Get current values to preserve them
       const currentValues = form.getValues();
       
@@ -134,7 +135,10 @@ export default function EditProfilePage() {
 
   // Populate form with user profile data
   const populateFormWithProfileData = useCallback((profile: any) => {
-    if (!profile) return;
+    if (!profile) {
+      console.log('Cannot populate form: No profile data provided');
+      return;
+    }
     
     try {
       console.log('Populating form with profile data:', profile.userType);
@@ -181,6 +185,8 @@ export default function EditProfilePage() {
           form.setValue("cuisineType", profile.cuisineType || "", { shouldValidate: false });
         }
         
+        console.log('Form values set successfully');
+        
         // Trigger validation after all fields are set
         form.trigger();
       }, 100);
@@ -190,8 +196,10 @@ export default function EditProfilePage() {
     }
   }, [form]);
 
-  // Fix: Simplified loading state management - only depend on userProfile and authLoading
+  // Improved loading state management - only depend on userProfile and authLoading
   useEffect(() => {
+    console.log('Checking loading state:', { authLoading, hasProfile: !!userProfile });
+    
     // If we have a profile, we're not loading
     if (userProfile) {
       setIsLoading(false);
@@ -202,11 +210,17 @@ export default function EditProfilePage() {
     }
   }, [userProfile, authLoading]);
 
-  // Fix: Improved profile data loading logic
+  // Improved profile data loading logic
   useEffect(() => {
     const loadProfile = async () => {
+      console.log('Load profile effect triggered', { 
+        hasProfile: !!userProfile, 
+        authLoading 
+      });
+      
       if (userProfile) {
         try {
+          console.log('Loading profile data into form');
           // Don't set isLoading to true here since we already have the profile
           populateFormWithProfileData(userProfile);
         } catch (error) {
@@ -215,6 +229,7 @@ export default function EditProfilePage() {
         }
       } else if (!authLoading) {
         // If auth is not loading and there's no profile, there's a problem
+        console.log('No profile available and auth is not loading');
         setFormError("Could not load profile data. Please try refreshing or logging in again.");
       }
     };
@@ -228,6 +243,7 @@ export default function EditProfilePage() {
     setFormError(null);
     
     try {
+      console.log('Refreshing profile data');
       // Clear form before refreshing to avoid validation errors during refresh
       form.reset({
         firstName: "",
@@ -248,6 +264,7 @@ export default function EditProfilePage() {
       const refreshedProfile = await refreshUserProfile();
       
       if (refreshedProfile) {
+        console.log('Profile refreshed successfully');
         populateFormWithProfileData(refreshedProfile);
         
         toast({
@@ -271,24 +288,23 @@ export default function EditProfilePage() {
     }
   };
 
-  // Redirect if not authenticated - use a shorter timeout and check more conditions
+  // Improved redirect logic - give more time for auth to complete and be less aggressive
   useEffect(() => {
     // Only redirect if:
     // 1. Auth is not loading (we know the auth state)
     // 2. There's no user profile (user is not authenticated)
     // 3. We're not already loading (avoid redirect during initial load)
+    // 4. We've waited a reasonable time for auth to complete
     if (!authLoading && !userProfile && !isLoading) {
-      console.log('Not authenticated, redirecting to login');
+      console.log('Not authenticated, preparing to redirect to login');
       const redirectTimer = setTimeout(() => {
+        console.log('Redirecting to login page');
         router.push("/auth/login?redirect=/profile/edit");
-      }, 500); // Shorter timeout
+      }, 1500); // Longer timeout to give auth more time
 
       return () => clearTimeout(redirectTimer);
     }
   }, [userProfile, authLoading, router, isLoading]);
-
-  // Fix: Remove circular dependency in loading state logic
-  // The previous useEffect that depended on isLoading and also set isLoading has been removed
 
   // Improved onSubmit function with better error handling
   const onSubmit = async (data: ProfileFormValues) => {
@@ -304,6 +320,8 @@ export default function EditProfilePage() {
         throw new Error("User type not determined. Please refresh the page and try again.");
       }
 
+      console.log('Submitting profile update', { userType });
+      
       // Prepare update data based on user type
       const updateData: any = {
         firstName: data.firstName,
@@ -333,9 +351,11 @@ export default function EditProfilePage() {
       }
       
       // Update profile
+      console.log('Sending profile update to server');
       const updatedProfile = await updateUserProfile(updateData);
       
       if (updatedProfile) {
+        console.log('Profile updated successfully');
         toast({
           title: "Profile updated",
           description: "Your profile has been updated successfully.",

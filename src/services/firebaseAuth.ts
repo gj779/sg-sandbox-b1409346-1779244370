@@ -154,13 +154,17 @@ export const firebaseAuthService = {
   // Get user profile
   async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
+      console.log(`Attempting to fetch user profile for ID: ${userId}`);
       const userProfileDoc = await getDoc(doc(db, 'users', userId));
+      
       if (!userProfileDoc.exists()) {
         console.log(`No user profile found with ID: ${userId}`);
         return null;
       }
       
       const data = userProfileDoc.data();
+      console.log(`Successfully retrieved profile for user ${userId}`);
+      
       return { 
         id: userId,
         ...data
@@ -174,6 +178,7 @@ export const firebaseAuthService = {
   // Update user profile
   async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
     try {
+      console.log(`Attempting to update profile for user ${userId}`);
       const userRef = doc(db, 'users', userId);
       
       // Check if user exists first
@@ -194,6 +199,7 @@ export const firebaseAuthService = {
       
       // Update the document
       await updateDoc(userRef, updatedData);
+      console.log(`Successfully updated profile for user ${userId}`);
       
       // Create a merged profile with updated data
       const mergedProfile = {

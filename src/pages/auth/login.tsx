@@ -63,8 +63,8 @@ export default function LoginPage() {
       const { userProfile, dashboardPath } = await login(email, password);
       
       // If this is an admin account, redirect to admin login
-      if (userProfile.userType === "admin") {
-        router.push("/auth/admin-login");
+      if (userProfile.userType === 'admin') {
+        router.push('/auth/admin-login');
         return;
       }
       
@@ -77,7 +77,14 @@ export default function LoginPage() {
 
       // Redirect to dashboard based on user type
       const redirectPath = router.query.redirect as string || dashboardPath;
-      router.push(redirectPath);
+      
+      // Prevent navigation to the same URL
+      if (redirectPath === router.asPath) {
+        console.log('Avoiding navigation to the same URL:', redirectPath);
+        router.push(dashboardPath);
+      } else {
+        router.push(redirectPath);
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Failed to sign in. Please check your credentials.');

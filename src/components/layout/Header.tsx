@@ -34,7 +34,7 @@ export default function Header() {
   const [currentLanguage, setCurrentLanguage] = useState('en');
   
   // Use the user context instead of local state
-  const { user, logout, isAuthenticated } = useUser();
+  const { user, userProfile, logout, isAuthenticated } = useUser();
 
   useEffect(() => {
     setMounted(true);
@@ -58,13 +58,13 @@ export default function Header() {
   };
 
   const navigateToDashboard = () => {
-    // Navigate to the appropriate dashboard based on user role
-    if (user?.role === 'admin') {
+    // Navigate to the appropriate dashboard based on user type from userProfile
+    if (userProfile?.userType === 'admin') {
       console.log('Navigating to admin dashboard from header');
       router.push('/admin/dashboard');
-    } else if (user?.role === 'restaurant') {
+    } else if (userProfile?.userType === 'restaurant') {
       router.push('/restaurant/dashboard');
-    } else if (user?.role === 'applicant') {
+    } else if (userProfile?.userType === 'applicant') {
       router.push('/applicant/dashboard');
     }
   };
@@ -173,7 +173,7 @@ export default function Header() {
                   Edit Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={navigateToDashboard}>
-                  {user?.role === 'admin' ? (
+                  {userProfile?.userType === 'admin' ? (
                     <>
                       <Shield className='h-4 w-4 mr-2' />
                       Admin Dashboard

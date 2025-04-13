@@ -86,31 +86,30 @@ export default function LoginPage() {
       }
 
       // Sign in user
-      const { userProfile, dashboardPath } = await login(email, password);
-      
-      // If this is an admin account, redirect to admin login
-      if (userProfile.userType === 'admin') {
-        router.push('/auth/admin-login');
-        return;
-      }
-      
-      // Show success message
-      toast({
-        title: 'Success',
-        description: 'You have successfully signed in.',
-        variant: 'default',
-      });
+      try {
+        const { userProfile, dashboardPath } = await login(email, password);
+        
+        // If this is an admin account, redirect to admin login
+        if (userProfile.userType === 'admin') {
+          router.push('/auth/admin-login');
+          return;
+        }
+        
+        // Show success message
+        toast({
+          title: 'Success',
+          description: 'You have successfully signed in.',
+          variant: 'default',
+        });
 
-      // Redirect to dashboard based on user type
-      const redirectPath = router.query.redirect as string || dashboardPath;
-      
-      // Prevent navigation to the same URL
-      if (redirectPath && redirectPath === router.asPath) {
-        console.log('Avoiding navigation to the same URL:', redirectPath);
-        router.push(dashboardPath);
-      } else {
-        // Use router.replace instead of push to avoid the navigation error
-        router.replace(redirectPath || dashboardPath);
+        // Redirect to dashboard based on user type
+        const redirectPath = router.query.redirect as string || dashboardPath;
+        
+        // Use router.push instead of replace to avoid navigation errors
+        router.push(redirectPath || dashboardPath);
+      } catch (loginError: any) {
+        console.error('Login error:', loginError);
+        setError(loginError.message || 'Failed to sign in. Please check your credentials.');
       }
     } catch (err: any) {
       console.error('Login error:', err);

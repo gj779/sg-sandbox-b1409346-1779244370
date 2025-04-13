@@ -155,53 +155,82 @@ const tutorialSteps = [
 ];
 
 export default function RestaurantDashboard() {
-  const { user, isAuthenticated } = useUser();
+  const { user, userProfile, isAuthenticated, isLoading } = useUser();
   const router = useRouter();
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialCompleted, setTutorialCompleted] = useState(false);
+  const [localLoading, setLocalLoading] = useState(true);
 
   // Get the user's name safely
-  const userName = user?.firstName || 'User';
+  const userName = userProfile?.firstName || 'User';
 
   // Check if user is authenticated
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Only redirect if we've finished loading and the user is not authenticated
+    if (!isLoading && !isAuthenticated) {
       router.push('/auth/login?redirect=/restaurant/dashboard');
     }
-  }, [isAuthenticated, router]);
+    
+    // Set local loading state based on auth loading
+    if (!isLoading) {
+      setLocalLoading(false);
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   useEffect(() => {
     // Check if this is the first visit to show tutorial
-    if (isAuthenticated) {
-      const hasSeenTutorial = localStorage.getItem('restaurant-tutorial-completed');
-      if (!hasSeenTutorial) {
-        setShowTutorial(true);
-      } else {
-        setTutorialCompleted(true);
+    // Only run this if the user is authenticated and we're not loading
+    if (!isLoading && isAuthenticated && typeof window !== 'undefined') {
+      try {
+        const hasSeenTutorial = localStorage.getItem('restaurant-tutorial-completed');
+        if (!hasSeenTutorial) {
+          setShowTutorial(true);
+        } else {
+          setTutorialCompleted(true);
+        }
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
       }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isLoading]);
 
   const handleTutorialComplete = () => {
-    localStorage.setItem('restaurant-tutorial-completed', 'true');
-    setTutorialCompleted(true);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('restaurant-tutorial-completed', 'true');
+      }
+      setTutorialCompleted(true);
+      setShowTutorial(false);
+    } catch (error) {
+      console.error('Error setting localStorage:', error);
+    }
   };
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    try {
+      return new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
   const formatSalary = (salary: { amount: number, period: string }) => {
-    if (salary.period === 'Hourly') {
-      return `$${salary.amount}/hr`;
-    } else if (salary.period === 'Yearly') {
-      return `$${salary.amount.toLocaleString()}/year`;
+    try {
+      if (salary.period === 'Hourly') {
+        return `$${salary.amount}/hr`;
+      } else if (salary.period === 'Yearly') {
+        return `$${salary.amount.toLocaleString()}/year`;
+      }
+      return `$${salary.amount}/${salary.period.toLowerCase()}`;
+    } catch (error) {
+      console.error('Error formatting salary:', error);
+      return 'N/A';
     }
-    return `$${salary.amount}/${salary.period.toLowerCase()}`;
   };
 
   const getStatusColor = (status: string) => {
@@ -223,6 +252,19 @@ export default function RestaurantDashboard() {
     }
   };
 
+  // Show loading state
+  if (isLoading || localLoading) {
+    return (
+      <div className='container py-12 flex justify-center items-center min-h-[60vh]'>
+        <div className='flex flex-col items-center gap-4'>
+          <div className='h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent'></div>
+          <p className='text-muted-foreground'>Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show sign in prompt if not authenticated
   if (!isAuthenticated) {
     return (
       <div className='container py-12 text-center'>
@@ -554,12 +596,15 @@ export default function RestaurantDashboard() {
         </Tabs>
       </div>
 
-      <TutorialGuide
-        steps={tutorialSteps}
-        onComplete={handleTutorialComplete}
-        isOpen={showTutorial}
-        onOpenChange={setShowTutorial}
-      />
+      {/* Tutorial Guide */}
+      {typeof window !== 'undefined' && (
+        <TutorialGuide
+          steps={tutorialSteps}
+          onComplete={handleTutorialComplete}
+          isOpen={showTutorial}
+          onOpenChange={setShowTutorial}
+        />
+      )}
     </>
   );
 }

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -56,16 +57,6 @@ export function useFirebaseAuth() {
   });
   
   const router = useRouter();
-
-  // Add debug logging to track auth state changes
-  useEffect(() => {
-    console.log('Auth state updated:', { 
-      isAuthenticated: authState.isAuthenticated,
-      hasUser: !!authState.user,
-      hasProfile: !!authState.userProfile,
-      isLoading: authState.isLoading
-    });
-  }, [authState]);
 
   // Listen for auth state changes
   useEffect(() => {
@@ -127,8 +118,8 @@ export function useFirebaseAuth() {
             }
           } else {
             // If no profile, create a mock profile with basic user info
-            console.log('Creating mock profile for user');
-            const mockProfile: UserProfile = {
+            console.log('Creating default profile for user');
+            const defaultProfile: UserProfile = {
               id: user.uid,
               email: user.email || '',
               firstName: user.displayName?.split(' ')[0] || 'User',
@@ -153,7 +144,7 @@ export function useFirebaseAuth() {
               setAuthState({
                 isAuthenticated: true,
                 user,
-                userProfile: mockProfile,
+                userProfile: defaultProfile,
                 isLoading: false,
                 error: 'Profile data incomplete. Some features may be limited.',
               });
@@ -162,7 +153,7 @@ export function useFirebaseAuth() {
             // Try to create a basic profile in Firestore
             try {
               console.log('Attempting to create basic profile in Firestore');
-              await firebaseAuthService.updateUserProfile(user.uid, mockProfile);
+              await firebaseAuthService.updateUserProfile(user.uid, defaultProfile);
             } catch (createError) {
               console.error('Failed to create basic profile:', createError);
             }
@@ -232,16 +223,9 @@ export function useFirebaseAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      // Try to sign in with Firebase
-      console.log(`Attempting to sign in with email: ${email}`);
-      
-      // Create a test user if this is a development environment
-      // This is a temporary solution to allow testing without a real Firebase backend
-      if (process.env.NODE_ENV === 'development' && (
-          email === 'test@example.com' || 
-          email === 'restaurant@example.com' || 
-          email === 'admin@example.com'
-      )) {
+      // For development/testing purposes - create mock users
+      if (process.env.NODE_ENV === 'development' && 
+          (email === 'test@example.com' || email === 'restaurant@example.com' || email === 'admin@example.com')) {
         console.log('Using test user for development');
         
         // Create a mock user based on the email
@@ -296,7 +280,6 @@ export function useFirebaseAuth() {
       
       // Real Firebase authentication for production
       const { user, userProfile } = await firebaseAuthService.signIn(email, password);
-      console.log('Sign in successful, user:', user.uid);
       
       // Create a default profile if none exists
       let finalUserProfile: UserProfile;
@@ -308,7 +291,7 @@ export function useFirebaseAuth() {
           firstName: user.displayName?.split(' ')[0] || 'User',
           lastName: user.displayName?.split(' ')[1] || '',
           userType: email.includes('restaurant') ? 'restaurant' : 'applicant',
-          role: email.includes('restaurant') ? 'restaurant' : 'applicant', // Set role to match userType
+          role: email.includes('restaurant') ? 'restaurant' : 'applicant',
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -337,7 +320,7 @@ export function useFirebaseAuth() {
           id: userProfile.id,
           email: userProfile.email,
           userType: userProfile.userType,
-          role: userProfile.userType, // Set role to match userType
+          role: userProfile.userType,
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
           phoneNumber: userProfile.phoneNumber || '',
@@ -357,7 +340,6 @@ export function useFirebaseAuth() {
       
       // Get the correct dashboard path based on user type
       const dashboardPath = firebaseAuthService.getDashboardPath(finalUserProfile?.userType);
-      console.log('Dashboard path:', dashboardPath);
       
       // Update auth state with user info
       setAuthState({
@@ -372,12 +354,45 @@ export function useFirebaseAuth() {
       return { userProfile: finalUserProfile, dashboardPath };
     } catch (error: any) {
       console.error('Sign in error:', error);
+      
+      // Provide a clean error message
+      let errorMessage = 'Failed to sign in. Please check your credentials and try again.';
+      
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = String(error.message).replace(/@/g, ' at ');
+        } else if ('code' in error) {
+          // Handle Firebase error codes
+          switch (String(error.code)) {
+            case 'auth/invalid-credential':
+            case 'auth/invalid-login-credentials':
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+              errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+              break;
+            case 'auth/invalid-email':
+              errorMessage = 'Invalid email format. Please enter a valid email address.';
+              break;
+            case 'auth/user-disabled':
+              errorMessage = 'This account has been disabled. Please contact support.';
+              break;
+            case 'auth/too-many-requests':
+              errorMessage = 'Too many unsuccessful login attempts. Please try again later or reset your password.';
+              break;
+            case 'auth/network-request-failed':
+              errorMessage = 'Network error. Please check your internet connection and try again.';
+              break;
+          }
+        }
+      }
+      
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message || 'Failed to sign in',
+        error: errorMessage,
       }));
-      throw error;
+      
+      throw new Error(errorMessage);
     }
   }, []);
 
@@ -393,6 +408,54 @@ export function useFirebaseAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
+      // For development/testing purposes
+      if (process.env.NODE_ENV === 'development' && 
+          (userData.email === 'test@example.com' || userData.email === 'restaurant@example.com')) {
+        console.log('Using test user for development');
+        
+        // Create a mock user
+        const mockUser = {
+          uid: 'test-user-id',
+          email: userData.email,
+          displayName: `${userData.firstName} ${userData.lastName}`,
+          emailVerified: true,
+        } as User;
+        
+        // Create a mock profile
+        const mockProfile: UserProfile = {
+          id: 'test-user-id',
+          email: userData.email,
+          userType: userData.userType,
+          role: userData.userType,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phoneNumber: userData.phoneNumber || '',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          bio: '',
+          preferredLocation: '',
+          skills: [],
+          experience: '',
+          education: '',
+          businessName: '',
+          businessAddress: '',
+          cuisineType: ''
+        };
+        
+        // Update auth state with mock user
+        setAuthState({
+          isAuthenticated: true,
+          user: mockUser,
+          userProfile: mockProfile,
+          isLoading: false,
+          error: null,
+        });
+        
+        return { user: mockUser, userProfile: mockProfile };
+      }
+      
+      // Real Firebase registration for production
       const result = await firebaseAuthService.registerUser(userData);
       
       // Convert Firebase UserProfile to our local UserProfile type
@@ -400,7 +463,7 @@ export function useFirebaseAuth() {
         id: result.userProfile.id,
         email: result.userProfile.email,
         userType: result.userProfile.userType,
-        role: result.userProfile.userType, // Set role to match userType
+        role: result.userProfile.userType,
         firstName: result.userProfile.firstName || '',
         lastName: result.userProfile.lastName || '',
         phoneNumber: result.userProfile.phoneNumber || '',
@@ -428,12 +491,38 @@ export function useFirebaseAuth() {
       
       return { user: result.user, userProfile: typedUserProfile };
     } catch (error: any) {
+      // Provide a clean error message
+      let errorMessage = 'Failed to sign up. Please try again.';
+      
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = String(error.message).replace(/@/g, ' at ');
+        } else if ('code' in error) {
+          // Handle Firebase error codes
+          switch (String(error.code)) {
+            case 'auth/email-already-in-use':
+              errorMessage = 'This email is already in use. Please try a different email or sign in.';
+              break;
+            case 'auth/invalid-email':
+              errorMessage = 'Invalid email format. Please enter a valid email address.';
+              break;
+            case 'auth/weak-password':
+              errorMessage = 'Password is too weak. Please use a stronger password.';
+              break;
+            case 'auth/operation-not-allowed':
+              errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+              break;
+          }
+        }
+      }
+      
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message || "Failed to sign up",
+        error: errorMessage,
       }));
-      throw error;
+      
+      throw new Error(errorMessage);
     }
   }, []);
 
@@ -455,10 +544,14 @@ export function useFirebaseAuth() {
       
       router.push("/");
     } catch (error: any) {
+      const errorMessage = error && typeof error === 'object' && 'message' in error
+        ? String(error.message).replace(/@/g, ' at ')
+        : 'Failed to sign out';
+        
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message || "Failed to sign out",
+        error: errorMessage,
       }));
     }
   }, [router]);
@@ -477,12 +570,17 @@ export function useFirebaseAuth() {
       
       return true;
     } catch (error: any) {
+      const errorMessage = error && typeof error === 'object' && 'message' in error
+        ? String(error.message).replace(/@/g, ' at ')
+        : 'Failed to initiate password reset';
+        
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message || "Failed to initiate password reset",
+        error: errorMessage,
       }));
-      throw error;
+      
+      throw new Error(errorMessage);
     }
   }, []);
 
@@ -500,12 +598,17 @@ export function useFirebaseAuth() {
       
       return true;
     } catch (error: any) {
+      const errorMessage = error && typeof error === 'object' && 'message' in error
+        ? String(error.message).replace(/@/g, ' at ')
+        : 'Failed to reset password';
+        
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message || "Failed to reset password",
+        error: errorMessage,
       }));
-      throw error;
+      
+      throw new Error(errorMessage);
     }
   }, []);
 
@@ -518,8 +621,6 @@ export function useFirebaseAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      console.log('Updating user profile:', updates);
-      
       // Create a merged profile as a fallback
       const mergedProfile: UserProfile = {
         ...(authState.userProfile || {}) as UserProfile,
@@ -527,7 +628,7 @@ export function useFirebaseAuth() {
         id: authState.user.uid,
         email: authState.user.email || '',
         userType: authState.userProfile?.userType || 'applicant',
-        role: authState.userProfile?.userType || 'applicant', // Set role to match userType
+        role: authState.userProfile?.userType || 'applicant',
         isActive: authState.userProfile?.isActive !== undefined ? authState.userProfile.isActive : true,
         updatedAt: new Date(),
         // Ensure all required fields have default values
@@ -548,7 +649,6 @@ export function useFirebaseAuth() {
       
       try {
         // Call the Firebase service to update the profile
-        console.log('Updating profile in Firestore');
         const firebaseUpdatedProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, updates);
         
         if (firebaseUpdatedProfile) {
@@ -557,7 +657,7 @@ export function useFirebaseAuth() {
             id: firebaseUpdatedProfile.id,
             email: firebaseUpdatedProfile.email,
             userType: firebaseUpdatedProfile.userType,
-            role: firebaseUpdatedProfile.userType, // Set role to match userType
+            role: firebaseUpdatedProfile.userType,
             firstName: firebaseUpdatedProfile.firstName || '',
             lastName: firebaseUpdatedProfile.lastName || '',
             phoneNumber: firebaseUpdatedProfile.phoneNumber || '',
@@ -581,7 +681,6 @@ export function useFirebaseAuth() {
       
       // If Firebase update succeeds, use that profile, otherwise use our merged profile
       const finalProfile = updatedProfile || mergedProfile;
-      console.log('Final profile after update:', finalProfile);
       
       // Update the local state
       setAuthState(prev => ({
@@ -593,13 +692,17 @@ export function useFirebaseAuth() {
       
       return finalProfile;
     } catch (error: any) {
-      console.error('Profile update error:', error);
+      const errorMessage = error && typeof error === 'object' && 'message' in error
+        ? String(error.message).replace(/@/g, ' at ')
+        : 'Failed to update profile';
+        
       setAuthState(prev => ({
         ...prev,
         isLoading: false,
-        error: error.message || 'Failed to update profile',
+        error: errorMessage,
       }));
-      throw error;
+      
+      throw new Error(errorMessage);
     }
   }, [authState.user, authState.userProfile]);
 
@@ -610,13 +713,10 @@ export function useFirebaseAuth() {
       return null;
     }
     
-    console.log('Refreshing user profile');
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      console.log('Fetching fresh profile data from Firestore');
       const userProfile = await firebaseAuthService.getUserProfile(authState.user.uid);
-      console.log('Profile refresh result:', userProfile ? 'Profile found' : 'No profile found');
       
       if (userProfile) {
         // Convert the Firebase UserProfile to our local UserProfile type
@@ -624,7 +724,7 @@ export function useFirebaseAuth() {
           id: userProfile.id,
           email: userProfile.email,
           userType: userProfile.userType,
-          role: userProfile.userType, // Set role to match userType
+          role: userProfile.userType,
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
           phoneNumber: userProfile.phoneNumber || '',
@@ -651,14 +751,13 @@ export function useFirebaseAuth() {
         return typedUserProfile;
       } else {
         // If no profile found, create a default one
-        console.log('No profile found, creating default profile');
         const defaultProfile: UserProfile = {
           id: authState.user.uid,
           email: authState.user.email || '',
           firstName: authState.user.displayName?.split(' ')[0] || 'User',
           lastName: authState.user.displayName?.split(' ')[1] || '',
           userType: authState.userProfile?.userType || 'applicant',
-          role: authState.userProfile?.userType || 'applicant', // Set role to match userType
+          role: authState.userProfile?.userType || 'applicant',
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -674,7 +773,6 @@ export function useFirebaseAuth() {
         
         try {
           // Create a new profile in Firebase
-          console.log('Attempting to create new profile in Firestore');
           const updatedProfile = await firebaseAuthService.updateUserProfile(authState.user.uid, defaultProfile);
           
           // If Firebase update succeeds, use that profile, otherwise use our default profile
@@ -700,8 +798,6 @@ export function useFirebaseAuth() {
         }
       }
     } catch (error: any) {
-      console.error('Error refreshing profile:', error);
-      
       // Improved error handling - ensure we don't pass raw error objects
       const errorMessage = error && typeof error === 'object' && 'message' in error 
         ? String(error.message).replace(/@/g, ' at ') 
@@ -714,7 +810,7 @@ export function useFirebaseAuth() {
         firstName: authState.user.displayName?.split(' ')[0] || 'User',
         lastName: authState.user.displayName?.split(' ')[1] || '',
         userType: authState.userProfile?.userType || 'applicant',
-        role: authState.userProfile?.userType || 'applicant', // Set role to match userType
+        role: authState.userProfile?.userType || 'applicant',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),

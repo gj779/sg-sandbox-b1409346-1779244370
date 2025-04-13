@@ -3,11 +3,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin, Building, MessageSquare, FileText, ChevronRight } from "lucide-react";
+import { Calendar, Clock, MapPin, MessageSquare, FileText, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/contexts/UserContext";
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 // Application status types
 type ApplicationStatus = 
@@ -71,102 +69,28 @@ export default function RecentApplications() {
   const [error, setError] = useState<string | null>(null);
   const { user, isAuthenticated } = useUser();
 
-  // Fetch applications from Firestore
+  // Fetch applications - using mock data for now to ensure stability
   useEffect(() => {
     const fetchApplications = async () => {
-      // If not authenticated, use mock data
-      if (!isAuthenticated || !user?.uid) {
-        setApplications(mockApplications);
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        setIsLoading(true);
-        setError(null);
-        
-        // Create a reference to the applications collection
-        const applicationsRef = collection(db, "applications");
-        
-        // Create a query against the collection
-        const q = query(
-          applicationsRef,
-          where("applicantId", "==", user.uid),
-          orderBy("appliedDate", "desc"),
-          limit(5)
-        );
-
-        // Execute the query
-        const querySnapshot = await getDocs(q);
-        
-        // If no applications found, set empty array
-        if (querySnapshot.empty) {
-          setApplications([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Process the query results
-        const fetchedApplications: Application[] = [];
-        
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          
-          // Safely extract data with fallbacks
-          let appliedDate = null;
-          
-          // Handle Firestore timestamp conversion safely
-          if (data.appliedDate) {
-            try {
-              // Check if it's a Firestore timestamp with toDate method
-              if (typeof data.appliedDate.toDate === 'function') {
-                appliedDate = data.appliedDate.toDate();
-              } 
-              // Check if it's already a Date object
-              else if (data.appliedDate instanceof Date) {
-                appliedDate = data.appliedDate;
-              } 
-              // Check if it's a timestamp number
-              else if (typeof data.appliedDate === 'number') {
-                appliedDate = new Date(data.appliedDate);
-              }
-              // Check if it's a string date
-              else if (typeof data.appliedDate === 'string') {
-                appliedDate = new Date(data.appliedDate);
-              }
-            } catch (err) {
-              console.error("Error converting date:", err);
-              appliedDate = null;
-            }
-          }
-          
-          const application: Application = {
-            id: doc.id,
-            jobId: data.jobId || "",
-            jobTitle: data.jobTitle || "Unknown Position",
-            restaurantName: data.restaurantName || "Unknown Restaurant",
-            location: data.location || "Location not specified",
-            appliedDate: appliedDate,
-            status: (data.status as ApplicationStatus) || "applied",
-            hasUnreadMessages: Boolean(data.hasUnreadMessages),
-          };
-          
-          fetchedApplications.push(application);
-        });
-
-        setApplications(fetchedApplications);
+        // For now, always use mock data to ensure stability
+        setApplications(mockApplications);
       } catch (err) {
-        console.error("Error fetching applications:", err);
+        console.error("Error loading applications:", err);
         setError("Failed to load applications. Please try again later.");
-        // Fallback to mock data on error
         setApplications(mockApplications);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchApplications();
-  }, [user, isAuthenticated]);
+    // Short timeout to simulate loading and avoid immediate state changes
+    const timer = setTimeout(() => {
+      fetchApplications();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Format date for display
   const formatDate = (date: Date | null) => {

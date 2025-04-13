@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -112,17 +113,40 @@ export default function RecentApplications() {
           const data = doc.data();
           
           // Safely extract data with fallbacks
+          let appliedDate = null;
+          
+          // Handle Firestore timestamp conversion safely
+          if (data.appliedDate) {
+            try {
+              // Check if it's a Firestore timestamp with toDate method
+              if (typeof data.appliedDate.toDate === 'function') {
+                appliedDate = data.appliedDate.toDate();
+              } 
+              // Check if it's already a Date object
+              else if (data.appliedDate instanceof Date) {
+                appliedDate = data.appliedDate;
+              } 
+              // Check if it's a timestamp number
+              else if (typeof data.appliedDate === 'number') {
+                appliedDate = new Date(data.appliedDate);
+              }
+              // Check if it's a string date
+              else if (typeof data.appliedDate === 'string') {
+                appliedDate = new Date(data.appliedDate);
+              }
+            } catch (err) {
+              console.error("Error converting date:", err);
+              appliedDate = null;
+            }
+          }
+          
           const application: Application = {
             id: doc.id,
             jobId: data.jobId || "",
             jobTitle: data.jobTitle || "Unknown Position",
             restaurantName: data.restaurantName || "Unknown Restaurant",
             location: data.location || "Location not specified",
-            // Safely convert Firestore timestamp to Date
-            appliedDate: data.appliedDate ? 
-              (data.appliedDate.toDate ? new Date(data.appliedDate.toDate()) : 
-               (data.appliedDate instanceof Date ? data.appliedDate : null)) : 
-              null,
+            appliedDate: appliedDate,
             status: (data.status as ApplicationStatus) || "applied",
             hasUnreadMessages: Boolean(data.hasUnreadMessages),
           };
@@ -226,8 +250,37 @@ export default function RecentApplications() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col justify-center items-center py-8">
-            <div className="text-4xl mb-4">⏳</div>
-            <h3 className="text-lg font-medium mb-2">Loading Applications...</h3>
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mb-4"></div>
+            <p className="text-muted-foreground">Loading applications...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Applications</CardTitle>
+          <CardDescription>
+            Your most recent job applications
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h3 className="text-lg font-medium mb-2">Something went wrong</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              {error}
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </Button>
           </div>
         </CardContent>
       </Card>

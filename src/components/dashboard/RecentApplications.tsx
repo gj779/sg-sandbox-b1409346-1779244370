@@ -1,10 +1,12 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, MapPin, Building, MessageSquare, FileText, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useUser } from "@/contexts/UserContext";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 // Application status types
 type ApplicationStatus = 
@@ -16,7 +18,19 @@ type ApplicationStatus =
   | "rejected" 
   | "withdrawn";
 
-// Mock data for recent applications
+// Application type
+interface Application {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  restaurantName: string;
+  location: string;
+  appliedDate: Date | null;
+  status: ApplicationStatus;
+  hasUnreadMessages: boolean;
+}
+
+// Mock data for recent applications as fallback
 const mockApplications = [
   {
     id: "app1",
@@ -51,15 +65,85 @@ const mockApplications = [
 ];
 
 export default function RecentApplications() {
-  const [applications, setApplications] = useState(mockApplications);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user, isAuthenticated } = useUser();
+
+  // Fetch applications from Firestore
+  useEffect(() => {
+    const fetchApplications = async () => {
+      if (!isAuthenticated || !user?.uid) {
+        // Use mock data if not authenticated
+        setApplications(mockApplications);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const applicationsRef = collection(db, "applications");
+        const q = query(
+          applicationsRef,
+          where("applicantId", "==", user.uid),
+          orderBy("appliedDate", "desc"),
+          limit(5)
+        );
+
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          setApplications([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const fetchedApplications: Application[] = [];
+        
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedApplications.push({
+            id: doc.id,
+            jobId: data.jobId || "",
+            jobTitle: data.jobTitle || "Unknown Position",
+            restaurantName: data.restaurantName || "Unknown Restaurant",
+            location: data.location || "Location not specified",
+            appliedDate: data.appliedDate ? new Date(data.appliedDate.toDate()) : null,
+            status: (data.status as ApplicationStatus) || "applied",
+            hasUnreadMessages: data.hasUnreadMessages || false,
+          });
+        });
+
+        setApplications(fetchedApplications);
+      } catch (err) {
+        console.error("Error fetching applications:", err);
+        setError("Failed to load applications. Please try again later.");
+        // Fallback to mock data on error
+        setApplications(mockApplications);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, [user, isAuthenticated]);
 
   // Format date for display
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Date not available";
+    
+    try {
+      return new Date(date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
   // Get status badge color and text
@@ -115,6 +199,26 @@ export default function RecentApplications() {
         };
     }
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Applications</CardTitle>
+          <CardDescription>
+            Your most recent job applications
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center items-center py-8">
+            <div className="text-4xl mb-4">⏳</div>
+            <h3 className="text-lg font-medium mb-2">Loading Applications...</h3>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

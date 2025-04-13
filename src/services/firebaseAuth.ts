@@ -66,48 +66,76 @@ export const firebaseAuthService = {
     lastName,
     phoneNumber,
   }: RegisterUserParams): Promise<{ user: User; userProfile: UserProfile }> {
-    // Create user in Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    // Update display name
-    await updateProfile(user, {
-      displayName: `${firstName} ${lastName}`
-    });
-    
-    // Send email verification
-    await sendEmailVerification(user);
-    
-    // Create user profile in Firestore
-    const userProfile: UserProfile = {
-      id: user.uid,
-      email,
-      userType,
-      firstName,
-      lastName,
-      phoneNumber: phoneNumber || '',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      isActive: true,
-      // Initialize onboarding fields
-      skills: [],
-      experience: '',
-      availability: [],
-      preferredLocation: '',
-      bio: '',
-      education: '',
-      jobPreferences: [],
-      location: '',
-      cuisineType: '',
-      hiringPositions: [],
-      jobTypes: [],
-      benefits: '',
-      profileComplete: false,
-    };
-    
-    await setDoc(doc(db, 'users', user.uid), userProfile);
-    
-    return { user, userProfile };
+    try {
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Update display name
+      await updateProfile(user, {
+        displayName: `${firstName} ${lastName}`
+      });
+      
+      // Send email verification
+      await sendEmailVerification(user);
+      
+      // Create user profile in Firestore
+      const userProfile: UserProfile = {
+        id: user.uid,
+        email,
+        userType,
+        firstName,
+        lastName,
+        phoneNumber: phoneNumber || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        isActive: true,
+        // Initialize onboarding fields
+        skills: [],
+        experience: '',
+        availability: [],
+        preferredLocation: '',
+        bio: '',
+        education: '',
+        jobPreferences: [],
+        location: '',
+        cuisineType: '',
+        hiringPositions: [],
+        jobTypes: [],
+        benefits: '',
+        profileComplete: false,
+      };
+      
+      await setDoc(doc(db, 'users', user.uid), userProfile);
+      
+      return { user, userProfile };
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      
+      // Provide more user-friendly error messages
+      let errorMessage = 'An error occurred during registration. Please try again.';
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'This email is already in use. Please try a different email or sign in.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email format. Please enter a valid email address.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password is too weak. Please use a stronger password.';
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+            break;
+          default:
+            errorMessage = error.message ? error.message.replace(/@/g, ' at ') : errorMessage;
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
   },
 
   // Sign in user

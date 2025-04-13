@@ -130,16 +130,22 @@ const tutorialSteps = [
 ];
 
 export default function ApplicantDashboard() {
-  const { user, isAuthenticated, isLoading } = useUser();
+  const { user, userProfile, isAuthenticated, isLoading } = useUser();
   const router = useRouter();
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialCompleted, setTutorialCompleted] = useState(false);
+  const [localLoading, setLocalLoading] = useState(true);
 
   // Check if user is authenticated
   useEffect(() => {
     // Only redirect if we've finished loading and the user is not authenticated
     if (!isLoading && !isAuthenticated) {
       router.push('/auth/login?redirect=/applicant/dashboard');
+    }
+    
+    // Set local loading state based on auth loading
+    if (!isLoading) {
+      setLocalLoading(false);
     }
   }, [isAuthenticated, isLoading, router]);
 
@@ -155,7 +161,7 @@ export default function ApplicantDashboard() {
           setTutorialCompleted(true);
         }
       } catch (error) {
-        console.error("Error accessing localStorage:", error);
+        console.error('Error accessing localStorage:', error);
       }
     }
   }, [isAuthenticated, isLoading]);
@@ -168,12 +174,12 @@ export default function ApplicantDashboard() {
       setTutorialCompleted(true);
       setShowTutorial(false);
     } catch (error) {
-      console.error("Error setting localStorage:", error);
+      console.error('Error setting localStorage:', error);
     }
   };
 
   const formatDate = (date: Date | null | undefined) => {
-    if (!date) return "N/A";
+    if (!date) return 'N/A';
     
     try {
       return new Date(date).toLocaleDateString('en-US', {
@@ -182,13 +188,13 @@ export default function ApplicantDashboard() {
         year: 'numeric'
       });
     } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Invalid date";
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
     }
   };
 
   const formatSalary = (salary: { amount: number, period: string } | undefined) => {
-    if (!salary) return "N/A";
+    if (!salary) return 'N/A';
     
     try {
       if (salary.period === 'Hourly') {
@@ -198,8 +204,8 @@ export default function ApplicantDashboard() {
       }
       return `$${salary.amount}/${salary.period.toLowerCase()}`;
     } catch (error) {
-      console.error("Error formatting salary:", error);
-      return "N/A";
+      console.error('Error formatting salary:', error);
+      return 'N/A';
     }
   };
 
@@ -221,12 +227,12 @@ export default function ApplicantDashboard() {
   };
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || localLoading) {
     return (
-      <div className="container py-12 flex justify-center items-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
+      <div className='container py-12 flex justify-center items-center min-h-[60vh]'>
+        <div className='flex flex-col items-center gap-4'>
+          <div className='h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent'></div>
+          <p className='text-muted-foreground'>Loading dashboard...</p>
         </div>
       </div>
     );
@@ -246,7 +252,7 @@ export default function ApplicantDashboard() {
   }
 
   // Get the user's name safely
-  const userName = user?.firstName || 'User';
+  const userName = userProfile?.firstName || 'User';
 
   return (
     <>
@@ -284,7 +290,7 @@ export default function ApplicantDashboard() {
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value='overview' className='space-y-6' id="dashboard-overview">
+          <TabsContent value='overview' className='space-y-6' id='dashboard-overview'>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
               <Card>
                 <CardHeader className='flex flex-row items-center justify-between pb-2'>
@@ -341,7 +347,7 @@ export default function ApplicantDashboard() {
               <RecentApplications />
             </div>
 
-            <Card id="recommended-jobs">
+            <Card id='recommended-jobs'>
               <CardHeader>
                 <CardTitle>Recommended Jobs</CardTitle>
                 <CardDescription>
@@ -392,7 +398,7 @@ export default function ApplicantDashboard() {
           </TabsContent>
 
           {/* Applications Tab */}
-          <TabsContent value='applications' id="applications-tab">
+          <TabsContent value='applications' id='applications-tab'>
             <Card>
               <CardHeader>
                 <CardTitle>Your Applications</CardTitle>
@@ -466,7 +472,7 @@ export default function ApplicantDashboard() {
       </div>
 
       {/* Profile card for tutorial */}
-      <div id="profile-card" className="hidden"></div>
+      <div id='profile-card' className='hidden'></div>
 
       {/* Tutorial Guide */}
       {typeof window !== 'undefined' && (

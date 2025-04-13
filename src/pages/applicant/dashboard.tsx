@@ -37,15 +37,15 @@ import RecentApplications from '@/components/dashboard/RecentApplications';
 // Mock data for applications
 const mockApplications = [
   {
-    id: "1",
+    id: "app1",
     jobTitle: "Head Chef",
-    restaurantName: "La Bistro",
+    restaurantName: "La Bistro Restaurant",
     location: "New York, NY",
     appliedDate: new Date("2025-03-20"),
     status: "Pending"
   },
   {
-    id: "2",
+    id: "app2",
     jobTitle: "Bartender",
     restaurantName: "The Speakeasy",
     location: "Chicago, IL",
@@ -53,9 +53,9 @@ const mockApplications = [
     status: "Reviewed"
   },
   {
-    id: "3",
+    id: "app3",
     jobTitle: "Server",
-    restaurantName: "Oceanview Grill",
+    restaurantName: "Coastal Kitchen",
     location: "Miami, FL",
     appliedDate: new Date("2025-03-25"),
     status: "Shortlisted"

@@ -234,6 +234,67 @@ export function useFirebaseAuth() {
     try {
       // Try to sign in with Firebase
       console.log(`Attempting to sign in with email: ${email}`);
+      
+      // Create a test user if this is a development environment
+      // This is a temporary solution to allow testing without a real Firebase backend
+      if (process.env.NODE_ENV === 'development' && (
+          email === 'test@example.com' || 
+          email === 'restaurant@example.com' || 
+          email === 'admin@example.com'
+      )) {
+        console.log('Using test user for development');
+        
+        // Create a mock user based on the email
+        const mockUser = {
+          uid: 'test-user-id',
+          email: email,
+          displayName: email.includes('restaurant') ? 'Test Restaurant' : 'Test User',
+          emailVerified: true,
+        } as User;
+        
+        // Create a mock profile based on the email
+        const userType = email.includes('restaurant') 
+          ? 'restaurant' 
+          : email.includes('admin') 
+            ? 'admin' 
+            : 'applicant';
+            
+        const mockProfile: UserProfile = {
+          id: 'test-user-id',
+          email: email,
+          userType: userType,
+          role: userType,
+          firstName: 'Test',
+          lastName: userType === 'restaurant' ? 'Restaurant' : 'User',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          bio: 'This is a test profile for development purposes.',
+          preferredLocation: 'Test Location',
+          skills: ['Test Skill 1', 'Test Skill 2'],
+          experience: '3-5',
+          education: 'Test University',
+          businessName: userType === 'restaurant' ? 'Test Restaurant' : '',
+          businessAddress: userType === 'restaurant' ? '123 Test St, Test City' : '',
+          cuisineType: userType === 'restaurant' ? 'italian' : ''
+        };
+        
+        // Update auth state with mock user
+        setAuthState({
+          isAuthenticated: true,
+          user: mockUser,
+          userProfile: mockProfile,
+          isLoading: false,
+          error: null,
+        });
+        
+        // Get the correct dashboard path
+        const dashboardPath = firebaseAuthService.getDashboardPath(userType);
+        
+        return { userProfile: mockProfile, dashboardPath };
+      }
+      
+      // Real Firebase authentication for production
       const { user, userProfile } = await firebaseAuthService.signIn(email, password);
       console.log('Sign in successful, user:', user.uid);
       

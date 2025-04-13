@@ -73,8 +73,8 @@ export default function RecentApplications() {
   // Fetch applications from Firestore
   useEffect(() => {
     const fetchApplications = async () => {
+      // If not authenticated, use mock data
       if (!isAuthenticated || !user?.uid) {
-        // Use mock data if not authenticated
         setApplications(mockApplications);
         setIsLoading(false);
         return;
@@ -84,7 +84,10 @@ export default function RecentApplications() {
         setIsLoading(true);
         setError(null);
         
+        // Create a reference to the applications collection
         const applicationsRef = collection(db, "applications");
+        
+        // Create a query against the collection
         const q = query(
           applicationsRef,
           where("applicantId", "==", user.uid),
@@ -92,28 +95,39 @@ export default function RecentApplications() {
           limit(5)
         );
 
+        // Execute the query
         const querySnapshot = await getDocs(q);
         
+        // If no applications found, set empty array
         if (querySnapshot.empty) {
           setApplications([]);
           setIsLoading(false);
           return;
         }
 
+        // Process the query results
         const fetchedApplications: Application[] = [];
         
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          fetchedApplications.push({
+          
+          // Safely extract data with fallbacks
+          const application: Application = {
             id: doc.id,
             jobId: data.jobId || "",
             jobTitle: data.jobTitle || "Unknown Position",
             restaurantName: data.restaurantName || "Unknown Restaurant",
             location: data.location || "Location not specified",
-            appliedDate: data.appliedDate ? new Date(data.appliedDate.toDate()) : null,
+            // Safely convert Firestore timestamp to Date
+            appliedDate: data.appliedDate ? 
+              (data.appliedDate.toDate ? new Date(data.appliedDate.toDate()) : 
+               (data.appliedDate instanceof Date ? data.appliedDate : null)) : 
+              null,
             status: (data.status as ApplicationStatus) || "applied",
-            hasUnreadMessages: data.hasUnreadMessages || false,
-          });
+            hasUnreadMessages: Boolean(data.hasUnreadMessages),
+          };
+          
+          fetchedApplications.push(application);
         });
 
         setApplications(fetchedApplications);
@@ -211,7 +225,7 @@ export default function RecentApplications() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-center items-center py-8">
+          <div className="flex flex-col justify-center items-center py-8">
             <div className="text-4xl mb-4">⏳</div>
             <h3 className="text-lg font-medium mb-2">Loading Applications...</h3>
           </div>

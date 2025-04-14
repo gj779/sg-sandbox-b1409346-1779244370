@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
 
 interface TutorialStep {
   title: string;
@@ -109,11 +110,15 @@ export default function TutorialGuide({
         
         {steps[currentStep]?.image && (
           <div className='my-4'>
-            <img 
-              src={steps[currentStep].image} 
-              alt={steps[currentStep].title || 'Tutorial step'} 
-              className='rounded-md w-full'
-            />
+            <div className='relative w-full h-48'>
+              <Image 
+                src={steps[currentStep].image} 
+                alt={steps[currentStep].title || 'Tutorial step'} 
+                className='rounded-md'
+                fill
+                style={{ objectFit: 'cover' }}
+              />
+            </div>
           </div>
         )}
         

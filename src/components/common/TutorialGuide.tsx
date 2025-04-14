@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,21 +35,29 @@ export default function TutorialGuide({
 
   useEffect(() => {
     if (isOpen && steps[currentStep]?.targetElement) {
-      const element = document.querySelector(steps[currentStep].targetElement!) as HTMLElement;
-      if (element) {
-        setHighlightedElement(element);
-        element.classList.add("tutorial-highlight");
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      try {
+        const element = document.querySelector(steps[currentStep].targetElement!) as HTMLElement;
+        if (element) {
+          setHighlightedElement(element);
+          element.classList.add('tutorial-highlight');
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch (error) {
+        console.error('Error finding tutorial target element:', error);
       }
     }
 
     return () => {
       if (highlightedElement) {
-        highlightedElement.classList.remove("tutorial-highlight");
+        try {
+          highlightedElement.classList.remove('tutorial-highlight');
+        } catch (error) {
+          console.error('Error removing highlight class:', error);
+        }
         setHighlightedElement(null);
       }
     };
-  }, [currentStep, isOpen, steps]);
+  }, [currentStep, isOpen, steps, highlightedElement]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -92,20 +99,20 @@ export default function TutorialGuide({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className='sm:max-w-md'>
         <DialogHeader>
-          <DialogTitle>{steps[currentStep]?.title || "Tutorial"}</DialogTitle>
+          <DialogTitle>{steps[currentStep]?.title || 'Tutorial'}</DialogTitle>
           <DialogDescription>
-            {steps[currentStep]?.description || "Learn how to use the application."}
+            {steps[currentStep]?.description || 'Learn how to use the application.'}
           </DialogDescription>
         </DialogHeader>
         
         {steps[currentStep]?.image && (
-          <div className="my-4">
+          <div className='my-4'>
             <img 
               src={steps[currentStep].image} 
-              alt={steps[currentStep].title} 
-              className="rounded-md w-full"
+              alt={steps[currentStep].title || 'Tutorial step'} 
+              className='rounded-md w-full'
             />
           </div>
         )}

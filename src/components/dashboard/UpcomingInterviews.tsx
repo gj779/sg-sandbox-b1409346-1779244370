@@ -47,7 +47,7 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
   const formatDate = (date: Date) => {
     try {
       // Ensure date is valid before formatting
-      if (!(date instanceof Date) || isNaN(date.getTime())) {
+      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
         return 'Invalid date';
       }
       return date.toLocaleDateString('en-US', {
@@ -66,7 +66,7 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
   const formatTime = (date: Date) => {
     try {
       // Ensure date is valid before formatting
-      if (!(date instanceof Date) || isNaN(date.getTime())) {
+      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
         return 'Invalid time';
       }
       return date.toLocaleTimeString('en-US', {
@@ -159,19 +159,17 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
                     )}
                   </div>
                   <div className="flex gap-2 self-end md:self-center">
-                    <Link href={`/messaging?conversation=${interview.restaurantName}`} legacyBehavior>
-                      <a>
-                        <Button variant="outline" size="sm">
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          Message
-                        </Button>
-                      </a>
+                    <Link href={`/messaging?conversation=${interview.restaurantName}`} passHref>
+                      <Button as='a' variant='outline' size='sm'>
+                        <MessageSquare className='h-4 w-4 mr-1' />
+                        Message
+                      </Button>
                     </Link>
-                    {interview.type !== "in-person" && (
-                      <Button size="sm">
+                    {interview.type !== 'in-person' && (
+                      <Button size='sm'>
                         {getInterviewTypeIcon(interview.type)}
-                        <span className="ml-1">
-                          {interview.type === "video" ? "Join Call" : "Call"}
+                        <span className='ml-1'>
+                          {interview.type === 'video' ? 'Join Call' : 'Call'}
                         </span>
                       </Button>
                     )}

@@ -159,13 +159,11 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
                     )}
                   </div>
                   <div className='flex gap-2 self-end md:self-center'>
-                    <Link href={`/messaging?conversation=${interview.restaurantName}`} legacyBehavior>
-                      <a>
-                        <Button variant='outline' size='sm'>
-                          <MessageSquare className='h-4 w-4 mr-1' />
-                          Message
-                        </Button>
-                      </a>
+                    <Link href={`/messaging?conversation=${interview.restaurantName}`} passHref>
+                      <Button variant='outline' size='sm'>
+                        <MessageSquare className='h-4 w-4 mr-1' />
+                        Message
+                      </Button>
                     </Link>
                     {interview.type !== 'in-person' && (
                       <Button size='sm'>

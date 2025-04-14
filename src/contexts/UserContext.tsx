@@ -15,6 +15,7 @@ interface UserContextType {
     dashboardPath: string;
   }>;
   logout: () => Promise<void>;
+  register: (name: string, email: string, password: string, userType: "applicant" | "restaurant") => Promise<void>;
   signUp: (userData: {
     email: string;
     password: string;
@@ -103,6 +104,35 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Register function for the registration page
+  const register = async (name: string, email: string, password: string, userType: "applicant" | "restaurant") => {
+    try {
+      // Split name into first and last name
+      const nameParts = name.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      const userData = {
+        email,
+        password,
+        userType,
+        firstName,
+        lastName
+      };
+      
+      const result = await signUp(userData);
+      
+      // Redirect to the appropriate dashboard
+      const dashboardPath = userType === 'applicant' ? '/applicant/dashboard' : '/restaurant/dashboard';
+      router.push(dashboardPath);
+      
+      return result;
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  };
+
   // Logout function with redirect
   const logout = async () => {
     try {
@@ -125,6 +155,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         login,
         logout,
+        register,
         signUp,
         updateUserProfile,
         refreshUserProfile,

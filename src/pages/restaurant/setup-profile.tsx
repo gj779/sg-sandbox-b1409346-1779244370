@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -49,6 +48,11 @@ const formSchema = z.object({
   website: z.string().optional(),
   openingHours: z.string().min(2, "Opening hours are required"),
   closingHours: z.string().min(2, "Closing hours are required"),
+  acceptsReservations: z.boolean().optional(),
+  hasDelivery: z.boolean().optional(),
+  hasTakeout: z.boolean().optional(),
+  priceRange: z.string().optional(),
+  coverImage: z.string().optional(),
 });
 
 const cuisineTypes = [
@@ -78,10 +82,11 @@ export default function RestaurantSetupProfile() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
+  // Create a form instance with the appropriate schema
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      restaurantName: user?.name || "",
+      restaurantName: user?.displayName || "",
       description: "",
       cuisineType: "",
       address: "",
@@ -92,6 +97,11 @@ export default function RestaurantSetupProfile() {
       website: "",
       openingHours: "",
       closingHours: "",
+      acceptsReservations: false,
+      hasDelivery: false,
+      hasTakeout: false,
+      priceRange: "$$",
+      coverImage: null,
     },
   });
 

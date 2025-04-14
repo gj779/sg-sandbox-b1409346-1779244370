@@ -461,12 +461,16 @@ export default function RestaurantDashboard() {
                           </div>
                         </div>
                         <div className='flex gap-2 self-end md:self-center'>
-                          <Button variant='outline' size='sm'>
-                            Edit
-                          </Button>
-                          <Button size='sm'>
-                            View Applicants
-                          </Button>
+                          <Link href={`/jobs/${listing.id}/edit`} passHref>
+                            <Button variant='outline' size='sm'>
+                              Edit
+                            </Button>
+                          </Link>
+                          <Link href={`/jobs/${listing.id}/applicants`} passHref>
+                            <Button size='sm'>
+                              View Applicants
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -480,9 +484,11 @@ export default function RestaurantDashboard() {
                       <Plus className='mr-2 h-4 w-4' /> Post New Job
                     </Button>
                   </Link>
-                  <Button variant='outline' className='flex-1'>
-                    View All Listings
-                  </Button>
+                  <Link href='/jobs?filter=my-listings' passHref>
+                    <Button variant='outline' className='flex-1'>
+                      View All Listings
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </Card>
@@ -527,12 +533,16 @@ export default function RestaurantDashboard() {
                           </div>
                         </div>
                         <div className='flex gap-2 self-end md:self-center'>
-                          <Button variant='outline' size='sm'>
-                            Edit
-                          </Button>
-                          <Button size='sm'>
-                            View Applicants
-                          </Button>
+                          <Link href={`/jobs/${listing.id}/edit`} passHref>
+                            <Button variant='outline' size='sm'>
+                              Edit
+                            </Button>
+                          </Link>
+                          <Link href={`/jobs/${listing.id}/applicants`} passHref>
+                            <Button size='sm'>
+                              View Applicants
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     </div>

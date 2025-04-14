@@ -29,7 +29,7 @@ import {
   User,
   Mail,
   Phone,
-  FileText2,
+  File,
 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { Separator } from "@/components/ui/separator";
@@ -479,7 +479,7 @@ export default function ApplicationDetailPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 border rounded-md">
                     <div className="flex items-center">
-                      <FileText2 className="h-5 w-5 mr-3 text-muted-foreground" />
+                      <File className="h-5 w-5 mr-3 text-muted-foreground" />
                       <div>
                         <p className="font-medium">{application.resume.name}</p>
                         <p className="text-sm text-muted-foreground">Resume</p>
@@ -493,7 +493,7 @@ export default function ApplicationDetailPage() {
                   {application.coverLetter && (
                     <div className="flex items-center justify-between p-3 border rounded-md">
                       <div className="flex items-center">
-                        <FileText2 className="h-5 w-5 mr-3 text-muted-foreground" />
+                        <File className="h-5 w-5 mr-3 text-muted-foreground" />
                         <div>
                           <p className="font-medium">{application.coverLetter.name}</p>
                           <p className="text-sm text-muted-foreground">Cover Letter</p>

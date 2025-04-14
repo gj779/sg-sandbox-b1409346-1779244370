@@ -20,101 +20,54 @@ import {
 } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ChefHat, Briefcase, AlertCircle } from 'lucide-react';
+import { ChefHat, Briefcase, Loader2 } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
-import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { type, redirect, email: initialEmail } = router.query;
+  const { type, redirect } = router.query;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, isAuthenticated, userProfile } = useUser();
-  const { toast } = useToast();
+  const { login, isAuthenticated, isLoading: authLoading } = useUser();
 
-  // Set initial email from query parameter if provided
+  // Check if user is already authenticated
   useEffect(() => {
-    if (initialEmail && typeof initialEmail === 'string') {
-      setEmail(initialEmail);
+    if (isAuthenticated && !authLoading) {
+      const redirectPath = typeof redirect === 'string' ? redirect : '/';
+      router.push(redirectPath);
     }
-  }, [initialEmail]);
+  }, [isAuthenticated, authLoading, router, redirect]);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && userProfile) {
-      const dashboardPath = 
-        userProfile.userType === 'admin' 
-          ? '/admin/dashboard' 
-          : userProfile.userType === 'restaurant'
-            ? '/restaurant/dashboard'
-            : '/applicant/dashboard';
-      
-      const redirectPath = (redirect as string) || dashboardPath;
-      
-      // Prevent navigation to the same URL
-      if (redirectPath !== router.asPath) {
-        router.replace(redirectPath);
-      }
+  // Handle login form submission
+  const handleLogin = async (userType: 'applicant' | 'restaurant') => {
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
     }
-  }, [isAuthenticated, userProfile, router, redirect]);
-
-  // Set default tab based on query parameter
-  const getDefaultTab = () => {
-    // If admin type is requested, redirect to admin login page
-    if (type === 'admin') {
-      router.push('/auth/admin-login');
-      return 'applicant'; // Default while redirecting
-    }
-    return type as string || 'applicant';
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    
     setError('');
     setIsLoading(true);
-
+    
     try {
-      if (!email || !password) {
-        setError('Please enter both email and password');
-        setIsLoading(false);
-        return;
+      const { dashboardPath } = await login(email, password);
+      
+      // If there's a redirect query param, use that instead of the dashboard
+      const redirectPath = typeof redirect === 'string' ? redirect : dashboardPath;
+      router.push(redirectPath);
+    } catch (error: any) {
+      // Ensure error message is properly sanitized
+      let errorMessage = 'Login failed. Please check your credentials and try again.';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message.replace(/@/g, ' at ');
       }
-
-      // Sign in user
-      try {
-        const { userProfile, dashboardPath } = await login(email, password);
-        
-        // If this is an admin account, redirect to admin login
-        if (userProfile.userType === 'admin') {
-          router.push('/auth/admin-login');
-          return;
-        }
-        
-        // Show success message
-        toast({
-          title: 'Success',
-          description: 'You have successfully signed in.',
-          variant: 'default',
-        });
-
-        // Redirect to dashboard based on user type
-        const redirectPath = router.query.redirect as string || dashboardPath;
-        
-        // Use router.push instead of replace to avoid navigation errors
-        router.push(redirectPath || dashboardPath);
-      } catch (loginError: any) {
-        console.error('Login error:', loginError);
-        setError(loginError.message || 'Failed to sign in. Please check your credentials.');
-      }
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
-    } finally {
+      
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -132,7 +85,7 @@ export default function LoginPage() {
           <p className='text-muted-foreground mt-2'>Sign in to your StaffSpace account</p>
         </div>
 
-        <Tabs defaultValue={getDefaultTab()} className='w-full'>
+        <Tabs defaultValue={type as string || 'applicant'} className='w-full'>
           <TabsList className='grid grid-cols-2 mb-8'>
             <TabsTrigger value='applicant' className='flex items-center gap-2'>
               <Briefcase className='h-4 w-4' />
@@ -149,13 +102,12 @@ export default function LoginPage() {
               <CardHeader>
                 <CardTitle>Job Seeker Sign In</CardTitle>
                 <CardDescription>
-                  Enter your credentials to access your account
+                  Sign in to find restaurant and hospitality jobs
                 </CardDescription>
               </CardHeader>
               <CardContent className='space-y-4'>
                 {error && (
                   <Alert variant='destructive'>
-                    <AlertCircle className='h-4 w-4' />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
@@ -172,7 +124,10 @@ export default function LoginPage() {
                 <div className='space-y-2'>
                   <div className='flex items-center justify-between'>
                     <Label htmlFor='applicant-password'>Password</Label>
-                    <Link href='/auth/reset-password' className='text-sm text-primary hover:underline'>
+                    <Link
+                      href='/auth/reset-password'
+                      className='text-sm text-primary hover:underline'
+                    >
                       Forgot password?
                     </Link>
                   </div>
@@ -184,26 +139,35 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className='flex items-center space-x-2'>
-                  <Checkbox 
-                    id='applicant-remember' 
+                  <Checkbox
+                    id='applicant-remember'
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                   />
-                  <Label htmlFor='applicant-remember' className='text-sm'>Remember me</Label>
+                  <Label htmlFor='applicant-remember' className='text-sm'>
+                    Remember me
+                  </Label>
                 </div>
               </CardContent>
               <CardFooter className='flex flex-col gap-4'>
-                <Button 
-                  className='w-full' 
-                  onClick={handleSubmit}
+                <Button
+                  className='w-full'
+                  onClick={() => handleLogin('applicant')}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Signing in...' : 'Sign In'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                      Signing In...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
                 </Button>
                 <p className='text-sm text-center text-muted-foreground'>
                   Don't have an account?{' '}
                   <Link href='/auth/register?type=applicant' className='text-primary hover:underline'>
-                    Sign up
+                    Create account
                   </Link>
                 </p>
               </CardFooter>
@@ -215,18 +179,17 @@ export default function LoginPage() {
               <CardHeader>
                 <CardTitle>Restaurant Sign In</CardTitle>
                 <CardDescription>
-                  Enter your credentials to access your restaurant account
+                  Sign in to find talented staff for your restaurant
                 </CardDescription>
               </CardHeader>
               <CardContent className='space-y-4'>
                 {error && (
                   <Alert variant='destructive'>
-                    <AlertCircle className='h-4 w-4' />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
                 <div className='space-y-2'>
-                  <Label htmlFor='restaurant-email'>Email</Label>
+                  <Label htmlFor='restaurant-email'>Business Email</Label>
                   <Input
                     id='restaurant-email'
                     type='email'
@@ -238,7 +201,10 @@ export default function LoginPage() {
                 <div className='space-y-2'>
                   <div className='flex items-center justify-between'>
                     <Label htmlFor='restaurant-password'>Password</Label>
-                    <Link href='/auth/reset-password' className='text-sm text-primary hover:underline'>
+                    <Link
+                      href='/auth/reset-password'
+                      className='text-sm text-primary hover:underline'
+                    >
                       Forgot password?
                     </Link>
                   </div>
@@ -250,26 +216,35 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className='flex items-center space-x-2'>
-                  <Checkbox 
-                    id='restaurant-remember' 
+                  <Checkbox
+                    id='restaurant-remember'
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                   />
-                  <Label htmlFor='restaurant-remember' className='text-sm'>Remember me</Label>
+                  <Label htmlFor='restaurant-remember' className='text-sm'>
+                    Remember me
+                  </Label>
                 </div>
               </CardContent>
               <CardFooter className='flex flex-col gap-4'>
-                <Button 
-                  className='w-full' 
-                  onClick={handleSubmit}
+                <Button
+                  className='w-full'
+                  onClick={() => handleLogin('restaurant')}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Signing in...' : 'Sign In'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                      Signing In...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
                 </Button>
                 <p className='text-sm text-center text-muted-foreground'>
                   Don't have an account?{' '}
                   <Link href='/auth/register?type=restaurant' className='text-primary hover:underline'>
-                    Sign up
+                    Create account
                   </Link>
                 </p>
               </CardFooter>

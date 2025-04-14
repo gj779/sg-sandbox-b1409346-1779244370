@@ -7,15 +7,15 @@ import {
   confirmPasswordReset,
   updateProfile,
   User,
-  UserCredential,
-  Timestamp
+  UserCredential
 } from 'firebase/auth';
 import { 
   doc, 
   setDoc, 
   getDoc, 
   updateDoc, 
-  serverTimestamp 
+  serverTimestamp,
+  Timestamp 
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 

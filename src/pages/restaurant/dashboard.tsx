@@ -407,9 +407,11 @@ export default function RestaurantDashboard() {
                                 Message
                               </Button>
                             </Link>
-                            <Button size='sm'>
-                              View Profile
-                            </Button>
+                            <Link href={`/applicants/profile/${applicant.id}`}>
+                              <Button size='sm'>
+                                View Profile
+                              </Button>
+                            </Link>
                           </div>
                         </div>
                       </div>
@@ -572,9 +574,11 @@ export default function RestaurantDashboard() {
                               Message
                             </Button>
                           </Link>
-                          <Button size='sm'>
-                            View Profile
-                          </Button>
+                          <Link href={`/applicants/profile/${applicant.id}`}>
+                            <Button size='sm'>
+                              View Profile
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     </div>

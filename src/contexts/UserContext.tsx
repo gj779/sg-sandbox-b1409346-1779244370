@@ -15,7 +15,10 @@ interface UserContextType {
     dashboardPath: string;
   }>;
   logout: () => Promise<void>;
-  register: (name: string, email: string, password: string, userType: "applicant" | "restaurant") => Promise<void>;
+  register: (name: string, email: string, password: string, userType: "applicant" | "restaurant") => Promise<{
+    user: User;
+    userProfile: UserProfile;
+  }>;
   signUp: (userData: {
     email: string;
     password: string;

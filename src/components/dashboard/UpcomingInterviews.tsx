@@ -128,10 +128,10 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className='space-y-4'>
             {interviews.map((interview) => (
-              <div key={interview.id} className="border rounded-lg p-4">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div key={interview.id} className='border rounded-lg p-4'>
+                <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-medium">{interview.jobTitle}</h3>
@@ -158,12 +158,14 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 self-end md:self-center">
-                    <Link href={`/messaging?conversation=${interview.restaurantName}`} passHref>
-                      <Button as='a' variant='outline' size='sm'>
-                        <MessageSquare className='h-4 w-4 mr-1' />
-                        Message
-                      </Button>
+                  <div className='flex gap-2 self-end md:self-center'>
+                    <Link href={`/messaging?conversation=${interview.restaurantName}`} legacyBehavior>
+                      <a>
+                        <Button variant='outline' size='sm'>
+                          <MessageSquare className='h-4 w-4 mr-1' />
+                          Message
+                        </Button>
+                      </a>
                     </Link>
                     {interview.type !== 'in-person' && (
                       <Button size='sm'>
@@ -181,8 +183,8 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
         )}
       </CardContent>
       <CardFooter>
-        <Button variant="outline" className="w-full">
-          <Calendar className="mr-2 h-4 w-4" />
+        <Button variant='outline' className='w-full'>
+          <Calendar className='mr-2 h-4 w-4' />
           View All Scheduled Interviews
         </Button>
       </CardFooter>

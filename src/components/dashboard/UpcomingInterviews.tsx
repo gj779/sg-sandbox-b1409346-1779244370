@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,23 +43,41 @@ interface UpcomingInterviewsProps {
 export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps) {
   const [interviews, setInterviews] = useState(mockInterviews);
 
-  // Format date for display
+  // Format date for display with error handling
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    try {
+      // Ensure date is valid before formatting
+      if (!(date instanceof Date) || isNaN(date.getTime())) {
+        return 'Invalid date';
+      }
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
   };
 
-  // Format time for display
+  // Format time for display with error handling
   const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+    try {
+      // Ensure date is valid before formatting
+      if (!(date instanceof Date) || isNaN(date.getTime())) {
+        return 'Invalid time';
+      }
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Invalid time';
+    }
   };
 
   // Get interview type badge
@@ -142,11 +159,13 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
                     )}
                   </div>
                   <div className="flex gap-2 self-end md:self-center">
-                    <Link href={`/messaging?conversation=${interview.restaurantName}`}>
-                      <Button variant="outline" size="sm">
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        Message
-                      </Button>
+                    <Link href={`/messaging?conversation=${interview.restaurantName}`} legacyBehavior>
+                      <a>
+                        <Button variant="outline" size="sm">
+                          <MessageSquare className="h-4 w-4 mr-1" />
+                          Message
+                        </Button>
+                      </a>
                     </Link>
                     {interview.type !== "in-person" && (
                       <Button size="sm">

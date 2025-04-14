@@ -1,25 +1,11 @@
+
 import { useState } from "react";
-import Head from "next/head";
 import { useRouter } from "next/router";
+import Head from "next/head";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Form,
   FormControl,
@@ -29,58 +15,40 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Building, MapPin, Phone, Globe, Clock, Upload } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from "@/contexts/UserContext";
+import { Building, Clock, DollarSign, MapPin, Phone, Globe, UtensilsCrossed } from "lucide-react";
+import Image from "next/image";
 
 // Form schema
 const formSchema = z.object({
-  restaurantName: z.string().min(2, "Restaurant name is required"),
-  description: z.string().min(10, "Please provide a description of at least 10 characters"),
-  cuisineType: z.string().min(1, "Please select a cuisine type"),
-  address: z.string().min(5, "Address is required"),
-  city: z.string().min(2, "City is required"),
-  state: z.string().min(2, "State is required"),
-  zipCode: z.string().min(5, "Zip code is required"),
-  phone: z.string().min(10, "Valid phone number is required"),
-  website: z.string().optional(),
-  openingHours: z.string().min(2, "Opening hours are required"),
-  closingHours: z.string().min(2, "Closing hours are required"),
-  acceptsReservations: z.boolean().optional(),
-  hasDelivery: z.boolean().optional(),
-  hasTakeout: z.boolean().optional(),
-  priceRange: z.string().optional(),
+  restaurantName: z.string().min(2, "Restaurant name must be at least 2 characters."),
+  description: z.string().min(10, "Description must be at least 10 characters."),
+  cuisineType: z.string().min(1, "Please select a cuisine type."),
+  address: z.string().min(5, "Address must be at least 5 characters."),
+  city: z.string().min(2, "City must be at least 2 characters."),
+  state: z.string().min(2, "State must be at least 2 characters."),
+  zipCode: z.string().min(5, "Zip code must be at least 5 characters."),
+  phone: z.string().min(10, "Phone number must be at least 10 characters."),
+  website: z.string().url("Please enter a valid URL.").or(z.string().length(0)),
+  openingHours: z.string().min(1, "Please enter opening hours."),
+  closingHours: z.string().min(1, "Please enter closing hours."),
+  acceptsReservations: z.boolean().default(false),
+  hasDelivery: z.boolean().default(false),
+  hasTakeout: z.boolean().default(false),
+  priceRange: z.string().min(1, "Please select a price range."),
   coverImage: z.string().optional(),
 });
 
-const cuisineTypes = [
-  "American",
-  "Italian",
-  "Mexican",
-  "Chinese",
-  "Japanese",
-  "Thai",
-  "Indian",
-  "French",
-  "Mediterranean",
-  "Middle Eastern",
-  "Greek",
-  "Spanish",
-  "Korean",
-  "Vietnamese",
-  "Caribbean",
-  "Fusion",
-  "Other",
-];
-
 export default function RestaurantSetupProfile() {
+  const { user, userProfile, isAuthenticated, isLoading } = useUser();
   const router = useRouter();
-  const { user } = useUser();
-  const [isLoading, setIsLoading] = useState(false);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
 
   // Create a form instance with the appropriate schema
   const form = useForm<z.infer<typeof formSchema>>({
@@ -101,51 +69,72 @@ export default function RestaurantSetupProfile() {
       hasDelivery: false,
       hasTakeout: false,
       priceRange: "$$",
-      coverImage: null,
+      coverImage: "",
     },
   });
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setLogoFile(file);
+  // Handle form submission
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      setIsSubmitting(true);
+      console.log("Form values:", values);
       
-      // Create preview
+      // Here you would typically save the data to Firebase
+      // For now, we'll just simulate a successful submission
+      setTimeout(() => {
+        setIsSubmitting(false);
+        router.push("/restaurant/dashboard");
+      }, 1500);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle cover image upload
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        setLogoPreview(reader.result as string);
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+        form.setValue("coverImage", reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsLoading(true);
-    
-    // In a real app, this would upload the logo and save the profile to Firebase
-    console.log("Form values:", values);
-    console.log("Logo file:", logoFile);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push("/restaurant/dashboard");
-    }, 1500);
-  };
+  // Redirect if not authenticated
+  if (!isLoading && !isAuthenticated) {
+    router.push("/auth/login?redirect=/restaurant/setup-profile");
+    return null;
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="container py-12 flex justify-center items-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <Head>
         <title>Setup Restaurant Profile | StaffSpace</title>
-        <meta name="description" content="Complete your restaurant profile on StaffSpace to start hiring talented staff." />
+        <meta name="description" content="Complete your restaurant profile on StaffSpace to start hiring staff." />
       </Head>
 
       <div className="container py-8 md:py-12">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold">Setup Your Restaurant Profile</h1>
-            <p className="text-muted-foreground mt-2">
-              Complete your profile to start connecting with talented staff
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold tracking-tight mb-2">Setup Your Restaurant Profile</h1>
+            <p className="text-muted-foreground">
+              Complete your profile to start posting jobs and finding staff
             </p>
           </div>
 
@@ -153,66 +142,44 @@ export default function RestaurantSetupProfile() {
             <CardHeader>
               <CardTitle>Restaurant Information</CardTitle>
               <CardDescription>
-                Provide details about your restaurant to help potential staff learn more about your establishment
+                Provide details about your restaurant to help potential staff learn more about your establishment.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg border-muted-foreground/25 text-center">
-                      {logoPreview ? (
-                        <div className="relative w-32 h-32 mb-4">
-                          <img 
-                            src={logoPreview} 
-                            alt="Restaurant logo preview" 
-                            className="w-full h-full object-cover rounded-lg"
+                  {/* Cover Image */}
+                  <div className="mb-6">
+                    <FormLabel>Restaurant Cover Image</FormLabel>
+                    <div className="mt-2">
+                      {coverImagePreview ? (
+                        <div className="relative w-full h-48 mb-4">
+                          <Image
+                            src={coverImagePreview}
+                            alt="Restaurant cover"
+                            fill
+                            className="rounded-md object-cover"
                           />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLogoFile(null);
-                              setLogoPreview(null);
-                            }}
-                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <line x1="18" y1="6" x2="6" y2="18"></line>
-                              <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                          </button>
                         </div>
                       ) : (
-                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                          <Building className="h-10 w-10 text-primary" />
+                        <div className="w-full h-48 bg-muted rounded-md flex items-center justify-center mb-4">
+                          <Building className="h-12 w-12 text-muted-foreground" />
                         </div>
                       )}
-                      <div className="space-y-2">
-                        <Label htmlFor="logo" className="text-base font-medium">
-                          Restaurant Logo
-                        </Label>
-                        <div className="flex justify-center">
-                          <Label
-                            htmlFor="logo"
-                            className="flex items-center justify-center gap-2 cursor-pointer bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-md transition-colors"
-                          >
-                            <Upload className="h-4 w-4" />
-                            {logoFile ? "Change Logo" : "Upload Logo"}
-                          </Label>
-                          <Input
-                            id="logo"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleLogoChange}
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Recommended: Square image, at least 300x300px
-                        </p>
-                      </div>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCoverImageChange}
+                        className="cursor-pointer"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Upload a high-quality image of your restaurant (recommended size: 1200x400px)
+                      </p>
                     </div>
+                  </div>
 
+                  {/* Basic Information */}
+                  <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="restaurantName"
@@ -220,25 +187,7 @@ export default function RestaurantSetupProfile() {
                         <FormItem>
                           <FormLabel>Restaurant Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter restaurant name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Tell potential staff about your restaurant, cuisine, atmosphere, etc." 
-                              className="min-h-32"
-                              {...field} 
-                            />
+                            <Input placeholder="e.g. La Bistro" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -251,8 +200,8 @@ export default function RestaurantSetupProfile() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Cuisine Type</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
+                          <Select
+                            onValueChange={field.onChange}
                             defaultValue={field.value}
                           >
                             <FormControl>
@@ -261,36 +210,61 @@ export default function RestaurantSetupProfile() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {cuisineTypes.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
+                              <SelectItem value="italian">Italian</SelectItem>
+                              <SelectItem value="french">French</SelectItem>
+                              <SelectItem value="american">American</SelectItem>
+                              <SelectItem value="mexican">Mexican</SelectItem>
+                              <SelectItem value="japanese">Japanese</SelectItem>
+                              <SelectItem value="chinese">Chinese</SelectItem>
+                              <SelectItem value="indian">Indian</SelectItem>
+                              <SelectItem value="thai">Thai</SelectItem>
+                              <SelectItem value="mediterranean">Mediterranean</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+                  </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="address"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Street Address</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input className="pl-10" placeholder="123 Main St" {...field} />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Restaurant Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Tell potential staff about your restaurant, its atmosphere, and what makes it special..."
+                            className="min-h-32"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
+                  {/* Location Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Location & Contact</h3>
+
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Street Address</FormLabel>
+                          <FormControl>
+                            <Input placeholder="123 Main St" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid gap-4 md:grid-cols-3">
                       <FormField
                         control={form.control}
                         name="city"
@@ -298,15 +272,13 @@ export default function RestaurantSetupProfile() {
                           <FormItem>
                             <FormLabel>City</FormLabel>
                             <FormControl>
-                              <Input placeholder="City" {...field} />
+                              <Input placeholder="New York" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
                       <FormField
                         control={form.control}
                         name="state"
@@ -314,7 +286,7 @@ export default function RestaurantSetupProfile() {
                           <FormItem>
                             <FormLabel>State</FormLabel>
                             <FormControl>
-                              <Input placeholder="State" {...field} />
+                              <Input placeholder="NY" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -328,7 +300,7 @@ export default function RestaurantSetupProfile() {
                           <FormItem>
                             <FormLabel>Zip Code</FormLabel>
                             <FormControl>
-                              <Input placeholder="Zip Code" {...field} />
+                              <Input placeholder="10001" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -336,39 +308,40 @@ export default function RestaurantSetupProfile() {
                       />
                     </div>
 
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                              <Input className="pl-10" placeholder="(123) 456-7890" {...field} />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone Number</FormLabel>
+                            <FormControl>
+                              <Input placeholder="(555) 123-4567" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={form.control}
-                      name="website"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Website (Optional)</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                              <Input className="pl-10" placeholder="https://yourrestaurant.com" {...field} />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={form.control}
+                        name="website"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Website (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://yourrestaurant.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Business Details */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Business Details</h3>
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <FormField
@@ -378,10 +351,7 @@ export default function RestaurantSetupProfile() {
                           <FormItem>
                             <FormLabel>Opening Hours</FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input className="pl-10" placeholder="e.g. 9:00 AM" {...field} />
-                              </div>
+                              <Input placeholder="e.g. 11:00 AM" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -395,27 +365,119 @@ export default function RestaurantSetupProfile() {
                           <FormItem>
                             <FormLabel>Closing Hours</FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input className="pl-10" placeholder="e.g. 10:00 PM" {...field} />
-                              </div>
+                              <Input placeholder="e.g. 10:00 PM" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
+
+                    <FormField
+                      control={form.control}
+                      name="priceRange"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Price Range</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select price range" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="$">$ (Inexpensive)</SelectItem>
+                              <SelectItem value="$$">$$ (Moderate)</SelectItem>
+                              <SelectItem value="$$$">$$$ (Expensive)</SelectItem>
+                              <SelectItem value="$$$$">$$$$ (Very Expensive)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <FormField
+                        control={form.control}
+                        name="acceptsReservations"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Accepts Reservations</FormLabel>
+                              <FormDescription>
+                                Do you accept reservations?
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="hasDelivery"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Offers Delivery</FormLabel>
+                              <FormDescription>
+                                Do you offer delivery?
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="hasTakeout"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base">Offers Takeout</FormLabel>
+                              <FormDescription>
+                                Do you offer takeout?
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
-                  <CardFooter className="px-0 pb-0">
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Saving Profile..." : "Save Profile"}
+                  <div className="flex justify-end pt-4">
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Profile"
+                      )}
                     </Button>
-                  </CardFooter>
+                  </div>
                 </form>
               </Form>
             </CardContent>

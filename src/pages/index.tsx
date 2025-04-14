@@ -1,3 +1,4 @@
+
 import Head from "next/head";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -24,12 +25,16 @@ export default function HomePage() {
                 StaffSpace connects talented hospitality professionals with the best restaurants and venues. Whether you're looking for work or hiring staff, we've got you covered.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button size="lg" className="w-full sm:w-auto">
-                  <Briefcase className="mr-2 h-4 w-4" /> Find Jobs
-                </Button>
-                <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                  <ChefHat className="mr-2 h-4 w-4" /> Hire Staff
-                </Button>
+                <Link href="/jobs" passHref>
+                  <Button size="lg" className="w-full sm:w-auto">
+                    <Briefcase className="mr-2 h-4 w-4" /> Find Jobs
+                  </Button>
+                </Link>
+                <Link href="/auth/register?type=restaurant" passHref>
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                    <ChefHat className="mr-2 h-4 w-4" /> Hire Staff
+                  </Button>
+                </Link>
               </div>
             </div>
             <div className="lg:pl-10 animate-slide-up">
@@ -52,7 +57,9 @@ export default function HomePage() {
                       className="pl-10 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
                   </div>
-                  <Button className="w-full">Search Jobs</Button>
+                  <Link href="/jobs" passHref>
+                    <Button className="w-full">Search Jobs</Button>
+                  </Link>
                 </div>
               </div>
             </div>

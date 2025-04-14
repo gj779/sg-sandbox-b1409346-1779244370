@@ -461,16 +461,16 @@ export default function RestaurantDashboard() {
                           </div>
                         </div>
                         <div className='flex gap-2 self-end md:self-center'>
-                          <Link href={`/jobs/${listing.id}/edit`} passHref>
-                            <Button variant='outline' size='sm'>
+                          <Button variant='outline' size='sm' asChild>
+                            <Link href={`/jobs/${listing.id}/edit`}>
                               Edit
-                            </Button>
-                          </Link>
-                          <Link href={`/jobs/${listing.id}/applicants`} passHref>
-                            <Button size='sm'>
+                            </Link>
+                          </Button>
+                          <Button size='sm' asChild>
+                            <Link href={`/jobs/${listing.id}/applicants`}>
                               View Applicants
-                            </Button>
-                          </Link>
+                            </Link>
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -479,16 +479,16 @@ export default function RestaurantDashboard() {
               </CardContent>
               <div className='p-4 border-t'>
                 <div className='flex gap-4'>
-                  <Link href='/restaurant/create-listing' passHref>
-                    <Button className='w-full' id='create-listing-button'>
+                  <Button className='w-full' id='create-listing-button' asChild>
+                    <Link href='/restaurant/create-listing'>
                       <Plus className='mr-2 h-4 w-4' /> Post New Job
-                    </Button>
-                  </Link>
-                  <Link href='/jobs?filter=my-listings' passHref>
-                    <Button variant='outline' className='flex-1'>
+                    </Link>
+                  </Button>
+                  <Button variant='outline' className='flex-1' asChild>
+                    <Link href='/jobs?filter=my-listings'>
                       View All Listings
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </Card>
@@ -533,16 +533,16 @@ export default function RestaurantDashboard() {
                           </div>
                         </div>
                         <div className='flex gap-2 self-end md:self-center'>
-                          <Link href={`/jobs/${listing.id}/edit`} passHref>
-                            <Button variant='outline' size='sm'>
+                          <Button variant='outline' size='sm' asChild>
+                            <Link href={`/jobs/${listing.id}/edit`}>
                               Edit
-                            </Button>
-                          </Link>
-                          <Link href={`/jobs/${listing.id}/applicants`} passHref>
-                            <Button size='sm'>
+                            </Link>
+                          </Button>
+                          <Button size='sm' asChild>
+                            <Link href={`/jobs/${listing.id}/applicants`}>
                               View Applicants
-                            </Button>
-                          </Link>
+                            </Link>
+                          </Button>
                         </div>
                       </div>
                     </div>

@@ -54,9 +54,11 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
+      // Pass the userType to the login function so it can be used to determine the correct dashboard
       const { dashboardPath } = await login(email, password);
       
       // If there's a redirect query param, use that instead of the dashboard
+      // But never redirect to profile/edit directly after login
       const redirectPath = typeof redirect === 'string' && redirect !== '/profile/edit' 
         ? redirect 
         : dashboardPath;

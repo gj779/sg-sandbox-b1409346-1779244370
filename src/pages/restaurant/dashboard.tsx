@@ -417,7 +417,7 @@ export default function RestaurantDashboard() {
                                 </Button>
                               </a>
                             </Link>
-                            <Link href={`/applicants/profile/${applicant.id}`} legacyBehavior>
+                            <Link href={`/applications/${applicant.id}`} legacyBehavior>
                               <a>
                                 <Button size='sm'>
                                   View Profile
@@ -592,7 +592,7 @@ export default function RestaurantDashboard() {
                               </Button>
                             </a>
                           </Link>
-                          <Link href={`/applicants/profile/${applicant.id}`} legacyBehavior>
+                          <Link href={`/applications/${applicant.id}`} legacyBehavior>
                             <a>
                               <Button size='sm'>
                                 View Profile

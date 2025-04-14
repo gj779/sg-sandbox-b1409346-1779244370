@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -31,7 +30,6 @@ import {
   Mail,
   Phone,
   FileText2,
-  CheckCircle2,
 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { Separator } from "@/components/ui/separator";

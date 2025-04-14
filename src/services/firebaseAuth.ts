@@ -159,6 +159,8 @@ export const firebaseAuthService = {
       
       if (!userProfile) {
         console.log(`No profile found for user ${user.uid}, will create default profile`);
+      } else {
+        console.log(`User profile found with type: ${userProfile.userType}`);
       }
       
       return { user, userProfile };

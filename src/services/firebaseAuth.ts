@@ -7,7 +7,8 @@ import {
   confirmPasswordReset,
   updateProfile,
   User,
-  UserCredential
+  UserCredential,
+  Timestamp
 } from 'firebase/auth';
 import { 
   doc, 
@@ -228,26 +229,37 @@ export const firebaseAuthService = {
   // Get user profile
   async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
-      console.log(`Attempting to fetch user profile for ID: ${userId}`);
-      const userProfileDoc = await getDoc(doc(db, 'users', userId));
+      const userDocRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userDocRef);
       
-      if (!userProfileDoc.exists()) {
-        console.log(`No user profile found with ID: ${userId}`);
-        return null;
+      if (userDoc.exists()) {
+        const userData = userDoc.data() as Omit<UserProfile, 'id'>;
+        
+        // Convert Firestore Timestamps to JavaScript Dates
+        const createdAt = userData.createdAt instanceof Timestamp 
+          ? userData.createdAt.toDate() 
+          : userData.createdAt;
+          
+        const updatedAt = userData.updatedAt instanceof Timestamp 
+          ? userData.updatedAt.toDate() 
+          : userData.updatedAt;
+        
+        return {
+          id: userDoc.id,
+          ...userData,
+          createdAt,
+          updatedAt
+        };
       }
       
-      const data = userProfileDoc.data();
-      console.log(`Successfully retrieved profile for user ${userId}`);
-      
-      return { 
-        id: userId,
-        ...data
-      } as UserProfile;
-    } catch (error) {
-      console.error(`Error getting user profile for ${userId}:`, error);
-      // Ensure we return null instead of throwing an error
-      // This allows the calling code to handle the missing profile gracefully
       return null;
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      // Sanitize error message to remove @ symbols
+      const errorMessage = error instanceof Error 
+        ? error.message.replace(/@/g, ' at ') 
+        : 'Unknown error occurred while fetching user profile';
+      throw new Error(errorMessage);
     }
   },
 

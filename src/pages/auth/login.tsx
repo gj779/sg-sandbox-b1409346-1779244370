@@ -57,7 +57,10 @@ export default function LoginPage() {
       const { dashboardPath } = await login(email, password);
       
       // If there's a redirect query param, use that instead of the dashboard
-      const redirectPath = typeof redirect === 'string' ? redirect : dashboardPath;
+      const redirectPath = typeof redirect === 'string' && redirect !== '/profile/edit' 
+        ? redirect 
+        : dashboardPath;
+      
       router.push(redirectPath);
     } catch (error: any) {
       // Ensure error message is properly sanitized

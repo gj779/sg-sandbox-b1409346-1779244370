@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -799,9 +798,28 @@ export function useFirebaseAuth() {
       }
     } catch (error: any) {
       // Improved error handling - ensure we don't pass raw error objects
-      const errorMessage = error && typeof error === 'object' && 'message' in error 
-        ? String(error.message).replace(/@/g, ' at ') 
-        : 'Failed to refresh user profile';
+      let errorMessage = 'Failed to refresh user profile';
+      
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          // Clean up the error message by removing special characters
+          errorMessage = String(error.message).replace(/@/g, ' at ');
+        } else if ('code' in error) {
+          // Handle Firebase error codes
+          switch (String(error.code)) {
+            case 'permission-denied':
+              errorMessage = 'You do not have permission to access this profile.';
+              break;
+            case 'not-found':
+              errorMessage = 'Profile not found. It may have been deleted.';
+              break;
+            default:
+              errorMessage = `Error refreshing profile: ${String(error.code)}`;
+          }
+        }
+      }
+      
+      console.error('Profile refresh error:', errorMessage);
       
       // Create a fallback profile
       const fallbackProfile: UserProfile = {

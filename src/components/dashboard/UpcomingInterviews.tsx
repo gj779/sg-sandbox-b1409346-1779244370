@@ -159,18 +159,20 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
                     )}
                   </div>
                   <div className='flex gap-2 self-end md:self-center'>
-                    <Link href={`/messaging?conversation=${interview.restaurantName}`} passHref>
-                      <Button variant='outline' size='sm'>
+                    <Button variant='outline' size='sm' asChild>
+                      <Link href={`/messaging?conversation=${interview.restaurantName}`}>
                         <MessageSquare className='h-4 w-4 mr-1' />
                         Message
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                     {interview.type !== 'in-person' && (
-                      <Button size='sm'>
-                        {getInterviewTypeIcon(interview.type)}
-                        <span className='ml-1'>
-                          {interview.type === 'video' ? 'Join Call' : 'Call'}
-                        </span>
+                      <Button size='sm' asChild>
+                        <Link href='#'>
+                          {getInterviewTypeIcon(interview.type)}
+                          <span className='ml-1'>
+                            {interview.type === 'video' ? 'Join Call' : 'Call'}
+                          </span>
+                        </Link>
                       </Button>
                     )}
                   </div>
@@ -181,9 +183,11 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
         )}
       </CardContent>
       <CardFooter>
-        <Button variant='outline' className='w-full'>
-          <Calendar className='mr-2 h-4 w-4' />
-          View All Scheduled Interviews
+        <Button variant='outline' className='w-full' asChild>
+          <Link href='/interviews'>
+            <Calendar className='mr-2 h-4 w-4' />
+            View All Scheduled Interviews
+          </Link>
         </Button>
       </CardFooter>
     </Card>

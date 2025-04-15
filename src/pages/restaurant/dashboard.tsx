@@ -39,6 +39,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useRouter } from 'next/router';
 import AnalyticsDashboard from '@/components/dashboard/AnalyticsDashboard';
 import UpcomingInterviews from '@/components/dashboard/UpcomingInterviews';
+import BackButton from '@/components/common/BackButton';
 
 // Mock data for job listings
 const mockListings = [
@@ -301,16 +302,16 @@ export default function RestaurantDashboard() {
             <p className='text-muted-foreground'>Welcome back, {userName}</p>
           </div>
           <div className='flex gap-2 mt-4 md:mt-0'>
-            <Link href='/restaurant/create-listing' passHref>
-              <Button>
+            <Button asChild>
+              <Link href='/restaurant/create-listing'>
                 <Plus className='mr-2 h-4 w-4' /> Post Job
-              </Button>
-            </Link>
-            <Link href='/profile/edit' passHref>
-              <Button variant='outline'>
+              </Link>
+            </Button>
+            <Button variant='outline' asChild>
+              <Link href='/profile/edit'>
                 <Settings className='mr-2 h-4 w-4' /> Edit Profile
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
 
@@ -404,17 +405,17 @@ export default function RestaurantDashboard() {
                             </div>
                           </div>
                           <div className='flex gap-2 self-end md:self-center'>
-                            <Link href={`/messaging?conversation=${applicant.name}`} passHref>
-                              <Button variant='outline' size='sm'>
+                            <Button variant='outline' size='sm' asChild>
+                              <Link href={`/messaging?conversation=${applicant.name}`}>
                                 <MessageSquare className='h-4 w-4 mr-1' />
                                 Message
-                              </Button>
-                            </Link>
-                            <Link href={`/applications/${applicant.id}`} passHref>
-                              <Button size='sm'>
+                              </Link>
+                            </Button>
+                            <Button size='sm' asChild>
+                              <Link href={`/applications/${applicant.id}`}>
                                 View Profile
-                              </Button>
-                            </Link>
+                              </Link>
+                            </Button>
                           </div>
                         </div>
                       </div>

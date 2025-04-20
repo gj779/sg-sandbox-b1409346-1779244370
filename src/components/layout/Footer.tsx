@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import Logo from '@/components/common/Logo';
 
@@ -27,8 +28,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/applicant/profile" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Profile Settings
+                <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Premium Plans
                 </Link>
               </li>
               <li>

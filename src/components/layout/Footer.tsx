@@ -44,12 +44,12 @@ export default function Footer() {
             <h4 className="text-base font-medium mb-4">For Restaurants</h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/restaurant/post-job" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/restaurant/create-listing" className="text-muted-foreground hover:text-foreground transition-colors">
                   Post a Job
                 </Link>
               </li>
               <li>
-                <Link href="/restaurant/browse-applicants" className="text-muted-foreground hover:text-foreground transition-colors">
+                <Link href="/applications" className="text-muted-foreground hover:text-foreground transition-colors">
                   Browse Applicants
                 </Link>
               </li>

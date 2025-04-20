@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -6,6 +7,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -302,16 +304,16 @@ export default function RestaurantDashboard() {
             <p className='text-muted-foreground'>Welcome back, {userName}</p>
           </div>
           <div className='flex gap-2 mt-4 md:mt-0'>
-            <Button asChild>
-              <Link href='/restaurant/create-listing'>
-                <Plus className='mr-2 h-4 w-4' /> Post Job
-              </Link>
-            </Button>
-            <Button variant='outline' asChild>
-              <Link href='/profile/edit'>
-                <Settings className='mr-2 h-4 w-4' /> Edit Profile
-              </Link>
-            </Button>
+            <Link href='/restaurant/create-listing' passHref legacyBehavior>
+              <Button asChild>
+                <a><Plus className='mr-2 h-4 w-4' /> Post Job</a>
+              </Button>
+            </Link>
+            <Link href='/profile/edit' passHref legacyBehavior>
+              <Button variant='outline' asChild>
+                <a><Settings className='mr-2 h-4 w-4' /> Edit Profile</a>
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -405,17 +407,16 @@ export default function RestaurantDashboard() {
                             </div>
                           </div>
                           <div className='flex gap-2 self-end md:self-center'>
-                            <Button variant='outline' size='sm' asChild>
-                              <Link href={`/messaging?conversation=${applicant.name}`}>
-                                <MessageSquare className='h-4 w-4 mr-1' />
-                                Message
-                              </Link>
-                            </Button>
-                            <Button size='sm' asChild>
-                              <Link href={`/applications/${applicant.id}`}>
-                                View Profile
-                              </Link>
-                            </Button>
+                            <Link href={`/messaging?conversation=${applicant.name}`} passHref legacyBehavior>
+                              <Button variant='outline' size='sm' asChild>
+                                <a><MessageSquare className='h-4 w-4 mr-1' /> Message</a>
+                              </Button>
+                            </Link>
+                            <Link href={`/applications/${applicant.id}`} passHref legacyBehavior>
+                              <Button size='sm' asChild>
+                                <a>View Profile</a>
+                              </Button>
+                            </Link>
                           </div>
                         </div>
                       </div>
@@ -423,9 +424,11 @@ export default function RestaurantDashboard() {
                   </div>
                 </CardContent>
                 <div className='p-4 border-t'>
-                  <Button variant='outline' className='w-full'>
-                    View All Applicants
-                  </Button>
+                  <Link href="/applications" passHref legacyBehavior>
+                    <Button variant='outline' className='w-full' asChild>
+                      <a>View All Applicants</a>
+                    </Button>
+                  </Link>
                 </div>
               </Card>
 
@@ -462,16 +465,16 @@ export default function RestaurantDashboard() {
                           </div>
                         </div>
                         <div className='flex gap-2 self-end md:self-center'>
-                          <Button variant='outline' size='sm' asChild>
-                            <Link href={`/jobs/${listing.id}/edit`}>
-                              Edit
-                            </Link>
-                          </Button>
-                          <Button size='sm' asChild>
-                            <Link href={`/jobs/${listing.id}/applicants`}>
-                              View Applicants
-                            </Link>
-                          </Button>
+                          <Link href={`/jobs/${listing.id}/edit`} passHref legacyBehavior>
+                            <Button variant='outline' size='sm' asChild>
+                              <a>Edit</a>
+                            </Button>
+                          </Link>
+                          <Link href={`/jobs/${listing.id}/applicants`} passHref legacyBehavior>
+                            <Button size='sm' asChild>
+                              <a>View Applicants</a>
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -480,16 +483,16 @@ export default function RestaurantDashboard() {
               </CardContent>
               <div className='p-4 border-t'>
                 <div className='flex gap-4'>
-                  <Button className='w-full' id='create-listing-button' asChild>
-                    <Link href='/restaurant/create-listing'>
-                      <Plus className='mr-2 h-4 w-4' /> Post New Job
-                    </Link>
-                  </Button>
-                  <Button variant='outline' className='flex-1' asChild>
-                    <Link href='/jobs?filter=my-listings'>
-                      View All Listings
-                    </Link>
-                  </Button>
+                  <Link href='/restaurant/create-listing' passHref legacyBehavior>
+                    <Button className='w-full' id='create-listing-button' asChild>
+                      <a><Plus className='mr-2 h-4 w-4' /> Post New Job</a>
+                    </Button>
+                  </Link>
+                  <Link href='/jobs?filter=my-listings' passHref legacyBehavior>
+                    <Button variant='outline' className='flex-1' asChild>
+                      <a>View All Listings</a>
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </Card>
@@ -505,9 +508,9 @@ export default function RestaurantDashboard() {
                     Manage your active job postings
                   </CardDescription>
                 </div>
-                <Link href='/restaurant/create-listing' passHref>
-                  <Button size='sm'>
-                    <Plus className='mr-2 h-4 w-4' /> Post New Job
+                <Link href='/restaurant/create-listing' passHref legacyBehavior>
+                  <Button size='sm' asChild>
+                    <a><Plus className='mr-2 h-4 w-4' /> Post New Job</a>
                   </Button>
                 </Link>
               </CardHeader>
@@ -534,16 +537,16 @@ export default function RestaurantDashboard() {
                           </div>
                         </div>
                         <div className='flex gap-2 self-end md:self-center'>
-                          <Button variant='outline' size='sm' asChild>
-                            <Link href={`/jobs/${listing.id}/edit`}>
-                              Edit
-                            </Link>
-                          </Button>
-                          <Button size='sm' asChild>
-                            <Link href={`/jobs/${listing.id}/applicants`}>
-                              View Applicants
-                            </Link>
-                          </Button>
+                          <Link href={`/jobs/${listing.id}/edit`} passHref legacyBehavior>
+                            <Button variant='outline' size='sm' asChild>
+                              <a>Edit</a>
+                            </Button>
+                          </Link>
+                          <Link href={`/jobs/${listing.id}/applicants`} passHref legacyBehavior>
+                            <Button size='sm' asChild>
+                              <a>View Applicants</a>
+                            </Button>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -582,15 +585,14 @@ export default function RestaurantDashboard() {
                           </div>
                         </div>
                         <div className='flex gap-2 self-end md:self-center'>
-                          <Link href={`/messaging?conversation=${applicant.name}`} passHref>
-                            <Button variant='outline' size='sm'>
-                              <MessageSquare className='h-4 w-4 mr-1' />
-                              Message
+                          <Link href={`/messaging?conversation=${applicant.name}`} passHref legacyBehavior>
+                            <Button variant='outline' size='sm' asChild>
+                              <a><MessageSquare className='h-4 w-4 mr-1' /> Message</a>
                             </Button>
                           </Link>
-                          <Link href={`/applications/${applicant.id}`} passHref>
-                            <Button size='sm'>
-                              View Profile
+                          <Link href={`/applications/${applicant.id}`} passHref legacyBehavior>
+                            <Button size='sm' asChild>
+                              <a>View Profile</a>
                             </Button>
                           </Link>
                         </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -184,19 +183,19 @@ export default function EditProfilePage() {
       
       // Clear form before refreshing
       form.reset({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phoneNumber: "",
-        bio: "",
-        preferredLocation: "",
-        skills: "",
-        experience: "",
-        education: "",
-        businessName: "",
-        businessAddress: "",
-        businessDescription: "",
-        cuisineType: "",
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        bio: '',
+        preferredLocation: '',
+        skills: '',
+        experience: '',
+        education: '',
+        businessName: '',
+        businessAddress: '',
+        businessDescription: '',
+        cuisineType: '',
       });
       
       const refreshedProfile = await refreshUserProfile();
@@ -205,62 +204,90 @@ export default function EditProfilePage() {
         populateFormWithProfileData(refreshedProfile);
         
         toast({
-          title: "Profile refreshed",
-          description: "Your profile data has been refreshed successfully.",
+          title: 'Profile refreshed',
+          description: 'Your profile data has been refreshed successfully.',
         });
       } else {
-        throw new Error("Failed to refresh profile data");
+        throw new Error('Failed to refresh profile data');
       }
     } catch (error: any) {
-      console.error("Error refreshing profile:", error);
+      console.error('Error refreshing profile:', error);
       
       // Sanitize error message to prevent special characters
-      let errorMessage = "Failed to refresh profile data. Please try again.";
-      if (error && typeof error === "object" && "message" in error) {
+      let errorMessage = 'Failed to refresh profile data. Please try again.';
+      if (error && typeof error === 'object' && 'message' in error) {
         errorMessage = String(error.message)
-          .replace(/@/g, " at ")
-          .replace(/[^\w\s.,]/g, " ");
+          .replace(/@/g, ' at ')
+          .replace(/[^\w\s.,]/g, ' ');
       }
       
       setFormError(errorMessage);
       
       toast({
-        title: "Error",
-        description: "Failed to refresh profile data. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to refresh profile data. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated - improved with error handling
   useEffect(() => {
+    let redirectTimer: NodeJS.Timeout | null = null;
+    
     if (!authLoading && !userProfile && !isLoading && !isNavigating) {
       setIsNavigating(true);
       
-      const redirectTimer = setTimeout(() => {
-        router.push("/auth/login?redirect=/profile/edit")
-          .catch(err => {
-            console.error("Navigation error:", err);
-            setIsNavigating(false);
-          });
-      }, 1000);
+      try {
+        redirectTimer = setTimeout(() => {
+          router.push('/auth/login?redirect=/profile/edit')
+            .then(() => {
+              console.log('Redirected to login page');
+            })
+            .catch(err => {
+              console.error('Navigation error:', err);
+              setIsNavigating(false);
+            });
+        }, 1000);
+      } catch (error) {
+        console.error('Redirect error:', error);
+        setIsNavigating(false);
+      }
 
-      return () => clearTimeout(redirectTimer);
+      return () => {
+        if (redirectTimer) clearTimeout(redirectTimer);
+      };
     }
   }, [userProfile, authLoading, router, isLoading, isNavigating]);
 
-  // Safe navigation function to prevent multiple navigation attempts
+  // Safe navigation function to prevent multiple navigation attempts - improved with error handling
   const safeNavigate = useCallback((path: string) => {
     if (isNavigating) return;
     
-    setIsNavigating(true);
-    router.push(path)
-      .catch(err => {
-        console.error("Navigation error:", err);
-        setIsNavigating(false);
-      });
+    try {
+      setIsNavigating(true);
+      
+      // Use a timeout to prevent rapid navigation attempts
+      const navigationTimeout = setTimeout(() => {
+        router.push(path)
+          .then(() => {
+            // Navigation successful
+            console.log(`Navigation to ${path} successful`);
+          })
+          .catch(err => {
+            console.error(`Navigation error for path ${path}:`, err);
+            setIsNavigating(false);
+          });
+      }, 100);
+      
+      // Return cleanup function to clear timeout if component unmounts during navigation
+      return () => clearTimeout(navigationTimeout);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setIsNavigating(false);
+    }
   }, [router, isNavigating]);
 
   // Handle form submission

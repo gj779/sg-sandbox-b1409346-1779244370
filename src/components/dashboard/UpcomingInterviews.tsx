@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -131,14 +132,14 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
           <div className='space-y-4'>
             {interviews.map((interview) => (
               <div key={interview.id} className='border rounded-lg p-4'>
-                <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
-                  <div>
+                <div className='flex flex-col md:flex-row md:items-start md:justify-between gap-4'>
+                  <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-medium">{interview.jobTitle}</h3>
                       {getInterviewTypeBadge(interview.type)}
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">{interview.restaurantName}</p>
-                    <div className="flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                       <div className="flex items-center">
                         <Calendar className="mr-1.5 h-4 w-4" />
                         {formatDate(interview.date)}
@@ -158,7 +159,7 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
                       </div>
                     )}
                   </div>
-                  <div className='flex gap-2 self-end md:self-center'>
+                  <div className='flex flex-row md:flex-row gap-2 mt-2 md:mt-0 justify-start md:justify-end'>
                     <Button variant='outline' size='sm' asChild>
                       <Link href={`/messaging?conversation=${interview.restaurantName}`}>
                         <MessageSquare className='h-4 w-4 mr-1' />

@@ -1,35 +1,38 @@
-
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 interface BackButtonProps {
-  fallbackPath?: string;
-  className?: string;
+  onClick?: () => void;
+  href?: string;
+  label?: string;
 }
 
-export default function BackButton({ fallbackPath = "/", className = "" }: BackButtonProps) {
+/**
+ * A button that navigates back to the previous page or to a specified href
+ */
+export default function BackButton({ onClick, href, label = "Back" }: BackButtonProps) {
   const router = useRouter();
 
-  const handleBack = () => {
-    // Check if there's history to go back to
-    if (window.history.length > 1) {
-      router.back();
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else if (href) {
+      router.push(href);
     } else {
-      // If no history, go to fallback path (dashboard or home)
-      router.push(fallbackPath);
+      router.back();
     }
   };
 
   return (
-    <Button 
-      variant="ghost" 
-      size="sm" 
-      onClick={handleBack} 
-      className={`flex items-center ${className}`}
+    <Button
+      variant="ghost"
+      size="sm"
+      className="gap-1 px-2 h-8"
+      onClick={handleClick}
     >
-      <ChevronLeft className="h-4 w-4 mr-1" />
-      Back
+      <ArrowLeft className="h-4 w-4" />
+      {label}
     </Button>
   );
 }

@@ -276,7 +276,16 @@ export default function EditProfilePage() {
       }
     } catch (error: any) {
       console.error('Error refreshing profile:', error);
-      setFormError(error.message || 'Failed to refresh profile data. Please try again.');
+      
+      // Sanitize error message to prevent special characters
+      let errorMessage = 'Failed to refresh profile data. Please try again.';
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message)
+          .replace(/@/g, ' at ')
+          .replace(/[^\w\s.,]/g, ' ');
+      }
+      
+      setFormError(errorMessage);
       
       toast({
         title: 'Error',

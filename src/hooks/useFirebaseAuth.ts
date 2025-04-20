@@ -797,25 +797,36 @@ export function useFirebaseAuth() {
         }
       }
     } catch (error: any) {
-      // Improved error handling - ensure we don't pass raw error objects
+      // Completely sanitize error messages to prevent special characters
       let errorMessage = 'Failed to refresh user profile';
       
-      if (error && typeof error === 'object') {
-        if ('message' in error) {
-          // Clean up the error message by removing special characters
-          errorMessage = String(error.message).replace(/@/g, ' at ');
-        } else if ('code' in error) {
-          // Handle Firebase error codes
-          switch (String(error.code)) {
-            case 'permission-denied':
-              errorMessage = 'You do not have permission to access this profile.';
-              break;
-            case 'not-found':
-              errorMessage = 'Profile not found. It may have been deleted.';
-              break;
-            default:
-              errorMessage = `Error refreshing profile: ${String(error.code)}`;
+      if (error) {
+        // Safely extract error message without any special characters
+        if (typeof error === 'object') {
+          if ('message' in error && error.message) {
+            // Replace all special characters, not just @ symbols
+            const sanitizedMessage = String(error.message)
+              .replace(/@/g, ' at ')
+              .replace(/[^\w\s.,]/g, ' '); // Replace any non-alphanumeric, non-space, non-punctuation chars
+            
+            errorMessage = `Failed to refresh profile: ${sanitizedMessage}`;
+          } else if ('code' in error && error.code) {
+            // Handle Firebase error codes
+            const errorCode = String(error.code);
+            switch (errorCode) {
+              case 'permission-denied':
+                errorMessage = 'You do not have permission to access this profile.';
+                break;
+              case 'not-found':
+                errorMessage = 'Profile not found. It may have been deleted.';
+                break;
+              default:
+                errorMessage = `Error refreshing profile: ${errorCode.replace(/[^\w\s-]/g, '')}`;
+            }
           }
+        } else if (typeof error === 'string') {
+          // If error is a string, sanitize it directly
+          errorMessage = `Error refreshing profile: ${error.replace(/@/g, ' at ').replace(/[^\w\s.,]/g, ' ')}`;
         }
       }
       

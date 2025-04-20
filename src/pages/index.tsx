@@ -25,14 +25,14 @@ export default function HomePage() {
                 StaffSpace connects talented hospitality professionals with the best restaurants and venues. Whether you're looking for work or hiring staff, we've got you covered.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link href="/jobs">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    <Briefcase className="mr-2 h-4 w-4" /> Find Jobs
+                <Link href="/jobs" legacyBehavior>
+                  <Button size="lg" className="w-full sm:w-auto" asChild>
+                    <a><Briefcase className="mr-2 h-4 w-4" /> Find Jobs</a>
                   </Button>
                 </Link>
-                <Link href="/auth/register?type=restaurant">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                    <ChefHat className="mr-2 h-4 w-4" /> Hire Staff
+                <Link href="/auth/register?type=restaurant" legacyBehavior>
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
+                    <a><ChefHat className="mr-2 h-4 w-4" /> Hire Staff</a>
                   </Button>
                 </Link>
               </div>
@@ -57,8 +57,10 @@ export default function HomePage() {
                       className="pl-10 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
                   </div>
-                  <Link href="/jobs">
-                    <Button className="w-full">Search Jobs</Button>
+                  <Link href="/jobs" legacyBehavior>
+                    <Button className="w-full" asChild>
+                      <a>Search Jobs</a>
+                    </Button>
                   </Link>
                 </div>
               </div>
@@ -115,42 +117,42 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className='bg-primary/5 py-16'>
-        <div className='container px-4 md:px-6'>
-          <div className='rounded-lg bg-card p-8 shadow-lg border'>
-            <div className='grid gap-6 lg:grid-cols-2 items-center'>
+      <section className="bg-primary/5 py-16">
+        <div className="container px-4 md:px-6">
+          <div className="rounded-lg bg-card p-8 shadow-lg border">
+            <div className="grid gap-6 lg:grid-cols-2 items-center">
               <div>
-                <h2 className='text-2xl md:text-3xl font-bold tracking-tighter mb-4'>
+                <h2 className="text-2xl md:text-3xl font-bold tracking-tighter mb-4">
                   Ready to Get Started?
                 </h2>
-                <p className='text-muted-foreground md:text-lg mb-6'>
+                <p className="text-muted-foreground md:text-lg mb-6">
                   Create your account today and start connecting with restaurants or talented staff members.
                 </p>
-                <div className='flex flex-col sm:flex-row gap-4'>
-                  <Link href='/auth/register?type=applicant'>
-                    <Button size='lg' className='w-full sm:w-auto'>
-                      Job Seeker Sign Up
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link href="/auth/register?type=applicant" legacyBehavior>
+                    <Button size="lg" className="w-full sm:w-auto" asChild>
+                      <a>Job Seeker Sign Up</a>
                     </Button>
                   </Link>
-                  <Link href='/auth/register?type=restaurant'>
-                    <Button size='lg' variant='outline' className='w-full sm:w-auto'>
-                      Restaurant Sign Up
+                  <Link href="/auth/register?type=restaurant" legacyBehavior>
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
+                      <a>Restaurant Sign Up</a>
                     </Button>
                   </Link>
                 </div>
-                <div className='mt-4'>
-                  <Link href='/pricing' className='text-primary hover:underline'>
+                <div className="mt-4">
+                  <Link href="/pricing" className="text-primary hover:underline">
                     View our pricing plans →
                   </Link>
                 </div>
               </div>
-              <div className='lg:pl-10'>
-                <div className='text-center lg:text-left'>
-                  <div className='text-4xl font-bold text-primary mb-2'>10,000+</div>
-                  <p className='text-muted-foreground'>Restaurant professionals already on the platform</p>
+              <div className="lg:pl-10">
+                <div className="text-center lg:text-left">
+                  <div className="text-4xl font-bold text-primary mb-2">10,000+</div>
+                  <p className="text-muted-foreground">Restaurant professionals already on the platform</p>
                   
-                  <div className='text-4xl font-bold text-primary mt-6 mb-2'>5,000+</div>
-                  <p className='text-muted-foreground'>Restaurant partners finding staff</p>
+                  <div className="text-4xl font-bold text-primary mt-6 mb-2">5,000+</div>
+                  <p className="text-muted-foreground">Restaurant partners finding staff</p>
                 </div>
               </div>
             </div>

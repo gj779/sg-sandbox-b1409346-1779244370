@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -30,7 +31,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { 
   Save,
@@ -64,8 +65,8 @@ const restaurantProfileSchema = z.object({
   cuisineType: z.string().optional(),
 });
 
-// Create a union type for the form values
-type ProfileFormValues = z.infer<typeof applicantProfileSchema> | z.infer<typeof restaurantProfileSchema>;
+// Create a combined type for the form values to handle both user types
+type ProfileFormValues = z.infer<typeof applicantProfileSchema> & z.infer<typeof restaurantProfileSchema>;
 
 export default function EditProfilePage() {
   const { userProfile, updateUserProfile, error: authError, refreshUserProfile, isLoading: authLoading } = useFirebaseAuth();
@@ -76,8 +77,9 @@ export default function EditProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [userType, setUserType] = useState<"applicant" | "restaurant" | "admin" | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
   
-  // Create a form instance with the appropriate schema based on user type
+  // Create a form instance with a combined schema
   const form = useForm<ProfileFormValues>({
     defaultValues: {
       firstName: "",
@@ -97,41 +99,16 @@ export default function EditProfilePage() {
     resolver: zodResolver(
       userType === "applicant" ? applicantProfileSchema : restaurantProfileSchema
     ),
-    mode: "onChange"
+    mode: "onBlur" // Changed from onChange to reduce validation frequency
   });
 
-  // Debug logging to track state changes
+  // Handle loading state
   useEffect(() => {
-    console.log('Auth state changed:', { 
-      authLoading, 
-      userProfile: userProfile ? 'exists' : 'null',
-      isLoading
-    });
-  }, [authLoading, userProfile, isLoading]);
-
-  // When user type changes, recreate the form with the appropriate schema
-  useEffect(() => {
-    if (userType) {
-      console.log('User type changed to:', userType);
-      // Get current values to preserve them
-      const currentValues = form.getValues();
-      
-      // Reset the form with current values
-      form.reset(currentValues, { 
-        keepValues: true,
-        keepDirty: false,
-        keepErrors: false,
-        keepTouched: false,
-        keepIsSubmitted: false,
-        keepIsValid: false
-      });
-      
-      // Trigger validation with the new schema
-      setTimeout(() => {
-        form.trigger();
-      }, 0);
+    // If we have a profile or auth is not loading, we're done loading
+    if (userProfile || !authLoading) {
+      setIsLoading(false);
     }
-  }, [userType, form]);
+  }, [userProfile, authLoading]);
 
   // Populate form with user profile data
   const populateFormWithProfileData = useCallback((profile: any) => {
@@ -143,7 +120,69 @@ export default function EditProfilePage() {
     try {
       console.log('Populating form with profile data:', profile.userType);
       
-      // First reset the form to clear any previous data
+      // Set user type first
+      setUserType(profile.userType);
+      
+      // Prepare the data object
+      const formData: Partial<ProfileFormValues> = {
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        email: profile.email || "",
+        phoneNumber: profile.phoneNumber || "",
+      };
+      
+      // Add user type specific fields
+      if (profile.userType === "applicant") {
+        formData.bio = profile.bio || "";
+        formData.preferredLocation = profile.preferredLocation || "";
+        formData.skills = profile.skills && Array.isArray(profile.skills) 
+          ? profile.skills.join(", ") 
+          : "";
+        formData.experience = profile.experience || "";
+        formData.education = profile.education || "";
+      } else if (profile.userType === "restaurant") {
+        formData.businessName = profile.businessName || "";
+        formData.businessAddress = profile.businessAddress || "";
+        formData.businessDescription = profile.bio || ""; // Map from bio field in the database
+        formData.cuisineType = profile.cuisineType || "";
+      }
+      
+      // Set all form values at once to avoid multiple re-renders
+      form.reset(formData, {
+        keepDefaultValues: false,
+        keepDirty: false,
+        keepErrors: false,
+        keepIsSubmitted: false,
+        keepIsValid: false,
+        keepTouched: false,
+        keepValues: false
+      });
+      
+      console.log('Form values set successfully');
+    } catch (error) {
+      console.error("Error setting form values:", error);
+      setFormError("Error loading profile data. Please try refreshing the page.");
+    }
+  }, [form]);
+
+  // Load profile data when available
+  useEffect(() => {
+    if (userProfile && !isLoading) {
+      populateFormWithProfileData(userProfile);
+    }
+  }, [userProfile, populateFormWithProfileData, isLoading]);
+
+  // Handle refreshing profile data
+  const handleRefreshProfile = async () => {
+    if (isRefreshing || isNavigating) return;
+    
+    setIsRefreshing(true);
+    setFormError(null);
+    
+    try {
+      console.log('Refreshing profile data');
+      
+      // Clear form before refreshing
       form.reset({
         firstName: "",
         lastName: "",
@@ -160,162 +199,74 @@ export default function EditProfilePage() {
         cuisineType: "",
       });
       
-      // Set user type first to ensure correct schema validation
-      setUserType(profile.userType);
-      
-      // Use a small timeout to ensure user type state is updated
-      setTimeout(() => {
-        // Common fields
-        form.setValue("firstName", profile.firstName || "", { shouldValidate: false });
-        form.setValue("lastName", profile.lastName || "", { shouldValidate: false });
-        form.setValue("email", profile.email || "", { shouldValidate: false });
-        form.setValue("phoneNumber", profile.phoneNumber || "", { shouldValidate: false });
-        
-        // User type specific fields
-        if (profile.userType === "applicant") {
-          form.setValue("bio", profile.bio || "", { shouldValidate: false });
-          form.setValue("preferredLocation", profile.preferredLocation || "", { shouldValidate: false });
-          form.setValue("skills", profile.skills && Array.isArray(profile.skills) ? profile.skills.join(", ") : "", { shouldValidate: false });
-          form.setValue("experience", profile.experience || "", { shouldValidate: false });
-          form.setValue("education", profile.education || "", { shouldValidate: false });
-        } else if (profile.userType === "restaurant") {
-          form.setValue("businessName", profile.businessName || "", { shouldValidate: false });
-          form.setValue("businessAddress", profile.businessAddress || "", { shouldValidate: false });
-          form.setValue("businessDescription", profile.bio || "", { shouldValidate: false });
-          form.setValue("cuisineType", profile.cuisineType || "", { shouldValidate: false });
-        }
-        
-        console.log('Form values set successfully');
-        
-        // Trigger validation after all fields are set
-        form.trigger();
-      }, 100);
-    } catch (error) {
-      console.error("Error setting form values:", error);
-      setFormError("Error loading profile data. Please try refreshing the page.");
-    }
-  }, [form]);
-
-  // Improved loading state management - only depend on userProfile and authLoading
-  useEffect(() => {
-    console.log('Checking loading state:', { authLoading, hasProfile: !!userProfile });
-    
-    // If we have a profile, we're not loading
-    if (userProfile) {
-      setIsLoading(false);
-    } else if (!authLoading) {
-      // If auth is not loading and there's no profile, we're not loading either
-      // but the user might not be authenticated
-      setIsLoading(false);
-    }
-  }, [userProfile, authLoading]);
-
-  // Improved profile data loading logic
-  useEffect(() => {
-    const loadProfile = async () => {
-      console.log('Load profile effect triggered', { 
-        hasProfile: !!userProfile, 
-        authLoading 
-      });
-      
-      if (userProfile) {
-        try {
-          console.log('Loading profile data into form');
-          // Don't set isLoading to true here since we already have the profile
-          populateFormWithProfileData(userProfile);
-        } catch (error) {
-          console.error('Error loading profile:', error);
-          setFormError('Error loading profile data. Please try refreshing the page.');
-        }
-      } else if (!authLoading) {
-        // If auth is not loading and there's no profile, there's a problem
-        console.log('No profile available and auth is not loading');
-        setFormError('Could not load profile data. Please try refreshing or logging in again.');
-      }
-    };
-    
-    loadProfile();
-  }, [userProfile, populateFormWithProfileData, authLoading]);
-
-  // Handle refreshing profile data
-  const handleRefreshProfile = async () => {
-    setIsRefreshing(true);
-    setFormError(null);
-    
-    try {
-      console.log('Refreshing profile data');
-      // Clear form before refreshing to avoid validation errors during refresh
-      form.reset({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phoneNumber: '',
-        bio: '',
-        preferredLocation: '',
-        skills: '',
-        experience: '',
-        education: '',
-        businessName: '',
-        businessAddress: '',
-        businessDescription: '',
-        cuisineType: '',
-      });
-      
       const refreshedProfile = await refreshUserProfile();
       
       if (refreshedProfile) {
-        console.log('Profile refreshed successfully');
         populateFormWithProfileData(refreshedProfile);
         
         toast({
-          title: 'Profile refreshed',
-          description: 'Your profile data has been refreshed successfully.',
+          title: "Profile refreshed",
+          description: "Your profile data has been refreshed successfully.",
         });
       } else {
-        throw new Error('Failed to refresh profile data');
+        throw new Error("Failed to refresh profile data");
       }
     } catch (error: any) {
-      console.error('Error refreshing profile:', error);
+      console.error("Error refreshing profile:", error);
       
       // Sanitize error message to prevent special characters
-      let errorMessage = 'Failed to refresh profile data. Please try again.';
-      if (error && typeof error === 'object' && 'message' in error) {
+      let errorMessage = "Failed to refresh profile data. Please try again.";
+      if (error && typeof error === "object" && "message" in error) {
         errorMessage = String(error.message)
-          .replace(/@/g, ' at ')
-          .replace(/[^\w\s.,]/g, ' ');
+          .replace(/@/g, " at ")
+          .replace(/[^\w\s.,]/g, " ");
       }
       
       setFormError(errorMessage);
       
       toast({
-        title: 'Error',
-        description: 'Failed to refresh profile data. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to refresh profile data. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Improved redirect logic - give more time for auth to complete and be less aggressive
+  // Redirect if not authenticated
   useEffect(() => {
-    // Only redirect if:
-    // 1. Auth is not loading (we know the auth state)
-    // 2. There's no user profile (user is not authenticated)
-    // 3. We're not already loading (avoid redirect during initial load)
-    if (!authLoading && !userProfile && !isLoading) {
-      console.log('Not authenticated, preparing to redirect to login');
+    if (!authLoading && !userProfile && !isLoading && !isNavigating) {
+      setIsNavigating(true);
+      
       const redirectTimer = setTimeout(() => {
-        console.log('Redirecting to login page');
-        router.push('/auth/login?redirect=/profile/edit');
-      }, 1500); // Longer timeout to give auth more time
+        router.push("/auth/login?redirect=/profile/edit")
+          .catch(err => {
+            console.error("Navigation error:", err);
+            setIsNavigating(false);
+          });
+      }, 1000);
 
       return () => clearTimeout(redirectTimer);
     }
-  }, [userProfile, authLoading, router, isLoading]);
+  }, [userProfile, authLoading, router, isLoading, isNavigating]);
 
-  // Improved onSubmit function with better error handling
+  // Safe navigation function to prevent multiple navigation attempts
+  const safeNavigate = useCallback((path: string) => {
+    if (isNavigating) return;
+    
+    setIsNavigating(true);
+    router.push(path)
+      .catch(err => {
+        console.error("Navigation error:", err);
+        setIsNavigating(false);
+      });
+  }, [router, isNavigating]);
+
+  // Handle form submission
   const onSubmit = async (data: ProfileFormValues) => {
+    if (isSubmitting || isNavigating) return;
+    
     setIsSubmitting(true);
     setFormError(null);
     
@@ -328,46 +279,43 @@ export default function EditProfilePage() {
         throw new Error("User type not determined. Please refresh the page and try again.");
       }
 
-      console.log('Submitting profile update', { userType });
+      console.log("Submitting profile update", { userType });
       
       // Prepare update data based on user type
       const updateData: any = {
         firstName: data.firstName,
         lastName: data.lastName,
         phoneNumber: data.phoneNumber || "",
-        userType: userType, // Ensure user type is included
+        userType: userType,
         isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
-        email: userProfile.email, // Ensure email is preserved
+        email: userProfile.email,
       };
       
       // Add user type specific fields
       if (userType === "applicant") {
-        const applicantData = data as z.infer<typeof applicantProfileSchema>;
-        updateData.bio = applicantData.bio || "";
-        updateData.preferredLocation = applicantData.preferredLocation || "";
-        updateData.skills = applicantData.skills 
-          ? applicantData.skills.split(",").map((s: string) => s.trim()).filter(Boolean) 
+        updateData.bio = data.bio || "";
+        updateData.preferredLocation = data.preferredLocation || "";
+        updateData.skills = data.skills 
+          ? data.skills.split(",").map((s: string) => s.trim()).filter(Boolean) 
           : [];
-        updateData.experience = applicantData.experience || "";
-        updateData.education = applicantData.education || "";
+        updateData.experience = data.experience || "";
+        updateData.education = data.education || "";
       } else if (userType === "restaurant") {
-        const restaurantData = data as z.infer<typeof restaurantProfileSchema>;
-        updateData.businessName = restaurantData.businessName || "";
-        updateData.businessAddress = restaurantData.businessAddress || "";
-        updateData.bio = restaurantData.businessDescription || ""; // Map to bio field in the database
-        updateData.cuisineType = restaurantData.cuisineType || "";
+        updateData.businessName = data.businessName || "";
+        updateData.businessAddress = data.businessAddress || "";
+        updateData.bio = data.businessDescription || ""; // Map to bio field in the database
+        updateData.cuisineType = data.cuisineType || "";
       }
       
       // Update profile
-      console.log('Sending profile update to server');
+      console.log("Sending profile update to server");
       const updatedProfile = await updateUserProfile(updateData);
       
       if (updatedProfile) {
-        console.log('Profile updated successfully');
+        console.log("Profile updated successfully");
         toast({
           title: "Profile updated",
           description: "Your profile has been updated successfully.",
-          variant: "default",
         });
         
         // Redirect to dashboard
@@ -375,7 +323,8 @@ export default function EditProfilePage() {
           ? "/applicant/dashboard" 
           : "/restaurant/dashboard";
         
-        router.push(dashboardPath);
+        // Use safe navigation
+        safeNavigate(dashboardPath);
       } else {
         throw new Error("Failed to update profile. Please try again.");
       }
@@ -388,12 +337,11 @@ export default function EditProfilePage() {
         description: error.message || "Failed to update profile. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Show loading state - now depends on both local isLoading and auth isLoading
+  // Show loading state
   if (isLoading || authLoading) {
     return (
       <div className="container py-12 flex justify-center items-center min-h-[60vh]">
@@ -424,14 +372,13 @@ export default function EditProfilePage() {
           <Alert variant="default" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Warning</AlertTitle>
-            <AlertDescription className="flex items-center">
-              {authError}
+            <AlertDescription className="flex items-center justify-between">
+              <span>{authError}</span>
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="ml-2" 
+                size="sm"
                 onClick={handleRefreshProfile}
-                disabled={isRefreshing}
+                disabled={isRefreshing || isNavigating}
               >
                 {isRefreshing ? (
                   <>
@@ -457,9 +404,9 @@ export default function EditProfilePage() {
               <span>{formError}</span>
               <Button 
                 variant="outline" 
-                size="sm" 
+                size="sm"
                 onClick={handleRefreshProfile}
-                disabled={isRefreshing}
+                disabled={isRefreshing || isNavigating}
               >
                 {isRefreshing ? (
                   <>
@@ -613,7 +560,6 @@ export default function EditProfilePage() {
                           <Select 
                             value={field.value || ""} 
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select experience level" />
@@ -710,7 +656,6 @@ export default function EditProfilePage() {
                           <Select 
                             value={field.value || ""} 
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select cuisine type" />
@@ -738,15 +683,22 @@ export default function EditProfilePage() {
                 type="button" 
                 variant="outline" 
                 onClick={() => {
+                  if (isNavigating) return;
+                  
                   const dashboardPath = userType === "applicant" 
                     ? "/applicant/dashboard" 
                     : "/restaurant/dashboard";
-                  router.push(dashboardPath);
+                  
+                  safeNavigate(dashboardPath);
                 }}
+                disabled={isNavigating || isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || isNavigating}
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

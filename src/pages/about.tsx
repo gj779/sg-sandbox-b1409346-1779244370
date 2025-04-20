@@ -1,3 +1,4 @@
+
 import Head from "next/head";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -145,49 +146,24 @@ export default function AboutPage() {
               Meet the passionate people behind StaffSpace who are dedicated to transforming hospitality hiring.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {/* Team Member 1 */}
-            <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary">JD</span>
+          <div className="flex justify-center">
+            {/* Founder & CEO */}
+            <div className="text-center max-w-md">
+              <div className="w-48 h-48 rounded-full overflow-hidden mx-auto mb-6">
+                <Image
+                  src="/img-1128-m9kbhsk9.jpeg"
+                  alt="Gabriel Jones"
+                  width={192}
+                  height={192}
+                  className="object-cover w-full h-full"
+                />
               </div>
-              <h3 className="text-lg font-medium">John Doe</h3>
+              <h3 className="text-xl font-medium">Gabriel Jones</h3>
               <p className="text-sm text-muted-foreground">Founder & CEO</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Former restaurant manager with 15 years of experience in the hospitality industry.
-              </p>
-            </div>
-            {/* Team Member 2 */}
-            <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary">SR</span>
-              </div>
-              <h3 className="text-lg font-medium">Sarah Rodriguez</h3>
-              <p className="text-sm text-muted-foreground">COO</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Hospitality consultant with expertise in operations and staff management.
-              </p>
-            </div>
-            {/* Team Member 3 */}
-            <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary">MC</span>
-              </div>
-              <h3 className="text-lg font-medium">Michael Chen</h3>
-              <p className="text-sm text-muted-foreground">CTO</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Tech innovator with a passion for creating solutions for the service industry.
-              </p>
-            </div>
-            {/* Team Member 4 */}
-            <div className="text-center">
-              <div className="w-32 h-32 rounded-full bg-primary/20 mx-auto mb-4 flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary">AJ</span>
-              </div>
-              <h3 className="text-lg font-medium">Amelia Johnson</h3>
-              <p className="text-sm text-muted-foreground">Head of Customer Success</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Dedicated to ensuring both restaurants and staff have an exceptional experience.
+              <p className="text-sm text-muted-foreground mt-4 max-w-md mx-auto">
+                Hospitality consultant with +10 years of experience in various roles from bartending to servering. 
+                I used my vast understanding of the industry and combined with what I knew about innovation to create 
+                a solution to meet the needs of the industry.
               </p>
             </div>
           </div>

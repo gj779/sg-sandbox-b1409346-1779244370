@@ -331,11 +331,23 @@ export default function JobsPage() {
   };
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    try {
+      // Ensure date is valid and consistent between server/client
+      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+        return "Invalid date";
+      }
+      
+      // Use a more stable date formatting approach that will be consistent
+      // between server and client rendering
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      }).format(date);
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid date";
+    }
   };
 
   return (

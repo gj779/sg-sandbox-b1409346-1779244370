@@ -1,3 +1,4 @@
+
 import Head from "next/head";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -167,7 +168,7 @@ export default function PrivacyPage() {
                   <li>The right to withdraw consent where we rely on consent to process your personal information</li>
                 </ul>
                 <p className="text-muted-foreground mt-4">
-                  To exercise these rights, please contact us at privacy@staffspace.com.
+                  To exercise these rights, please contact us at info@staffspace.com.
                 </p>
               </div>
             </section>
@@ -205,9 +206,7 @@ export default function PrivacyPage() {
               If you have questions or comments about this policy, you may contact us at:
             </p>
             <div className="space-y-2">
-              <p><strong>Email:</strong> <a href="mailto:privacy@staffspace.com" className="text-primary hover:underline">privacy@staffspace.com</a></p>
-              <p><strong>Address:</strong> 123 Restaurant Row, San Francisco, CA 94103</p>
-              <p><strong>Phone:</strong> +1 (800) 123-4567</p>
+              <p><strong>Email:</strong> <a href="mailto:info@staffspace.com" className="text-primary hover:underline">info@staffspace.com</a></p>
             </div>
           </div>
 

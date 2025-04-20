@@ -332,22 +332,17 @@ export default function JobsPage() {
 
   const formatDate = (date: Date) => {
     try {
-      // Ensure date is valid and consistent between server/client
+      // Ensure date is valid
       if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
         return "Invalid date";
       }
       
-      // Convert date to ISO string first to ensure consistent formatting
-      // between server and client rendering
-      const isoString = date.toISOString();
-      const dateObj = new Date(isoString);
-      
-      // Use a stable date formatting approach
-      return new Intl.DateTimeFormat("en-US", {
+      // Use a consistent date format that will render the same on server and client
+      return new Date(date).toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
         day: "numeric"
-      }).format(dateObj);
+      });
     } catch (error) {
       console.error("Error formatting date:", error);
       return "Invalid date";

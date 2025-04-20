@@ -34,14 +34,15 @@ import {
   Users,
   ChevronRight,
   MessageSquare,
-  Building
+  Building,
+  Loader2
 } from "lucide-react";
 import TutorialGuide from "@/components/common/TutorialGuide";
-import { useUser } from '@/contexts/UserContext';
-import { useRouter } from 'next/router';
-import AnalyticsDashboard from '@/components/dashboard/AnalyticsDashboard';
-import UpcomingInterviews from '@/components/dashboard/UpcomingInterviews';
-import BackButton from '@/components/common/BackButton';
+import { useUser } from "@/contexts/UserContext";
+import { useRouter } from "next/router";
+import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
+import UpcomingInterviews from "@/components/dashboard/UpcomingInterviews";
+import BackButton from "@/components/common/BackButton";
 
 // Mock data for job listings
 const mockListings = [
@@ -163,109 +164,139 @@ export default function RestaurantDashboard() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialCompleted, setTutorialCompleted] = useState(false);
   const [localLoading, setLocalLoading] = useState(true);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Get the user's name safely
-  const userName = userProfile?.firstName || 'User';
+  const userName = userProfile?.firstName || "User";
 
   // Check if user is authenticated
   useEffect(() => {
+    let mounted = true;
+    
     // Only redirect if we've finished loading and the user is not authenticated
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth/login?redirect=/restaurant/dashboard');
+    if (!isLoading && !isAuthenticated && mounted && !isNavigating) {
+      setIsNavigating(true);
+      router.push("/auth/login?redirect=/restaurant/dashboard")
+        .catch(err => {
+          console.error("Navigation error:", err);
+          if (mounted) setIsNavigating(false);
+        });
     }
     
     // Set local loading state based on auth loading
-    if (!isLoading) {
+    if (!isLoading && mounted) {
       setLocalLoading(false);
     }
-  }, [isAuthenticated, isLoading, router]);
+    
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated, isLoading, router, isNavigating]);
+
+  // Safe navigation function
+  const safeNavigate = (path: string) => {
+    if (isNavigating) return;
+    
+    setIsNavigating(true);
+    router.push(path)
+      .catch(err => {
+        console.error("Navigation error:", err);
+        setIsNavigating(false);
+      });
+  };
 
   useEffect(() => {
     // Check if this is the first visit to show tutorial
     // Only run this if the user is authenticated and we're not loading
-    if (!isLoading && isAuthenticated && typeof window !== 'undefined') {
+    if (!isLoading && isAuthenticated && typeof window !== "undefined") {
       try {
-        const hasSeenTutorial = localStorage.getItem('restaurant-tutorial-completed');
+        const hasSeenTutorial = localStorage.getItem("restaurant-tutorial-completed");
         if (!hasSeenTutorial) {
           setShowTutorial(true);
         } else {
           setTutorialCompleted(true);
         }
       } catch (error) {
-        console.error('Error accessing localStorage:', error);
+        console.error("Error accessing localStorage:", error);
       }
     }
   }, [isAuthenticated, isLoading]);
 
   const handleTutorialComplete = () => {
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('restaurant-tutorial-completed', 'true');
+      if (typeof window !== "undefined") {
+        localStorage.setItem("restaurant-tutorial-completed", "true");
       }
       setTutorialCompleted(true);
       setShowTutorial(false);
     } catch (error) {
-      console.error('Error setting localStorage:', error);
+      console.error("Error setting localStorage:", error);
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | null | undefined) => {
     try {
       // Ensure date is valid before formatting
       if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-        return 'Invalid date';
+        return "Invalid date";
       }
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
+      
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      }).format(date);
     } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Invalid date';
+      console.error("Error formatting date:", error);
+      return "Invalid date";
     }
   };
 
   const formatSalary = (salary: { amount: number, period: string }) => {
     try {
-      if (salary.period === 'Hourly') {
+      if (!salary || typeof salary !== "object") {
+        return "N/A";
+      }
+      
+      if (salary.period === "Hourly") {
         return `$${salary.amount}/hr`;
-      } else if (salary.period === 'Yearly') {
+      } else if (salary.period === "Yearly") {
         return `$${salary.amount.toLocaleString()}/year`;
       }
+      
       return `$${salary.amount}/${salary.period.toLowerCase()}`;
     } catch (error) {
-      console.error('Error formatting salary:', error);
-      return 'N/A';
+      console.error("Error formatting salary:", error);
+      return "N/A";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'Closed':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
-      case 'Draft':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'Pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'Reviewed':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'Shortlisted':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+      case "Active":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      case "Closed":
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+      case "Draft":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+      case "Reviewed":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      case "Shortlisted":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
     }
   };
 
   // Show loading state
   if (isLoading || localLoading) {
     return (
-      <div className='container py-12 flex justify-center items-center min-h-[60vh]'>
-        <div className='flex flex-col items-center gap-4'>
-          <div className='h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent'></div>
-          <p className='text-muted-foreground'>Loading dashboard...</p>
+      <div className="container py-12 flex justify-center items-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -274,11 +305,30 @@ export default function RestaurantDashboard() {
   // Show sign in prompt if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className='container py-12 text-center'>
-        <h1 className='text-2xl font-bold mb-4'>Please Sign In</h1>
-        <p className='text-muted-foreground mb-6'>You need to be signed in to view your dashboard.</p>
-        <Button onClick={() => router.push('/auth/login?redirect=/restaurant/dashboard')}>
-          Sign In
+      <div className="container py-12 text-center">
+        <h1 className="text-2xl font-bold mb-4">Please Sign In</h1>
+        <p className="text-muted-foreground mb-6">You need to be signed in to view your dashboard.</p>
+        <Button 
+          onClick={() => {
+            if (!isNavigating) {
+              setIsNavigating(true);
+              router.push("/auth/login?redirect=/restaurant/dashboard")
+                .catch(err => {
+                  console.error("Navigation error:", err);
+                  setIsNavigating(false);
+                });
+            }
+          }}
+          disabled={isNavigating}
+        >
+          {isNavigating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Redirecting...
+            </>
+          ) : (
+            "Sign In"
+          )}
         </Button>
       </div>
     );
@@ -287,99 +337,102 @@ export default function RestaurantDashboard() {
   // Add location property to mockApplicants for display
   const applicantsWithLocation = mockApplicants.map(applicant => ({
     ...applicant,
-    location: 'New York, NY' // Default location for all applicants
+    location: "New York, NY" // Default location for all applicants
   }));
 
   return (
     <>
       <Head>
         <title>Restaurant Dashboard | StaffSpace</title>
-        <meta name='description' content='Manage your restaurant profile, job listings, and applicants on StaffSpace.' />
+        <meta name="description" content="Manage your restaurant profile, job listings, and applicants on StaffSpace." />
       </Head>
 
-      <div className='container py-8 md:py-12'>
-        <div className='flex flex-col md:flex-row justify-between items-start md:items-center mb-8'>
+      <div className="container py-8 md:py-12">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
-            <h1 className='text-3xl font-bold tracking-tight mb-2' id='dashboard-overview'>Restaurant Dashboard</h1>
-            <p className='text-muted-foreground'>Welcome back, {userName}</p>
+            <h1 className="text-3xl font-bold tracking-tight mb-2" id="dashboard-overview">Restaurant Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, {userName}</p>
           </div>
-          <div className='flex gap-2 mt-4 md:mt-0'>
-            <Link href='/restaurant/create-listing' passHref legacyBehavior>
-              <Button asChild>
-                <a><Plus className='mr-2 h-4 w-4' /> Post Job</a>
-              </Button>
-            </Link>
-            <Link href='/profile/edit' passHref legacyBehavior>
-              <Button variant='outline' asChild>
-                <a><Settings className='mr-2 h-4 w-4' /> Edit Profile</a>
-              </Button>
-            </Link>
+          <div className="flex gap-2 mt-4 md:mt-0">
+            <Button 
+              onClick={() => safeNavigate("/restaurant/create-listing")}
+              disabled={isNavigating}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Post Job
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => safeNavigate("/profile/edit")}
+              disabled={isNavigating}
+            >
+              <Settings className="mr-2 h-4 w-4" /> Edit Profile
+            </Button>
           </div>
         </div>
 
-        <Tabs defaultValue='overview' className='space-y-6'>
+        <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
-            <TabsTrigger value='overview'>Overview</TabsTrigger>
-            <TabsTrigger value='listings' id='listings-tab'>Job Listings</TabsTrigger>
-            <TabsTrigger value='applicants'>Applicants</TabsTrigger>
-            <TabsTrigger value='interviews'>Interviews</TabsTrigger>
-            <TabsTrigger value='analytics'>Analytics</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="listings" id="listings-tab">Job Listings</TabsTrigger>
+            <TabsTrigger value="applicants">Applicants</TabsTrigger>
+            <TabsTrigger value="interviews">Interviews</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value='overview' className='space-y-6'>
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
-                <CardHeader className='flex flex-row items-center justify-between pb-2'>
-                  <CardTitle className='text-sm font-medium'>Active Listings</CardTitle>
-                  <Briefcase className='h-4 w-4 text-muted-foreground' />
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Active Listings</CardTitle>
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>{mockListings.filter(l => l.status === 'Active').length}</div>
-                  <p className='text-xs text-muted-foreground'>
-                    {mockListings.filter(l => l.status === 'Active').length} listings active
+                  <div className="text-2xl font-bold">{mockListings.filter(l => l.status === "Active").length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {mockListings.filter(l => l.status === "Active").length} listings active
                   </p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className='flex flex-row items-center justify-between pb-2'>
-                  <CardTitle className='text-sm font-medium'>Applicants</CardTitle>
-                  <Users className='h-4 w-4 text-muted-foreground' />
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Applicants</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>{applicantsWithLocation.length}</div>
-                  <p className='text-xs text-muted-foreground'>
-                    {applicantsWithLocation.filter(a => a.status === 'Pending').length} new applicants this week
+                  <div className="text-2xl font-bold">{applicantsWithLocation.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {applicantsWithLocation.filter(a => a.status === "Pending").length} new applicants this week
                   </p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className='flex flex-row items-center justify-between pb-2'>
-                  <CardTitle className='text-sm font-medium'>Interviews</CardTitle>
-                  <Calendar className='h-4 w-4 text-muted-foreground' />
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Interviews</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>23</div>
-                  <p className='text-xs text-muted-foreground'>
+                  <div className="text-2xl font-bold">23</div>
+                  <p className="text-xs text-muted-foreground">
                     5 upcoming interviews
                   </p>
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className='flex flex-row items-center justify-between pb-2'>
-                  <CardTitle className='text-sm font-medium'>Messages</CardTitle>
-                  <MessageSquare className='h-4 w-4 text-muted-foreground' />
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Messages</CardTitle>
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>56</div>
-                  <p className='text-xs text-muted-foreground'>
+                  <div className="text-2xl font-bold">56</div>
+                  <p className="text-xs text-muted-foreground">
                     8 unread messages
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            <div className='grid gap-6 md:grid-cols-2'>
+            <div className="grid gap-6 md:grid-cols-2">
               <Card>
                 <CardHeader>
                   <CardTitle>Recent Applicants</CardTitle>
@@ -388,51 +441,59 @@ export default function RestaurantDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className='space-y-4' id='applicants-section'>
+                  <div className="space-y-4" id="applicants-section">
                     {applicantsWithLocation.map((applicant) => (
-                      <div key={applicant.id} className='border rounded-lg p-4'>
-                        <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+                      <div key={applicant.id} className="border rounded-lg p-4">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                           <div>
-                            <h3 className='font-medium'>{applicant.name}</h3>
-                            <p className='text-sm text-muted-foreground mb-2'>Applied for: {applicant.position}</p>
-                            <div className='flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground'>
-                              <div className='flex items-center'>
-                                <MapPin className='mr-1.5 h-4 w-4' />
+                            <h3 className="font-medium">{applicant.name}</h3>
+                            <p className="text-sm text-muted-foreground mb-2">Applied for: {applicant.position}</p>
+                            <div className="flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground">
+                              <div className="flex items-center">
+                                <MapPin className="mr-1.5 h-4 w-4" />
                                 {applicant.location}
                               </div>
-                              <div className='flex items-center'>
-                                <Clock className='mr-1.5 h-4 w-4' />
+                              <div className="flex items-center">
+                                <Clock className="mr-1.5 h-4 w-4" />
                                 Applied {formatDate(applicant.appliedDate)}
                               </div>
                             </div>
                           </div>
-                          <div className='flex gap-2 self-end md:self-center'>
-                            <Link href={`/messaging?conversation=${applicant.name}`} passHref legacyBehavior>
-                              <Button variant='outline' size='sm' asChild>
-                                <a><MessageSquare className='h-4 w-4 mr-1' /> Message</a>
-                              </Button>
-                            </Link>
-                            <Link href={`/applications/${applicant.id}`} passHref legacyBehavior>
-                              <Button size='sm' asChild>
-                                <a>View Profile</a>
-                              </Button>
-                            </Link>
+                          <div className="flex gap-2 self-end md:self-center">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => safeNavigate(`/messaging?conversation=${applicant.name}`)}
+                              disabled={isNavigating}
+                            >
+                              <MessageSquare className="h-4 w-4 mr-1" /> Message
+                            </Button>
+                            <Button 
+                              size="sm"
+                              onClick={() => safeNavigate(`/applications/${applicant.id}`)}
+                              disabled={isNavigating}
+                            >
+                              View Profile
+                            </Button>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </CardContent>
-                <div className='p-4 border-t'>
-                  <Link href="/applications" passHref legacyBehavior>
-                    <Button variant='outline' className='w-full' asChild>
-                      <a>View All Applicants</a>
-                    </Button>
-                  </Link>
+                <div className="p-4 border-t">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => safeNavigate("/applications")}
+                    disabled={isNavigating}
+                  >
+                    View All Applicants
+                  </Button>
                 </div>
               </Card>
 
-              <UpcomingInterviews userType='restaurant' />
+              <UpcomingInterviews userType="restaurant" />
             </div>
 
             <Card>
@@ -443,110 +504,128 @@ export default function RestaurantDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className='space-y-4'>
+                <div className="space-y-4">
                   {mockListings.map((listing) => (
-                    <div key={listing.id} className='border rounded-lg p-4'>
-                      <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+                    <div key={listing.id} className="border rounded-lg p-4">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                          <h3 className='font-medium'>{listing.title}</h3>
-                          <div className='flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground mt-2'>
-                            <div className='flex items-center'>
-                              <Building className='mr-1.5 h-4 w-4' />
+                          <h3 className="font-medium">{listing.title}</h3>
+                          <div className="flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground mt-2">
+                            <div className="flex items-center">
+                              <Building className="mr-1.5 h-4 w-4" />
                               {listing.jobType}
                             </div>
-                            <div className='flex items-center'>
-                              <Users className='mr-1.5 h-4 w-4' />
+                            <div className="flex items-center">
+                              <Users className="mr-1.5 h-4 w-4" />
                               {listing.applicantsCount} applicants
                             </div>
-                            <div className='flex items-center'>
-                              <Clock className='mr-1.5 h-4 w-4' />
+                            <div className="flex items-center">
+                              <Clock className="mr-1.5 h-4 w-4" />
                               Posted {formatDate(listing.postedDate)}
                             </div>
                           </div>
                         </div>
-                        <div className='flex gap-2 self-end md:self-center'>
-                          <Link href={`/jobs/${listing.id}/edit`} passHref legacyBehavior>
-                            <Button variant='outline' size='sm' asChild>
-                              <a>Edit</a>
-                            </Button>
-                          </Link>
-                          <Link href={`/jobs/${listing.id}/applicants`} passHref legacyBehavior>
-                            <Button size='sm' asChild>
-                              <a>View Applicants</a>
-                            </Button>
-                          </Link>
+                        <div className="flex gap-2 self-end md:self-center">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => safeNavigate(`/jobs/${listing.id}/edit`)}
+                            disabled={isNavigating}
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => safeNavigate(`/jobs/${listing.id}/applicants`)}
+                            disabled={isNavigating}
+                          >
+                            View Applicants
+                          </Button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </CardContent>
-              <div className='p-4 border-t'>
-                <div className='flex gap-4'>
-                  <Link href='/restaurant/create-listing' passHref legacyBehavior>
-                    <Button className='w-full' id='create-listing-button' asChild>
-                      <a><Plus className='mr-2 h-4 w-4' /> Post New Job</a>
-                    </Button>
-                  </Link>
-                  <Link href='/jobs?filter=my-listings' passHref legacyBehavior>
-                    <Button variant='outline' className='flex-1' asChild>
-                      <a>View All Listings</a>
-                    </Button>
-                  </Link>
+              <div className="p-4 border-t">
+                <div className="flex gap-4">
+                  <Button 
+                    className="w-full" 
+                    id="create-listing-button"
+                    onClick={() => safeNavigate("/restaurant/create-listing")}
+                    disabled={isNavigating}
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Post New Job
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => safeNavigate("/jobs?filter=my-listings")}
+                    disabled={isNavigating}
+                  >
+                    View All Listings
+                  </Button>
                 </div>
               </div>
             </Card>
           </TabsContent>
 
           {/* Job Listings Tab */}
-          <TabsContent value='listings'>
+          <TabsContent value="listings">
             <Card>
-              <CardHeader className='flex flex-row items-center justify-between'>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Your Job Listings</CardTitle>
                   <CardDescription>
                     Manage your active job postings
                   </CardDescription>
                 </div>
-                <Link href='/restaurant/create-listing' passHref legacyBehavior>
-                  <Button size='sm' asChild>
-                    <a><Plus className='mr-2 h-4 w-4' /> Post New Job</a>
-                  </Button>
-                </Link>
+                <Button 
+                  size="sm"
+                  onClick={() => safeNavigate("/restaurant/create-listing")}
+                  disabled={isNavigating}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Post New Job
+                </Button>
               </CardHeader>
               <CardContent>
-                <div className='space-y-4'>
+                <div className="space-y-4">
                   {mockListings.map((listing) => (
-                    <div key={listing.id} className='border rounded-lg p-4'>
-                      <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+                    <div key={listing.id} className="border rounded-lg p-4">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                          <h3 className='font-medium'>{listing.title}</h3>
-                          <div className='flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground mt-2'>
-                            <div className='flex items-center'>
-                              <Building className='mr-1.5 h-4 w-4' />
+                          <h3 className="font-medium">{listing.title}</h3>
+                          <div className="flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground mt-2">
+                            <div className="flex items-center">
+                              <Building className="mr-1.5 h-4 w-4" />
                               {listing.jobType}
                             </div>
-                            <div className='flex items-center'>
-                              <Users className='mr-1.5 h-4 w-4' />
+                            <div className="flex items-center">
+                              <Users className="mr-1.5 h-4 w-4" />
                               {listing.applicantsCount} applicants
                             </div>
-                            <div className='flex items-center'>
-                              <Clock className='mr-1.5 h-4 w-4' />
+                            <div className="flex items-center">
+                              <Clock className="mr-1.5 h-4 w-4" />
                               Posted {formatDate(listing.postedDate)}
                             </div>
                           </div>
                         </div>
-                        <div className='flex gap-2 self-end md:self-center'>
-                          <Link href={`/jobs/${listing.id}/edit`} passHref legacyBehavior>
-                            <Button variant='outline' size='sm' asChild>
-                              <a>Edit</a>
-                            </Button>
-                          </Link>
-                          <Link href={`/jobs/${listing.id}/applicants`} passHref legacyBehavior>
-                            <Button size='sm' asChild>
-                              <a>View Applicants</a>
-                            </Button>
-                          </Link>
+                        <div className="flex gap-2 self-end md:self-center">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => safeNavigate(`/jobs/${listing.id}/edit`)}
+                            disabled={isNavigating}
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => safeNavigate(`/jobs/${listing.id}/applicants`)}
+                            disabled={isNavigating}
+                          >
+                            View Applicants
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -557,7 +636,7 @@ export default function RestaurantDashboard() {
           </TabsContent>
 
           {/* Applicants Tab */}
-          <TabsContent value='applicants'>
+          <TabsContent value="applicants">
             <Card>
               <CardHeader>
                 <CardTitle>All Applicants</CardTitle>
@@ -566,35 +645,40 @@ export default function RestaurantDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className='space-y-4'>
+                <div className="space-y-4">
                   {applicantsWithLocation.map((applicant) => (
-                    <div key={applicant.id} className='border rounded-lg p-4'>
-                      <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+                    <div key={applicant.id} className="border rounded-lg p-4">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                          <h3 className='font-medium'>{applicant.name}</h3>
-                          <p className='text-sm text-muted-foreground mb-2'>Applied for: {applicant.position}</p>
-                          <div className='flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground'>
-                            <div className='flex items-center'>
-                              <MapPin className='mr-1.5 h-4 w-4' />
+                          <h3 className="font-medium">{applicant.name}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">Applied for: {applicant.position}</p>
+                          <div className="flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground">
+                            <div className="flex items-center">
+                              <MapPin className="mr-1.5 h-4 w-4" />
                               {applicant.location}
                             </div>
-                            <div className='flex items-center'>
-                              <Clock className='mr-1.5 h-4 w-4' />
+                            <div className="flex items-center">
+                              <Clock className="mr-1.5 h-4 w-4" />
                               Applied {formatDate(applicant.appliedDate)}
                             </div>
                           </div>
                         </div>
-                        <div className='flex gap-2 self-end md:self-center'>
-                          <Link href={`/messaging?conversation=${applicant.name}`} passHref legacyBehavior>
-                            <Button variant='outline' size='sm' asChild>
-                              <a><MessageSquare className='h-4 w-4 mr-1' /> Message</a>
-                            </Button>
-                          </Link>
-                          <Link href={`/applications/${applicant.id}`} passHref legacyBehavior>
-                            <Button size='sm' asChild>
-                              <a>View Profile</a>
-                            </Button>
-                          </Link>
+                        <div className="flex gap-2 self-end md:self-center">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => safeNavigate(`/messaging?conversation=${applicant.name}`)}
+                            disabled={isNavigating}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-1" /> Message
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={() => safeNavigate(`/applications/${applicant.id}`)}
+                            disabled={isNavigating}
+                          >
+                            View Profile
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -605,19 +689,19 @@ export default function RestaurantDashboard() {
           </TabsContent>
 
           {/* Interviews Tab */}
-          <TabsContent value='interviews'>
-            <UpcomingInterviews userType='restaurant' />
+          <TabsContent value="interviews">
+            <UpcomingInterviews userType="restaurant" />
           </TabsContent>
 
           {/* Analytics Tab */}
-          <TabsContent value='analytics'>
-            <AnalyticsDashboard userType='restaurant' />
+          <TabsContent value="analytics">
+            <AnalyticsDashboard userType="restaurant" />
           </TabsContent>
         </Tabs>
       </div>
 
       {/* Tutorial Guide */}
-      {typeof window !== 'undefined' && (
+      {typeof window !== "undefined" && (
         <TutorialGuide
           steps={tutorialSteps}
           onComplete={handleTutorialComplete}

@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import Head from "next/head";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -145,7 +146,6 @@ export default function ContactPage() {
                     <Select 
                       value={inquiryType} 
                       onValueChange={setInquiryType}
-                      required
                     >
                       <SelectTrigger id="inquiry-type">
                         <SelectValue placeholder="Select inquiry type" />
@@ -193,18 +193,15 @@ export default function ContactPage() {
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
-                      <span className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                      <div className="flex items-center">
+                        <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
                         Sending...
-                      </span>
+                      </div>
                     ) : (
-                      <span className="flex items-center">
+                      <div className="flex items-center">
                         <Send className="mr-2 h-4 w-4" />
                         Send Message
-                      </span>
+                      </div>
                     )}
                   </Button>
                 </form>
@@ -246,11 +243,11 @@ export default function ContactPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full" asChild>
-                <a href="#" className="flex items-center justify-center">
+              <Button variant="outline" className="w-full">
+                <Link href="/faq" className="flex items-center justify-center w-full">
                   <HelpCircle className="mr-2 h-4 w-4" />
                   View All FAQs
-                </a>
+                </Link>
               </Button>
             </CardFooter>
           </Card>

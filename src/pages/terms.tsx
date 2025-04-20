@@ -1,3 +1,4 @@
+
 import Head from "next/head";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -225,9 +226,7 @@ export default function TermsPage() {
               If you have any questions about these Terms, please contact us at:
             </p>
             <div className="space-y-2">
-              <p><strong>Email:</strong> <a href="mailto:legal@staffspace.com" className="text-primary hover:underline">legal@staffspace.com</a></p>
-              <p><strong>Address:</strong> 123 Restaurant Row, San Francisco, CA 94103</p>
-              <p><strong>Phone:</strong> +1 (800) 123-4567</p>
+              <p><strong>Email:</strong> <a href="mailto:info@staffspace.com" className="text-primary hover:underline">info@staffspace.com</a></p>
             </div>
           </div>
 

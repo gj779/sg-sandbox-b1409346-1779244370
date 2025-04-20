@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -35,7 +34,8 @@ import {
   ChevronRight,
   MessageSquare,
   Building,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import TutorialGuide from "@/components/common/TutorialGuide";
 import { useUser } from "@/contexts/UserContext";
@@ -43,6 +43,8 @@ import { useRouter } from "next/router";
 import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import UpcomingInterviews from "@/components/dashboard/UpcomingInterviews";
 import BackButton from "@/components/common/BackButton";
+import ErrorBoundary from "@/utils/errorBoundary";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Mock data for job listings
 const mockListings = [

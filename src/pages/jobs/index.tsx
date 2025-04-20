@@ -1,3 +1,4 @@
+
 import Head from "next/head";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,7 @@ const mockJobs = [
       period: "Yearly"
     },
     cuisineType: ["French", "Fine Dining"],
-    postedDate: new Date("2025-03-20"),
+    postedDate: "2025-03-20",
     isPremium: true
   },
   {
@@ -86,7 +87,7 @@ const mockJobs = [
       period: "Hourly"
     },
     cuisineType: ["Cocktail Bar"],
-    postedDate: new Date("2025-03-22"),
+    postedDate: "2025-03-22",
     isPremium: false
   },
   {
@@ -101,7 +102,7 @@ const mockJobs = [
       period: "Hourly"
     },
     cuisineType: ["Seafood", "Casual Dining"],
-    postedDate: new Date("2025-03-25"),
+    postedDate: "2025-03-25",
     isPremium: true
   },
   {
@@ -116,7 +117,7 @@ const mockJobs = [
       period: "Yearly"
     },
     cuisineType: ["Italian"],
-    postedDate: new Date("2025-03-18"),
+    postedDate: "2025-03-18",
     isPremium: false
   },
   {
@@ -131,8 +132,8 @@ const mockJobs = [
       period: "Hourly"
     },
     cuisineType: ["Catering", "Events"],
-    postedDate: new Date("2025-03-24"),
-    eventDate: new Date("2025-04-15"),
+    postedDate: "2025-03-24",
+    eventDate: "2025-04-15",
     isPremium: false
   }
 ];
@@ -330,19 +331,24 @@ export default function JobsPage() {
     return `$${salary.amount}/${salary.period.toLowerCase()}`;
   };
 
-  const formatDate = (date: Date) => {
+  // Consistent date formatting function that works the same on server and client
+  const formatDate = (dateString: string) => {
     try {
-      // Ensure date is valid
-      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      const date = new Date(dateString);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
         return "Invalid date";
       }
       
-      // Use a consistent date format that will render the same on server and client
-      return new Date(date).toLocaleDateString("en-US", {
+      // Use a simple format that will be consistent between server and client
+      const options: Intl.DateTimeFormatOptions = {
         year: "numeric",
         month: "short",
         day: "numeric"
-      });
+      };
+      
+      return date.toLocaleDateString("en-US", options);
     } catch (error) {
       console.error("Error formatting date:", error);
       return "Invalid date";

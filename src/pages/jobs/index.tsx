@@ -337,13 +337,17 @@ export default function JobsPage() {
         return "Invalid date";
       }
       
-      // Use a more stable date formatting approach that will be consistent
+      // Convert date to ISO string first to ensure consistent formatting
       // between server and client rendering
+      const isoString = date.toISOString();
+      const dateObj = new Date(isoString);
+      
+      // Use a stable date formatting approach
       return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
         month: "short",
-        day: "numeric",
-        year: "numeric"
-      }).format(date);
+        day: "numeric"
+      }).format(dateObj);
     } catch (error) {
       console.error("Error formatting date:", error);
       return "Invalid date";

@@ -25,12 +25,12 @@ export default function HomePage() {
                 StaffSpace connects talented hospitality professionals with the best restaurants and venues. Whether you're looking for work or hiring staff, we've got you covered.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link href="/jobs" passHref>
+                <Link href="/jobs">
                   <Button size="lg" className="w-full sm:w-auto">
                     <Briefcase className="mr-2 h-4 w-4" /> Find Jobs
                   </Button>
                 </Link>
-                <Link href="/auth/register?type=restaurant" passHref>
+                <Link href="/auth/register?type=restaurant">
                   <Button size="lg" variant="outline" className="w-full sm:w-auto">
                     <ChefHat className="mr-2 h-4 w-4" /> Hire Staff
                   </Button>
@@ -57,7 +57,7 @@ export default function HomePage() {
                       className="pl-10 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
                   </div>
-                  <Link href="/jobs" passHref>
+                  <Link href="/jobs">
                     <Button className="w-full">Search Jobs</Button>
                   </Link>
                 </div>
@@ -127,12 +127,12 @@ export default function HomePage() {
                   Create your account today and start connecting with restaurants or talented staff members.
                 </p>
                 <div className='flex flex-col sm:flex-row gap-4'>
-                  <Link href='/auth/register?type=applicant' passHref>
+                  <Link href='/auth/register?type=applicant'>
                     <Button size='lg' className='w-full sm:w-auto'>
                       Job Seeker Sign Up
                     </Button>
                   </Link>
-                  <Link href='/auth/register?type=restaurant' passHref>
+                  <Link href='/auth/register?type=restaurant'>
                     <Button size='lg' variant='outline' className='w-full sm:w-auto'>
                       Restaurant Sign Up
                     </Button>

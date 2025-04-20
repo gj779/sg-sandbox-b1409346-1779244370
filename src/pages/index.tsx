@@ -1,10 +1,21 @@
-
 import Head from "next/head";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Search, Briefcase, Clock, MapPin, ChefHat, Star } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function HomePage() {
+  // State for search inputs
+  const [jobKeyword, setJobKeyword] = useState("");
+  const [location, setLocation] = useState("");
+
+  // Handle search form submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Navigate to jobs page with search params
+    window.location.href = `/jobs?search=${encodeURIComponent(jobKeyword)}&location=${encodeURIComponent(location)}`;
+  };
+
   return (
     <>
       <Head>
@@ -40,12 +51,14 @@ export default function HomePage() {
             <div className="lg:pl-10 animate-slide-up">
               <div className="rounded-lg bg-card p-6 shadow-lg border">
                 <h3 className="text-lg font-medium mb-4">Quick Job Search</h3>
-                <div className="space-y-4">
+                <form onSubmit={handleSearch} className="space-y-4">
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <input
                       type="text"
                       placeholder="Job title or keyword"
+                      value={jobKeyword}
+                      onChange={(e) => setJobKeyword(e.target.value)}
                       className="pl-10 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
                   </div>
@@ -54,15 +67,15 @@ export default function HomePage() {
                     <input
                       type="text"
                       placeholder="Location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
                       className="pl-10 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     />
                   </div>
-                  <Link href="/jobs" legacyBehavior>
-                    <Button className="w-full" asChild>
-                      <a>Search Jobs</a>
-                    </Button>
-                  </Link>
-                </div>
+                  <Button type="submit" className="w-full">
+                    Search Jobs
+                  </Button>
+                </form>
               </div>
             </div>
           </div>

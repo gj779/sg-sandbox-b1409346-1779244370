@@ -158,12 +158,21 @@ export default function RestaurantListings() {
   const safeNavigate = (path: string) => {
     if (isNavigating) return;
     
-    setIsNavigating(true);
-    router.push(path)
-      .catch(err => {
-        console.error("Navigation error:", err);
-        setIsNavigating(false);
-      });
+    try {
+      setIsNavigating(true);
+      router.push(path)
+        .then(() => {
+          // Navigation successful
+          console.log(`Navigation to ${path} successful`);
+        })
+        .catch(err => {
+          console.error(`Navigation error for path ${path}:`, err);
+          setIsNavigating(false);
+        });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setIsNavigating(false);
+    }
   };
 
   // Apply filters and sorting

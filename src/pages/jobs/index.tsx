@@ -289,7 +289,10 @@ export default function JobsPage() {
 
   // Effect to run search when filters change
   useEffect(() => {
-    applyFiltersAndSearch();
+    // Check if we're on the client side before applying filters
+    if (typeof window !== 'undefined') {
+      applyFiltersAndSearch();
+    }
   }, [applyFiltersAndSearch]); // Depend on the memoized function
 
   // Clear all filters

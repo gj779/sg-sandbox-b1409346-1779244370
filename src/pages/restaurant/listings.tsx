@@ -160,6 +160,13 @@ export default function RestaurantListings() {
     
     try {
       setIsNavigating(true);
+      
+      // Use direct window.location for critical paths to avoid router issues
+      if (path === "/restaurant/dashboard" || path.includes("/auth/login")) {
+        window.location.href = path;
+        return;
+      }
+      
       router.push(path)
         .then(() => {
           // Navigation successful

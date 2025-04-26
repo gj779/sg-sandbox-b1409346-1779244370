@@ -1,6 +1,5 @@
-
 import Head from "next/head";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // Added useCallback
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -58,7 +57,7 @@ import { Slider } from "@/components/ui/slider";
 import Link from "next/link";
 import { useUser } from "@/contexts/UserContext";
 
-// Mock data for job listings
+// Mock data for job listings (assuming this is static and consistent)
 const mockJobs = [
   {
     id: "1",
@@ -138,28 +137,76 @@ const mockJobs = [
   }
 ];
 
+// Consistent date formatting function
+const formatDate = (dateString: string | undefined): string => {
+  if (!dateString) return "Date not specified";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    };
+    return date.toLocaleDateString("en-US", options);
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "Invalid date";
+  }
+};
+
+// Consistent salary formatting function
+const formatSalary = (salary: { amount: number; period: string } | undefined): string => {
+  if (!salary) return "Salary not specified";
+  try {
+    if (salary.period === "Hourly") {
+      return `$${salary.amount}/hr`;
+    } else if (salary.period === "Yearly") {
+      return `$${salary.amount.toLocaleString()}/year`;
+    }
+    return `$${salary.amount}/${salary.period.toLowerCase()}`;
+  } catch (error) {
+    console.error("Error formatting salary:", error);
+    return "N/A";
+  }
+};
+
 export default function JobsPage() {
   const { user, isAuthenticated } = useUser();
   const [searchTerm, setSearchTerm] = useState("");
   const [location, setLocation] = useState("");
   const [jobType, setJobType] = useState<string | undefined>(undefined);
-  const [filteredJobs, setFilteredJobs] = useState(mockJobs);
+  const [filteredJobs, setFilteredJobs] = useState(mockJobs); // Initial state from static data
   const [showNoResults, setShowNoResults] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [salaryRange, setSalaryRange] = useState<[number, number]>([0, 100000]);
   const [cuisineTypes, setCuisineTypes] = useState<string[]>([]);
   const [datePosted, setDatePosted] = useState<string | undefined>(undefined);
+  
+  // State potentially dependent on client-side (e.g., localStorage)
   const [savedSearches, setSavedSearches] = useState<Array<{id: string, name: string, filters: any}>>([]);
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  
+  // State to prevent hydration mismatch for client-only elements
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // This effect runs only on the client after hydration
+    setIsClient(true);
+    // If savedJobs/savedSearches were loaded from localStorage, it would happen here
+    // Example: setSavedJobs(JSON.parse(localStorage.getItem('savedJobs') || '[]'));
+  }, []);
 
   // All available cuisine types from the mock data
   const allCuisineTypes = Array.from(
     new Set(mockJobs.flatMap(job => job.cuisineType))
   );
 
-  // Handle search with all filters
-  const handleSearch = () => {
+  // Use useCallback for functions used in effects or passed down
+  const applyFiltersAndSearch = useCallback(() => {
     let filtered = mockJobs.filter(job => {
       // Basic search filters
       const matchesSearch = searchTerm === "" || 
@@ -173,30 +220,43 @@ export default function JobsPage() {
       const matchesJobType = !jobType || job.jobType === jobType;
       
       // Advanced filters
-      const matchesSalary = 
-        (job.salary.period === "Yearly" && job.salary.amount >= salaryRange[0] && job.salary.amount <= salaryRange[1]) ||
-        (job.salary.period === "Hourly" && (job.salary.amount * 2080) >= salaryRange[0] && (job.salary.amount * 2080) <= salaryRange[1]);
-      
+      const salaryAmount = job.salary?.amount;
+      const salaryPeriod = job.salary?.period;
+      let matchesSalary = true; // Default to true if salary info is missing
+      if (salaryAmount !== undefined && salaryPeriod) {
+         matchesSalary = 
+          (salaryPeriod === "Yearly" && salaryAmount >= salaryRange[0] && salaryAmount <= salaryRange[1]) ||
+          (salaryPeriod === "Hourly" && (salaryAmount * 2080) >= salaryRange[0] && (salaryAmount * 2080) <= salaryRange[1]);
+      }
+
       const matchesCuisine = cuisineTypes.length === 0 || 
-        job.cuisineType.some(cuisine => cuisineTypes.includes(cuisine));
+        (job.cuisineType && job.cuisineType.some(cuisine => cuisineTypes.includes(cuisine)));
       
       // Date posted filter
       let matchesDatePosted = true;
-      if (datePosted) {
-        const today = new Date();
-        const jobDate = new Date(job.postedDate);
-        const daysDifference = Math.floor((today.getTime() - jobDate.getTime()) / (1000 * 3600 * 24));
-        
-        switch(datePosted) {
-          case 'today':
-            matchesDatePosted = daysDifference < 1;
-            break;
-          case 'week':
-            matchesDatePosted = daysDifference < 7;
-            break;
-          case 'month':
-            matchesDatePosted = daysDifference < 30;
-            break;
+      if (datePosted && job.postedDate) {
+        try {
+          const today = new Date();
+          const jobDate = new Date(job.postedDate);
+          if (!isNaN(jobDate.getTime())) { // Check if date is valid
+            const daysDifference = Math.floor((today.getTime() - jobDate.getTime()) / (1000 * 3600 * 24));
+            
+            switch(datePosted) {
+              case 'today':
+                matchesDatePosted = daysDifference < 1;
+                break;
+              case 'week':
+                matchesDatePosted = daysDifference < 7;
+                break;
+              case 'month':
+                matchesDatePosted = daysDifference < 30;
+                break;
+            }
+          } else {
+             matchesDatePosted = false; // Invalid job date doesn't match filter
+          }
+        } catch (e) {
+           matchesDatePosted = false; // Error parsing date
         }
       }
       
@@ -225,61 +285,55 @@ export default function JobsPage() {
     setActiveFilters(newActiveFilters);
     setFilteredJobs(filtered);
     setShowNoResults(filtered.length === 0);
-  };
+  }, [searchTerm, location, jobType, salaryRange, cuisineTypes, datePosted]); // Dependencies for the filter logic
+
+  // Effect to run search when filters change
+  useEffect(() => {
+    applyFiltersAndSearch();
+  }, [applyFiltersAndSearch]); // Depend on the memoized function
 
   // Clear all filters
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearchTerm("");
     setLocation("");
     setJobType(undefined);
     setSalaryRange([0, 100000]);
     setCuisineTypes([]);
     setDatePosted(undefined);
-    setActiveFilters([]);
-    setFilteredJobs(mockJobs);
-    setShowNoResults(false);
-  };
+    // applyFiltersAndSearch will be called by the useEffect above
+  }, [applyFiltersAndSearch]); // Depend on the memoized function
 
   // Remove a specific filter
-  const removeFilter = (filter: string) => {
+  const removeFilter = useCallback((filter: string) => {
     const filterType = filter.split(":")[0].trim();
     
+    let needsUpdate = false;
     switch(filterType) {
       case "Keyword":
-        setSearchTerm("");
+        if (searchTerm !== "") { setSearchTerm(""); needsUpdate = true; }
         break;
       case "Location":
-        setLocation("");
+         if (location !== "") { setLocation(""); needsUpdate = true; }
         break;
       case "Job Type":
-        setJobType(undefined);
+         if (jobType !== undefined) { setJobType(undefined); needsUpdate = true; }
         break;
       case "Cuisines":
-        setCuisineTypes([]);
+         if (cuisineTypes.length > 0) { setCuisineTypes([]); needsUpdate = true; }
         break;
       case "Posted":
-        setDatePosted(undefined);
+         if (datePosted !== undefined) { setDatePosted(undefined); needsUpdate = true; }
         break;
       case "Salary":
-        setSalaryRange([0, 100000]);
+         if (salaryRange[0] > 0 || salaryRange[1] < 100000) { setSalaryRange([0, 100000]); needsUpdate = true; }
         break;
     }
-    
-    // Re-run search with updated filters
-    const updatedFilters = activeFilters.filter(f => f !== filter);
-    setActiveFilters(updatedFilters);
-    
-    // If all filters are removed, reset to show all jobs
-    if (updatedFilters.length === 0) {
-      setFilteredJobs(mockJobs);
-    } else {
-      handleSearch();
-    }
-  };
+    // The useEffect listening to filter changes will trigger applyFiltersAndSearch
+  }, [searchTerm, location, jobType, cuisineTypes, datePosted, salaryRange]); // Dependencies
 
   // Save current search
-  const saveCurrentSearch = () => {
-    if (!isAuthenticated) return;
+  const saveCurrentSearch = useCallback(() => {
+    if (!isAuthenticated || !isClient) return; // Ensure client-side and authenticated
     
     const searchName = `Search ${savedSearches.length + 1}`;
     const newSavedSearch = {
@@ -295,65 +349,111 @@ export default function JobsPage() {
       }
     };
     
-    setSavedSearches([...savedSearches, newSavedSearch]);
-  };
+    const updatedSearches = [...savedSearches, newSavedSearch];
+    setSavedSearches(updatedSearches);
+    // Optionally save to localStorage here if needed
+    // localStorage.setItem('savedSearches', JSON.stringify(updatedSearches));
+  }, [isAuthenticated, isClient, savedSearches, searchTerm, location, jobType, salaryRange, cuisineTypes, datePosted]);
 
   // Load a saved search
-  const loadSavedSearch = (search: any) => {
-    setSearchTerm(search.filters.searchTerm);
-    setLocation(search.filters.location);
+  const loadSavedSearch = useCallback((search: any) => {
+    setSearchTerm(search.filters.searchTerm || "");
+    setLocation(search.filters.location || "");
     setJobType(search.filters.jobType);
-    setSalaryRange(search.filters.salaryRange);
-    setCuisineTypes(search.filters.cuisineTypes);
+    setSalaryRange(search.filters.salaryRange || [0, 100000]);
+    setCuisineTypes(search.filters.cuisineTypes || []);
     setDatePosted(search.filters.datePosted);
-    
-    // Run search with loaded filters
-    setTimeout(handleSearch, 0);
-  };
+    // applyFiltersAndSearch will be called by the useEffect listening to filter changes
+  }, [applyFiltersAndSearch]);
 
   // Toggle job saved status
-  const toggleSaveJob = (jobId: string) => {
-    if (!isAuthenticated) return;
+  const toggleSaveJob = useCallback((jobId: string) => {
+    if (!isAuthenticated || !isClient) return; // Ensure client-side and authenticated
     
-    if (savedJobs.includes(jobId)) {
-      setSavedJobs(savedJobs.filter(id => id !== jobId));
-    } else {
-      setSavedJobs([...savedJobs, jobId]);
-    }
-  };
+    setSavedJobs(prevSavedJobs => {
+      const updatedSavedJobs = prevSavedJobs.includes(jobId)
+        ? prevSavedJobs.filter(id => id !== jobId)
+        : [...prevSavedJobs, jobId];
+      // Optionally save to localStorage here if needed
+      // localStorage.setItem('savedJobs', JSON.stringify(updatedSavedJobs));
+      return updatedSavedJobs;
+    });
+  }, [isAuthenticated, isClient]);
 
-  const formatSalary = (salary: { amount: number, period: string }) => {
-    if (salary.period === "Hourly") {
-      return `$${salary.amount}/hr`;
-    } else if (salary.period === "Yearly") {
-      return `$${salary.amount.toLocaleString()}/year`;
-    }
-    return `$${salary.amount}/${salary.period.toLowerCase()}`;
-  };
-
-  // Consistent date formatting function that works the same on server and client
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        return "Invalid date";
-      }
-      
-      // Use a simple format that will be consistent between server and client
-      const options: Intl.DateTimeFormatOptions = {
-        year: "numeric",
-        month: "short",
-        day: "numeric"
-      };
-      
-      return date.toLocaleDateString("en-US", options);
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Invalid date";
-    }
-  };
+  // Render function for a single job card to avoid repetition
+  const renderJobCard = (job: typeof mockJobs[0]) => (
+     <Card key={job.id} className={`job-card relative ${job.isPremium ? 'border-primary/50' : ''}`}>
+        {job.isPremium && (
+          <div className="absolute top-4 right-4">
+            <Badge variant="default" className="bg-primary">Featured</Badge>
+          </div>
+        )}
+        {isAuthenticated && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-16"
+            onClick={() => toggleSaveJob(job.id)}
+          >
+            {savedJobs.includes(job.id) ? (
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+            ) : (
+              <StarOff className="h-5 w-5" />
+            )}
+            <span className="sr-only">
+              {savedJobs.includes(job.id) ? 'Unsave' : 'Save'} job
+            </span>
+          </Button>
+        )}
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+            <div>
+              <Link href={`/jobs/${job.id}`}>
+                <CardTitle className="text-xl hover:text-primary transition-colors">{job.title}</CardTitle>
+              </Link>
+              <CardDescription className="text-base mt-1">{job.restaurantName}</CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+              {job.cuisineType.map((cuisine) => (
+                <Badge key={cuisine} variant="secondary">{cuisine}</Badge>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4">{job.description}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center">
+              <MapPin className="mr-2 h-4 w-4" />
+              <span>{job.location}</span>
+            </div>
+            <div className="flex items-center">
+              <Briefcase className="mr-2 h-4 w-4" />
+              <span>{job.jobType}</span>
+            </div>
+            <div className="flex items-center">
+              <DollarSign className="mr-2 h-4 w-4" />
+              <span>{formatSalary(job.salary)}</span>
+            </div>
+          </div>
+          {job.eventDate && (
+            <div className="mt-4 flex items-center text-sm text-muted-foreground">
+              <Calendar className="mr-2 h-4 w-4" />
+              <span>Event Date: {formatDate(job.eventDate)}</span>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Clock className="mr-2 h-4 w-4" />
+            <span>Posted {formatDate(job.postedDate)}</span>
+          </div>
+          <Link href={`/jobs/${job.id}`}>
+            <Button>Apply Now</Button>
+          </Link>
+        </CardFooter>
+      </Card>
+  );
 
   return (
     <>
@@ -457,7 +557,7 @@ export default function JobsPage() {
                   <SelectItem value="Seasonal">Seasonal</SelectItem>
                 </SelectContent>
               </Select>
-              <Button onClick={handleSearch}>Search</Button>
+              <Button onClick={applyFiltersAndSearch}>Search</Button>
             </div>
           </div>
         </div>
@@ -565,7 +665,7 @@ export default function JobsPage() {
               <Button variant="outline" onClick={clearFilters}>
                 Clear All Filters
               </Button>
-              <Button onClick={handleSearch}>Apply Filters</Button>
+              <Button onClick={applyFiltersAndSearch}>Apply Filters</Button>
             </div>
           </div>
         )}
@@ -621,79 +721,7 @@ export default function JobsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-                {filteredJobs.map((job) => (
-                  <Card key={job.id} className={`job-card relative ${job.isPremium ? 'border-primary/50' : ''}`}>
-                    {job.isPremium && (
-                      <div className="absolute top-4 right-4">
-                        <Badge variant="default" className="bg-primary">Featured</Badge>
-                      </div>
-                    )}
-                    {isAuthenticated && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-4 right-16"
-                        onClick={() => toggleSaveJob(job.id)}
-                      >
-                        {savedJobs.includes(job.id) ? (
-                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                        ) : (
-                          <StarOff className="h-5 w-5" />
-                        )}
-                        <span className="sr-only">
-                          {savedJobs.includes(job.id) ? 'Unsave' : 'Save'} job
-                        </span>
-                      </Button>
-                    )}
-                    <CardHeader>
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
-                        <div>
-                          <Link href={`/jobs/${job.id}`}>
-                            <CardTitle className="text-xl hover:text-primary transition-colors">{job.title}</CardTitle>
-                          </Link>
-                          <CardDescription className="text-base mt-1">{job.restaurantName}</CardDescription>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                          {job.cuisineType.map((cuisine) => (
-                            <Badge key={cuisine} variant="secondary">{cuisine}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="mb-4">{job.description}</p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <MapPin className="mr-2 h-4 w-4" />
-                          <span>{job.location}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Briefcase className="mr-2 h-4 w-4" />
-                          <span>{job.jobType}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="mr-2 h-4 w-4" />
-                          <span>{formatSalary(job.salary)}</span>
-                        </div>
-                      </div>
-                      {job.eventDate && (
-                        <div className="mt-4 flex items-center text-sm text-muted-foreground">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          <span>Event Date: {formatDate(job.eventDate)}</span>
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="mr-2 h-4 w-4" />
-                        <span>Posted {formatDate(job.postedDate)}</span>
-                      </div>
-                      <Link href={`/jobs/${job.id}`}>
-                        <Button>Apply Now</Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
-                ))}
+                {filteredJobs.map(renderJobCard)}
               </div>
             )}
           </TabsContent>
@@ -702,70 +730,7 @@ export default function JobsPage() {
             <div className="grid grid-cols-1 gap-6">
               {filteredJobs
                 .filter(job => job.jobType === "Full-time")
-                .map((job) => (
-                  <Card key={job.id} className={`job-card relative ${job.isPremium ? 'border-primary/50' : ''}`}>
-                    {job.isPremium && (
-                      <div className="absolute top-4 right-4">
-                        <Badge variant="default" className="bg-primary">Featured</Badge>
-                      </div>
-                    )}
-                    {isAuthenticated && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-4 right-16"
-                        onClick={() => toggleSaveJob(job.id)}
-                      >
-                        {savedJobs.includes(job.id) ? (
-                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                        ) : (
-                          <StarOff className="h-5 w-5" />
-                        )}
-                      </Button>
-                    )}
-                    <CardHeader>
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
-                        <div>
-                          <Link href={`/jobs/${job.id}`}>
-                            <CardTitle className="text-xl hover:text-primary transition-colors">{job.title}</CardTitle>
-                          </Link>
-                          <CardDescription className="text-base mt-1">{job.restaurantName}</CardDescription>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                          {job.cuisineType.map((cuisine) => (
-                            <Badge key={cuisine} variant="secondary">{cuisine}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="mb-4">{job.description}</p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <MapPin className="mr-2 h-4 w-4" />
-                          <span>{job.location}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Briefcase className="mr-2 h-4 w-4" />
-                          <span>{job.jobType}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="mr-2 h-4 w-4" />
-                          <span>{formatSalary(job.salary)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="mr-2 h-4 w-4" />
-                        <span>Posted {formatDate(job.postedDate)}</span>
-                      </div>
-                      <Link href={`/jobs/${job.id}`}>
-                        <Button>Apply Now</Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
-                ))}
+                .map(renderJobCard)}
             </div>
           </TabsContent>
           
@@ -774,65 +739,7 @@ export default function JobsPage() {
             <div className="grid grid-cols-1 gap-6">
               {filteredJobs
                 .filter(job => job.jobType === "Part-time")
-                .map((job) => (
-                  <Card key={job.id} className="job-card relative">
-                    {isAuthenticated && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-4 right-4"
-                        onClick={() => toggleSaveJob(job.id)}
-                      >
-                        {savedJobs.includes(job.id) ? (
-                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                        ) : (
-                          <StarOff className="h-5 w-5" />
-                        )}
-                      </Button>
-                    )}
-                    <CardHeader>
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
-                        <div>
-                          <Link href={`/jobs/${job.id}`}>
-                            <CardTitle className="text-xl hover:text-primary transition-colors">{job.title}</CardTitle>
-                          </Link>
-                          <CardDescription className="text-base mt-1">{job.restaurantName}</CardDescription>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                          {job.cuisineType.map((cuisine) => (
-                            <Badge key={cuisine} variant="secondary">{cuisine}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="mb-4">{job.description}</p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <MapPin className="mr-2 h-4 w-4" />
-                          <span>{job.location}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Briefcase className="mr-2 h-4 w-4" />
-                          <span>{job.jobType}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="mr-2 h-4 w-4" />
-                          <span>{formatSalary(job.salary)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="mr-2 h-4 w-4" />
-                        <span>Posted {formatDate(job.postedDate)}</span>
-                      </div>
-                      <Link href={`/jobs/${job.id}`}>
-                        <Button>Apply Now</Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
-                ))}
+                .map(renderJobCard)}
             </div>
           </TabsContent>
           
@@ -840,71 +747,7 @@ export default function JobsPage() {
             <div className="grid grid-cols-1 gap-6">
               {filteredJobs
                 .filter(job => job.jobType === "Event")
-                .map((job) => (
-                  <Card key={job.id} className="job-card relative">
-                    {isAuthenticated && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-4 right-4"
-                        onClick={() => toggleSaveJob(job.id)}
-                      >
-                        {savedJobs.includes(job.id) ? (
-                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                        ) : (
-                          <StarOff className="h-5 w-5" />
-                        )}
-                      </Button>
-                    )}
-                    <CardHeader>
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
-                        <div>
-                          <Link href={`/jobs/${job.id}`}>
-                            <CardTitle className="text-xl hover:text-primary transition-colors">{job.title}</CardTitle>
-                          </Link>
-                          <CardDescription className="text-base mt-1">{job.restaurantName}</CardDescription>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                          {job.cuisineType.map((cuisine) => (
-                            <Badge key={cuisine} variant="secondary">{cuisine}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="mb-4">{job.description}</p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <MapPin className="mr-2 h-4 w-4" />
-                          <span>{job.location}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Briefcase className="mr-2 h-4 w-4" />
-                          <span>{job.jobType}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="mr-2 h-4 w-4" />
-                          <span>{formatSalary(job.salary)}</span>
-                        </div>
-                      </div>
-                      {job.eventDate && (
-                        <div className="mt-4 flex items-center text-sm text-muted-foreground">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          <span>Event Date: {formatDate(job.eventDate)}</span>
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="mr-2 h-4 w-4" />
-                        <span>Posted {formatDate(job.postedDate)}</span>
-                      </div>
-                      <Link href={`/jobs/${job.id}`}>
-                        <Button>Apply Now</Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
-                ))}
+                .map(renderJobCard)}
             </div>
           </TabsContent>
           
@@ -930,70 +773,7 @@ export default function JobsPage() {
                 <div className="grid grid-cols-1 gap-6">
                   {mockJobs
                     .filter(job => savedJobs.includes(job.id))
-                    .map((job) => (
-                      <Card key={job.id} className={`job-card relative ${job.isPremium ? 'border-primary/50' : ''}`}>
-                        {job.isPremium && (
-                          <div className="absolute top-4 right-4">
-                            <Badge variant="default" className="bg-primary">Featured</Badge>
-                          </div>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-4 right-16"
-                          onClick={() => toggleSaveJob(job.id)}
-                        >
-                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                        </Button>
-                        <CardHeader>
-                          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
-                            <div>
-                              <Link href={`/jobs/${job.id}`}>
-                                <CardTitle className="text-xl hover:text-primary transition-colors">{job.title}</CardTitle>
-                              </Link>
-                              <CardDescription className="text-base mt-1">{job.restaurantName}</CardDescription>
-                            </div>
-                            <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                              {job.cuisineType.map((cuisine) => (
-                                <Badge key={cuisine} variant="secondary">{cuisine}</Badge>
-                              ))}
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="mb-4">{job.description}</p>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center">
-                              <MapPin className="mr-2 h-4 w-4" />
-                              <span>{job.location}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <Briefcase className="mr-2 h-4 w-4" />
-                              <span>{job.jobType}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <DollarSign className="mr-2 h-4 w-4" />
-                              <span>{formatSalary(job.salary)}</span>
-                            </div>
-                          </div>
-                          {job.eventDate && (
-                            <div className="mt-4 flex items-center text-sm text-muted-foreground">
-                              <Calendar className="mr-2 h-4 w-4" />
-                              <span>Event Date: {formatDate(job.eventDate)}</span>
-                            </div>
-                          )}
-                        </CardContent>
-                        <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <Clock className="mr-2 h-4 w-4" />
-                            <span>Posted {formatDate(job.postedDate)}</span>
-                          </div>
-                          <Link href={`/jobs/${job.id}`}>
-                            <Button>Apply Now</Button>
-                          </Link>
-                        </CardFooter>
-                      </Card>
-                    ))}
+                    .map(renderJobCard)}
                 </div>
               )}
             </TabsContent>

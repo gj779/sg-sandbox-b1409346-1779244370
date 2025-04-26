@@ -87,7 +87,9 @@ export default function LoginPage() {
     
     try {
       // Pass the userType to the login function so it can be used to determine the correct dashboard
-      const { dashboardPath } = await login(email, password);
+      const { userProfile, dashboardPath } = await login(email, password);
+      
+      console.log(`Login successful, user type: ${userProfile.userType}, dashboard path: ${dashboardPath}`);
       
       // If there's a redirect query param, use that instead of the dashboard
       // But never redirect to profile/edit directly after login
@@ -95,6 +97,9 @@ export default function LoginPage() {
         ? redirect 
         : dashboardPath;
       
+      console.log(`Redirecting to: ${redirectPath}`);
+      
+      // Use router.push for navigation
       router.push(redirectPath);
     } catch (error: any) {
       // Ensure error message is properly sanitized

@@ -18,7 +18,8 @@ export default function BackButton({ onClick, href, label = "Back" }: BackButton
     if (onClick) {
       onClick();
     } else if (href) {
-      // Use Next.js router for all navigation to preserve state
+      // For critical paths that need to maintain authentication state,
+      // use Next.js router for navigation
       router.push(href);
     } else {
       router.back();

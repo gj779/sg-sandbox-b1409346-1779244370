@@ -339,6 +339,7 @@ export function useFirebaseAuth() {
       
       // Get the correct dashboard path based on user type
       const dashboardPath = firebaseAuthService.getDashboardPath(finalUserProfile?.userType);
+      console.log(`Determined dashboard path: ${dashboardPath} for user type: ${finalUserProfile?.userType}`);
       
       // Update auth state with user info
       setAuthState({

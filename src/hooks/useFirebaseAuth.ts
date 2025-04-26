@@ -541,6 +541,7 @@ export function useFirebaseAuth() {
         error: null,
       });
       
+      // Use router.push instead of direct navigation
       router.push("/");
     } catch (error: any) {
       const errorMessage = error && typeof error === 'object' && 'message' in error

@@ -61,6 +61,46 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [error]);
 
+  // Handle user authentication state changes
+  useEffect(() => {
+    // If we're still loading, don't do anything yet
+    if (isLoading) return;
+    
+    // If the user is authenticated and we have a profile
+    if (isAuthenticated && userProfile) {
+      // Check if we need to redirect based on user type
+      const currentPath = window.location.pathname;
+      
+      // Only redirect if we're on the home page or a generic auth page
+      // and not already on a user-specific page
+      const shouldRedirect = 
+        (currentPath === '/' || 
+         currentPath === '/auth/login' ||
+         currentPath === '/auth/register') &&
+        !currentPath.includes(`/${userProfile.userType}`);
+      
+      if (shouldRedirect) {
+        const dashboardPath = getDashboardPathForUserType(userProfile.userType);
+        console.log(`Redirecting to dashboard: ${dashboardPath}`);
+        router.push(dashboardPath);
+      }
+    }
+  }, [isAuthenticated, isLoading, userProfile, router]);
+  
+  // Helper function to get dashboard path based on user type
+  const getDashboardPathForUserType = (userType: string): string => {
+    switch (userType) {
+      case 'admin':
+        return '/admin/dashboard';
+      case 'restaurant':
+        return '/restaurant/dashboard';
+      case 'applicant':
+        return '/applicant/dashboard';
+      default:
+        return '/';
+    }
+  };
+
   // Improved login function with better error handling
   const login = async (email: string, password: string) => {
     try {

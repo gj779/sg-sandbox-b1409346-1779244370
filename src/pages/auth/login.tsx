@@ -43,6 +43,38 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, authLoading, router, redirect]);
 
+  // Handle form submission
+  const onSubmit = async (data: FormData) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { userProfile, dashboardPath } = await login(data.email, data.password);
+      
+      toast({
+        title: 'Sign in successful',
+        description: `Welcome back, ${userProfile.firstName || 'User'}!`,
+      });
+      
+      // Get the redirect path from the URL query or use the dashboard path
+      const redirectPath = router.query.redirect as string || dashboardPath;
+      
+      // Use router.push for navigation to maintain state
+      router.push(redirectPath);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || 'Failed to sign in. Please check your credentials and try again.');
+      
+      toast({
+        title: 'Sign in failed',
+        description: error.message || 'Failed to sign in. Please check your credentials and try again.',
+        variant: 'destructive',
+      });
+      
+      setIsLoading(false);
+    }
+  };
+
   // Handle login form submission
   const handleLogin = async (userType: 'applicant' | 'restaurant') => {
     if (!email || !password) {

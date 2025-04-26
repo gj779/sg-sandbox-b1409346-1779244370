@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -562,7 +563,7 @@ export default function RestaurantDashboard() {
                   <Button 
                     variant="outline" 
                     className="flex-1"
-                    onClick={() => safeNavigate("/jobs?filter=my-listings")}
+                    onClick={() => safeNavigate("/restaurant/listings")}
                     disabled={isNavigating}
                   >
                     View All Listings

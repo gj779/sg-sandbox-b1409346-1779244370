@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -199,12 +200,27 @@ export default function RestaurantDashboard() {
   const safeNavigate = (path: string) => {
     if (isNavigating) return;
     
-    setIsNavigating(true);
-    router.push(path)
-      .catch(err => {
-        console.error("Navigation error:", err);
-        setIsNavigating(false);
-      });
+    try {
+      setIsNavigating(true);
+      
+      // Use direct window.location for critical paths to avoid router issues
+      if (path === "/restaurant/listings") {
+        window.location.href = path;
+        return;
+      }
+      
+      router.push(path)
+        .then(() => {
+          console.log(`Navigation to ${path} successful`);
+        })
+        .catch(err => {
+          console.error(`Navigation error for path ${path}:`, err);
+          setIsNavigating(false);
+        });
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setIsNavigating(false);
+    }
   };
 
   useEffect(() => {
@@ -343,7 +359,7 @@ export default function RestaurantDashboard() {
   }));
 
   return (
-    <>
+    <ErrorBoundary>
       <Head>
         <title>Restaurant Dashboard | StaffSpace</title>
         <meta name="description" content="Manage your restaurant profile, job listings, and applicants on StaffSpace." />
@@ -562,8 +578,10 @@ export default function RestaurantDashboard() {
                   <Button 
                     variant="outline" 
                     className="flex-1"
-                    onClick={() => safeNavigate("/restaurant/listings")}
-                    disabled={isNavigating}
+                    onClick={() => {
+                      if (isNavigating) return;
+                      window.location.href = "/restaurant/listings";
+                    }}
                   >
                     View All Listings
                   </Button>
@@ -711,6 +729,6 @@ export default function RestaurantDashboard() {
           onOpenChange={setShowTutorial}
         />
       )}
-    </>
+    </ErrorBoundary>
   );
 }

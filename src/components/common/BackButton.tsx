@@ -18,7 +18,12 @@ export default function BackButton({ onClick, href, label = "Back" }: BackButton
     if (onClick) {
       onClick();
     } else if (href) {
-      router.push(href);
+      // Use direct window.location for critical paths to avoid router issues
+      if (href === "/restaurant/dashboard" || href === "/restaurant/listings") {
+        window.location.href = href;
+      } else {
+        router.push(href);
+      }
     } else {
       router.back();
     }

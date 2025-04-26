@@ -291,9 +291,13 @@ export default function JobsPage() {
   useEffect(() => {
     // Check if we're on the client side before applying filters
     if (typeof window !== 'undefined') {
-      applyFiltersAndSearch();
+      try {
+        applyFiltersAndSearch();
+      } catch (error) {
+        console.error('Error applying filters:', error);
+      }
     }
-  }, [applyFiltersAndSearch]); // Depend on the memoized function
+  }, [searchTerm, location, jobType, salaryRange, cuisineTypes, datePosted]); // List all dependencies directly instead of using the memoized function
 
   // Clear all filters
   const clearFilters = useCallback(() => {

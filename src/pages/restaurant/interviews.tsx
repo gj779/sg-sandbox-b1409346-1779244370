@@ -21,7 +21,8 @@ import {
   Loader2,
   Search,
   Filter,
-  ChevronDown
+  ChevronDown,
+  Briefcase
 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import BackButton from "@/components/common/BackButton";

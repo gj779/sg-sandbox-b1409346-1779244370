@@ -202,20 +202,26 @@ export default function RestaurantDashboard() {
     try {
       setIsNavigating(true);
       
-      // Use direct window.location for critical paths to avoid router issues
-      if (path === "/restaurant/listings") {
-        window.location.href = path;
-        return;
-      }
-      
+      // Use router.push for internal navigation to preserve state
       router.push(path)
         .then(() => {
           console.log(`Navigation to ${path} successful`);
+          // Reset navigating state on success, maybe after a short delay
+          // setTimeout(() => setIsNavigating(false), 100); 
         })
         .catch(err => {
           console.error(`Navigation error for path ${path}:`, err);
-          setIsNavigating(false);
-        });
+          setIsNavigating(false); // Reset on error
+        })
+        // It might be better to reset isNavigating in a finally block
+        // or rely on component unmount/remount if navigation is successful
+        // For now, let's reset on error only to avoid potential issues.
+        // Consider adding a finally block if needed:
+        // .finally(() => {
+        //   // Be cautious with resetting state immediately after successful navigation
+        //   // setIsNavigating(false); 
+        // });
+
     } catch (error) {
       console.error('Navigation error:', error);
       setIsNavigating(false);

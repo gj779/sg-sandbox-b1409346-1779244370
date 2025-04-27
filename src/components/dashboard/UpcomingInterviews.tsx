@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -185,7 +184,7 @@ export default function UpcomingInterviews({ userType }: UpcomingInterviewsProps
       </CardContent>
       <CardFooter>
         <Button variant='outline' className='w-full' asChild>
-          <Link href='/interviews'>
+          <Link href={userType === 'restaurant' ? '/restaurant/interviews' : '/applicant/interviews'}>
             <Calendar className='mr-2 h-4 w-4' />
             View All Scheduled Interviews
           </Link>

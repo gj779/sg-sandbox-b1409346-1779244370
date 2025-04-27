@@ -504,7 +504,7 @@ export default function JobApplicantsPage() {
                       </div>
                       <Button 
                         size="sm"
-                        onClick={() => safeNavigate(`/applications/${applicant.id}`)}
+                        onClick={() => safeNavigate(`/restaurant/applicants/profile/${applicant.id}`)}
                         disabled={isNavigating}
                         className="w-full"
                       >

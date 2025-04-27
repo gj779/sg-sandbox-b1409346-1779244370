@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -488,7 +489,7 @@ export default function RestaurantDashboard() {
                             </Button>
                             <Button 
                               size="sm"
-                              onClick={() => safeNavigate(`/applications/${applicant.id}`)}
+                              onClick={() => safeNavigate(`/restaurant/applicants/profile/${applicant.id}`)}
                               disabled={isNavigating}
                             >
                               View Profile
@@ -651,7 +652,7 @@ export default function RestaurantDashboard() {
                           </Button>
                           <Button 
                             size="sm"
-                            onClick={() => safeNavigate(`/applications/${applicant.id}`)}
+                            onClick={() => safeNavigate(`/restaurant/applicants/profile/${applicant.id}`)}
                             disabled={isNavigating}
                           >
                             View Profile

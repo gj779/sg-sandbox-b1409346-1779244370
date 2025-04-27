@@ -26,7 +26,8 @@ import {
   CheckCircle,
   XCircle,
   Edit,
-  Trash2
+  Trash2,
+  Briefcase
 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import BackButton from "@/components/common/BackButton";

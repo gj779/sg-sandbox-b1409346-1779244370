@@ -464,7 +464,7 @@ export default function RestaurantListings() {
                       </DropdownMenu>
                       <Button 
                         size="sm"
-                        onClick={() => safeNavigate(`/jobs/${listing.id}/applicants`)}
+                        onClick={() => safeNavigate(`/restaurant/applicants/${listing.id}`)}
                         disabled={isNavigating}
                       >
                         View Applicants

@@ -212,15 +212,10 @@ export default function RestaurantDashboard() {
         .catch(err => {
           console.error(`Navigation error for path ${path}:`, err);
           setIsNavigating(false); // Reset on error
-        })
-        // It might be better to reset isNavigating in a finally block
-        // or rely on component unmount/remount if navigation is successful
-        // For now, let's reset on error only to avoid potential issues.
-        // Consider adding a finally block if needed:
-        // .finally(() => {
-        //   // Be cautious with resetting state immediately after successful navigation
-        //   // setIsNavigating(false); 
-        // });
+        });
+      // It might be better to reset isNavigating in a finally block
+      // or rely on component unmount/remount if navigation is successful
+      // For now, let's reset on error only to avoid potential issues.
 
     } catch (error) {
       console.error('Navigation error:', error);
@@ -542,10 +537,8 @@ export default function RestaurantDashboard() {
                   <Button 
                     variant="outline" 
                     className="flex-1"
-                    onClick={() => {
-                      if (isNavigating) return;
-                      window.location.href = "/restaurant/listings";
-                    }}
+                    onClick={() => safeNavigate("/restaurant/listings")}
+                    disabled={isNavigating}
                   >
                     View All Listings
                   </Button>

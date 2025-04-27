@@ -297,7 +297,7 @@ export default function JobsPage() {
         console.error('Error applying filters:', error);
       }
     }
-  }, [searchTerm, location, jobType, salaryRange, cuisineTypes, datePosted]); // List all dependencies directly instead of using the memoized function
+  }, [searchTerm, location, jobType, salaryRange, cuisineTypes, datePosted, applyFiltersAndSearch]); // Add applyFiltersAndSearch to dependencies
 
   // Clear all filters
   const clearFilters = useCallback(() => {
@@ -308,7 +308,7 @@ export default function JobsPage() {
     setCuisineTypes([]);
     setDatePosted(undefined);
     // applyFiltersAndSearch will be called by the useEffect above
-  }, [applyFiltersAndSearch]); // Depend on the memoized function
+  }, []); // Remove unnecessary dependency
 
   // Remove a specific filter
   const removeFilter = useCallback((filter: string) => {
@@ -371,7 +371,7 @@ export default function JobsPage() {
     setCuisineTypes(search.filters.cuisineTypes || []);
     setDatePosted(search.filters.datePosted);
     // applyFiltersAndSearch will be called by the useEffect listening to filter changes
-  }, [applyFiltersAndSearch]);
+  }, []); // Remove unnecessary dependency
 
   // Toggle job saved status
   const toggleSaveJob = useCallback((jobId: string) => {

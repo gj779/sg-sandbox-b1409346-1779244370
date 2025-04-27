@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ChefHat, Briefcase, Loader2 } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   
   const { login, isAuthenticated, isLoading: authLoading } = useUser();
+  const { toast } = useToast();
 
   // Check if user is already authenticated
   useEffect(() => {
@@ -44,12 +46,12 @@ export default function LoginPage() {
   }, [isAuthenticated, authLoading, router, redirect]);
 
   // Handle form submission
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (formData: { email: string; password: string }) => {
     setIsLoading(true);
-    setError(null);
+    setError('');
     
     try {
-      const { userProfile, dashboardPath } = await login(data.email, data.password);
+      const { userProfile, dashboardPath } = await login(formData.email, formData.password);
       
       toast({
         title: 'Sign in successful',

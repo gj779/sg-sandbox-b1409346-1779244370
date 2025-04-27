@@ -527,48 +527,7 @@ export default function RestaurantDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {mockListings.map((listing) => (
-                    <div key={listing.id} className="border rounded-lg p-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
-                          <h3 className="font-medium">{listing.title}</h3>
-                          <div className="flex flex-col sm:flex-row gap-3 text-sm text-muted-foreground mt-2">
-                            <div className="flex items-center">
-                              <Building className="mr-1.5 h-4 w-4" />
-                              {listing.jobType}
-                            </div>
-                            <div className="flex items-center">
-                              <Users className="mr-1.5 h-4 w-4" />
-                              {listing.applicantsCount} applicants
-                            </div>
-                            <div className="flex items-center">
-                              <Clock className="mr-1.5 h-4 w-4" />
-                              Posted {formatDate(listing.postedDate)}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 self-end md:self-center">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => safeNavigate(`/jobs/${listing.id}/edit`)}
-                            disabled={isNavigating}
-                          >
-                            Edit
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={() => safeNavigate(`/jobs/${listing.id}/applicants`)}
-                            disabled={isNavigating}
-                          >
-                            View Applicants
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                 {/* Content showing some listings would go here */}
               </CardContent>
               <div className="p-4 border-t">
                 <div className="flex gap-4">

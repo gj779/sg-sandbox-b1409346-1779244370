@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -503,7 +504,7 @@ export default function RestaurantDashboard() {
                   <Button 
                     variant="outline" 
                     className="w-full"
-                    onClick={() => safeNavigate("/applications")}
+                    onClick={() => safeNavigate("/restaurant/applicants/1")}
                     disabled={isNavigating}
                   >
                     View All Applicants

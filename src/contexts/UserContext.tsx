@@ -1,8 +1,8 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/router";
 import { useFirebaseAuth, UserProfile } from '@/hooks/useFirebaseAuth';
 import { User } from 'firebase/auth';
+import { usePresence } from '@/hooks/usePresence';
 
 // Define the shape of the context
 interface UserContextType {
@@ -60,6 +60,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   } = useFirebaseAuth();
 
   const router = useRouter();
+  const presence = usePresence();
+
+  // Initialize presence tracking when authenticated
+  useEffect(() => {
+    if (isAuthenticated && user && !presence.isInitialized) {
+      presence.initializePresence();
+    }
+  }, [isAuthenticated, user, presence]);
 
   // Handle error logging
   useEffect(() => {

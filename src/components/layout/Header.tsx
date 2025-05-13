@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -20,6 +19,8 @@ import { Menu, Sun, Moon, Globe, User, LogOut, Shield, Briefcase, ChefHat } from
 import { useTheme } from 'next-themes';
 import Logo from '@/components/common/Logo';
 import { useUser } from '@/contexts/UserContext';
+import { useNotifications } from "@/hooks/useNotifications";
+import NotificationBell from "@/components/common/NotificationBell";
 
 const languages = [
   { code: 'en', name: 'English' },
@@ -158,6 +159,10 @@ export default function Header() {
             )}
             <span className='sr-only'>Toggle theme</span>
           </Button>
+          
+          {isAuthenticated && (
+            <NotificationBell />
+          )}
           
           {isAuthenticated ? (
             <DropdownMenu>

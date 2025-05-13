@@ -542,9 +542,3 @@ export default function JobApplicantsPage() {
     </ErrorBoundary>
   );
 }
-
-// Ensure the main component is exported as default
-export default JobApplicantsPage;
-// If your component has a different name, replace JobApplicantsPage with the correct name.
-// For example, if it's: function ViewApplicants() { ... }
-// Then it should be: export default ViewApplicants;

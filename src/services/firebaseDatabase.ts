@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   doc, 
@@ -19,7 +18,8 @@ import {
   DocumentReference,
   DocumentData,
   QueryConstraint,
-  QuerySnapshot
+  QuerySnapshot,
+  writeBatch // Import writeBatch
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -308,7 +308,7 @@ export const firebaseDatabaseService = {
     data?: DocumentData;
   }[]): Promise<void> {
     try {
-      const batch = db.batch();
+      const batch = writeBatch(db); // Corrected: use writeBatch(db)
       
       for (const operation of operations) {
         const docRef = doc(db, operation.collectionPath, operation.id);

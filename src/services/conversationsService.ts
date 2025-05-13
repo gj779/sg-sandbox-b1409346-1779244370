@@ -1,4 +1,3 @@
-
 import { 
   where, 
   orderBy, 
@@ -6,13 +5,15 @@ import {
   QueryConstraint,
   arrayUnion,
   arrayRemove,
-  DocumentData
+  DocumentData,
+  FieldValue // Import FieldValue
 } from 'firebase/firestore';
 import { firebaseDatabaseService } from './firebaseDatabase';
 import { z } from 'zod';
 
 // Define the Conversation schema for validation
 export const conversationSchema = z.object({
+  id: z.string().optional(), // Add optional id
   participants: z.array(z.string()).min(2, "At least 2 participants required"),
   lastMessage: z.object({
     text: z.string(),
@@ -26,6 +27,7 @@ export const conversationSchema = z.object({
 
 // Define the Message schema for validation
 export const messageSchema = z.object({
+  id: z.string().optional(), // Add optional id
   conversationId: z.string().min(1, "Conversation ID is required"),
   senderId: z.string().min(1, "Sender ID is required"),
   receiverId: z.string().min(1, "Receiver ID is required"),
@@ -156,9 +158,9 @@ export const conversationsService = {
     
     // Add user to participants array
     await firebaseDatabaseService.update<Conversation>(CONVERSATIONS_COLLECTION, conversationId, {
-      participants: arrayUnion(userId),
+      participants: arrayUnion(userId) as any, // Cast to any for FieldValue
       [`unreadCount.${userId}`]: 0
-    });
+    } as Partial<Conversation>);
   },
 
   /**
@@ -180,8 +182,8 @@ export const conversationsService = {
     
     // Remove user from participants array
     await firebaseDatabaseService.update<Conversation>(CONVERSATIONS_COLLECTION, conversationId, {
-      participants: arrayRemove(userId)
-    });
+      participants: arrayRemove(userId) as any // Cast to any for FieldValue
+    } as Partial<Conversation>);
     
     // Remove user's unread count
     const unreadCount = { ...conversation.unreadCount };
@@ -277,7 +279,7 @@ export const conversationsService = {
       const updateOperations = unreadMessages.map(message => ({
         type: 'update' as const,
         collectionPath: MESSAGES_COLLECTION,
-        id: message.id,
+        id: message.id!, // Add non-null assertion if id is guaranteed by query
         data: { isRead: true }
       }));
       

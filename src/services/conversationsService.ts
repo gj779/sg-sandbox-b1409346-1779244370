@@ -116,9 +116,9 @@ export const conversationsService = {
       
       const existingConversations = await firebaseDatabaseService.query<Conversation>(CONVERSATIONS_COLLECTION, constraints);
       
-      if (existingConversations.length > 0) {
+      if (existingConversations.length > 0 && existingConversations[0].id) {
         return {
-          id: existingConversations[0].id,
+          id: existingConversations[0].id, // Now this is safe
           data: existingConversations[0],
           isNew: false
         };

@@ -20,21 +20,19 @@ export default function Layout({ children }: LayoutProps) {
   
   return (
     <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-      <UserProvider>
-        <div className='flex min-h-screen flex-col'>
-          <Header />
-          <main className='flex-1'>
-            {showBackButton && (
-              <div className='container py-4'>
-                <BackButton />
-              </div>
-            )}
-            {children}
-          </main>
-          <Footer />
-        </div>
+      <div className='flex min-h-screen flex-col'>
+        <Header />
+        <main className='flex-1'>
+          {showBackButton && (
+            <div className='container py-4'>
+              <BackButton />
+            </div>
+          )}
+          {children}
+        </main>
+        <Footer />
         <Toaster />
-      </UserProvider>
+      </div>
     </ThemeProvider>
   );
 }

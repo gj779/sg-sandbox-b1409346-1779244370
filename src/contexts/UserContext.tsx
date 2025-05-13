@@ -64,10 +64,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize presence tracking when authenticated
   useEffect(() => {
-    if (isAuthenticated && user && !presence.isInitialized) {
-      presence.initializePresence();
+    // The usePresence hook now handles its own initialization internally
+    // based on isAuthenticated and user.
+    // We just need to ensure the hook is used.
+    // The isInitialized flag from usePresence can be used if needed elsewhere.
+    if (isAuthenticated && user) {
+      // console.log("UserContext: User is authenticated, presence initialization is handled by usePresence hook.");
     }
-  }, [isAuthenticated, user, presence]);
+  }, [isAuthenticated, user, presence.isInitialized]); // Keep presence.isInitialized if you need to react to its change
 
   // Handle error logging
   useEffect(() => {

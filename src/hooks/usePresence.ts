@@ -101,7 +101,7 @@ export function usePresence() {
       return () => {
         unsubscribe();
       };
-    }, [userIds.join(',')]);
+    }, [userIds]); // Changed dependency from userIds.join(',') to userIds
 
     return { presenceMap, loading };
   };

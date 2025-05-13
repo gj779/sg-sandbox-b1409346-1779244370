@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -93,6 +94,7 @@ export function useFirebaseAuth() {
               firstName: userProfile.firstName || '',
               lastName: userProfile.lastName || '',
               phoneNumber: userProfile.phoneNumber || '',
+              photoURL: userProfile.photoURL || user.photoURL || '',
               isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
               createdAt: userProfile.createdAt,
               updatedAt: userProfile.updatedAt,
@@ -123,6 +125,7 @@ export function useFirebaseAuth() {
               email: user.email || '',
               firstName: user.displayName?.split(' ')[0] || 'User',
               lastName: user.displayName?.split(' ')[1] || '',
+              photoURL: user.photoURL || '',
               userType: 'applicant', // Default type
               role: 'applicant', // Set role to match userType for compatibility with UserContext
               isActive: true,
@@ -165,6 +168,7 @@ export function useFirebaseAuth() {
             email: user.email || '',
             firstName: user.displayName?.split(' ')[0] || 'User',
             lastName: user.displayName?.split(' ')[1] || '',
+            photoURL: user.photoURL || '',
             userType: 'applicant', // Default type
             role: 'applicant', // Set role to match userType for compatibility with UserContext
             isActive: true,
@@ -215,6 +219,96 @@ export function useFirebaseAuth() {
       isMounted = false;
       unsubscribe();
     };
+  }, []);
+
+  // Sign in with Google
+  const signInWithGoogle = useCallback(async (userType: 'applicant' | 'restaurant' = 'applicant') => {
+    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+    
+    try {
+      const result = await firebaseAuthService.signInWithGoogle(userType);
+      
+      if (result.user && result.userProfile) {
+        // Convert Firebase UserProfile to our local UserProfile type
+        const typedUserProfile: UserProfile = {
+          id: result.userProfile.id,
+          email: result.userProfile.email,
+          userType: result.userProfile.userType,
+          role: result.userProfile.userType,
+          firstName: result.userProfile.firstName || '',
+          lastName: result.userProfile.lastName || '',
+          phoneNumber: result.userProfile.phoneNumber || '',
+          photoURL: result.userProfile.photoURL || result.user.photoURL || '',
+          isActive: result.userProfile.isActive !== undefined ? result.userProfile.isActive : true,
+          createdAt: result.userProfile.createdAt,
+          updatedAt: result.userProfile.updatedAt,
+          bio: result.userProfile.bio || '',
+          preferredLocation: result.userProfile.preferredLocation || '',
+          skills: result.userProfile.skills || [],
+          experience: result.userProfile.experience || '',
+          education: result.userProfile.education || '',
+          businessName: result.userProfile.businessName || '',
+          businessAddress: result.userProfile.businessAddress || '',
+          cuisineType: result.userProfile.cuisineType || ''
+        };
+        
+        // Update auth state
+        setAuthState({
+          isAuthenticated: true,
+          user: result.user,
+          userProfile: typedUserProfile,
+          isLoading: false,
+          error: null,
+        });
+        
+        // Get the correct dashboard path
+        const dashboardPath = firebaseAuthService.getDashboardPath(typedUserProfile.userType);
+        
+        return { 
+          user: result.user, 
+          userProfile: typedUserProfile, 
+          isNewUser: result.isNewUser,
+          dashboardPath
+        };
+      } else {
+        throw new Error('Failed to get user profile after Google sign in');
+      }
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      
+      // Provide a clean error message
+      let errorMessage = 'Failed to sign in with Google. Please try again.';
+      
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = String(error.message).replace(/@/g, ' at ');
+        } else if ('code' in error) {
+          // Handle Firebase error codes
+          switch (String(error.code)) {
+            case 'auth/account-exists-with-different-credential':
+              errorMessage = 'An account already exists with the same email address but different sign-in credentials.';
+              break;
+            case 'auth/popup-blocked':
+              errorMessage = 'The popup was blocked by your browser. Please allow popups for this website.';
+              break;
+            case 'auth/popup-closed-by-user':
+              errorMessage = 'The sign-in popup was closed before completing the sign in.';
+              break;
+            case 'auth/cancelled-popup-request':
+              errorMessage = 'The sign-in operation was cancelled.';
+              break;
+          }
+        }
+      }
+      
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: errorMessage,
+      }));
+      
+      throw new Error(errorMessage);
+    }
   }, []);
 
   // Sign in function
@@ -289,6 +383,7 @@ export function useFirebaseAuth() {
           email: user.email || '',
           firstName: user.displayName?.split(' ')[0] || 'User',
           lastName: user.displayName?.split(' ')[1] || '',
+          photoURL: user.photoURL || '',
           userType: email.includes('restaurant') ? 'restaurant' : 'applicant',
           role: email.includes('restaurant') ? 'restaurant' : 'applicant',
           isActive: true,
@@ -323,6 +418,7 @@ export function useFirebaseAuth() {
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
           phoneNumber: userProfile.phoneNumber || '',
+          photoURL: userProfile.photoURL || user.photoURL || '',
           isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
           createdAt: userProfile.createdAt,
           updatedAt: userProfile.updatedAt,
@@ -467,6 +563,7 @@ export function useFirebaseAuth() {
         firstName: result.userProfile.firstName || '',
         lastName: result.userProfile.lastName || '',
         phoneNumber: result.userProfile.phoneNumber || '',
+        photoURL: result.userProfile.photoURL || result.user.photoURL || '',
         isActive: result.userProfile.isActive !== undefined ? result.userProfile.isActive : true,
         createdAt: result.userProfile.createdAt,
         updatedAt: result.userProfile.updatedAt,
@@ -662,6 +759,7 @@ export function useFirebaseAuth() {
             firstName: firebaseUpdatedProfile.firstName || '',
             lastName: firebaseUpdatedProfile.lastName || '',
             phoneNumber: firebaseUpdatedProfile.phoneNumber || '',
+            photoURL: firebaseUpdatedProfile.photoURL || authState.user.photoURL || '',
             isActive: firebaseUpdatedProfile.isActive !== undefined ? firebaseUpdatedProfile.isActive : true,
             createdAt: firebaseUpdatedProfile.createdAt,
             updatedAt: firebaseUpdatedProfile.updatedAt,
@@ -729,6 +827,7 @@ export function useFirebaseAuth() {
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
           phoneNumber: userProfile.phoneNumber || '',
+          photoURL: userProfile.photoURL || authState.user.photoURL || '',
           isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
           createdAt: userProfile.createdAt,
           updatedAt: userProfile.updatedAt,
@@ -757,6 +856,7 @@ export function useFirebaseAuth() {
           email: authState.user.email || '',
           firstName: authState.user.displayName?.split(' ')[0] || 'User',
           lastName: authState.user.displayName?.split(' ')[1] || '',
+          photoURL: authState.user.photoURL || '',
           userType: authState.userProfile?.userType || 'applicant',
           role: authState.userProfile?.userType || 'applicant',
           isActive: true,
@@ -840,6 +940,7 @@ export function useFirebaseAuth() {
         email: authState.user.email || '',
         firstName: authState.user.displayName?.split(' ')[0] || 'User',
         lastName: authState.user.displayName?.split(' ')[1] || '',
+        photoURL: authState.user.photoURL || '',
         userType: authState.userProfile?.userType || 'applicant',
         role: authState.userProfile?.userType || 'applicant',
         isActive: true,
@@ -869,6 +970,7 @@ export function useFirebaseAuth() {
   return {
     ...authState,
     signIn,
+    signInWithGoogle,
     signUp,
     signOut,
     forgotPassword,

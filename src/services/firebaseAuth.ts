@@ -7,7 +7,11 @@ import {
   confirmPasswordReset,
   updateProfile,
   User,
-  UserCredential
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  getAdditionalUserInfo // Import getAdditionalUserInfo
 } from 'firebase/auth';
 import { 
   doc, 
@@ -35,6 +39,7 @@ export interface UserProfile {
   firstName: string;
   lastName: string;
   phoneNumber?: string;
+  photoURL?: string;
   createdAt: any;
   updatedAt: any;
   isActive: boolean;
@@ -88,6 +93,7 @@ export const firebaseAuthService = {
         firstName,
         lastName,
         phoneNumber: phoneNumber || '',
+        photoURL: user.photoURL || '',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         isActive: true,
@@ -136,6 +142,164 @@ export const firebaseAuthService = {
       }
       
       throw new Error(errorMessage);
+    }
+  },
+
+  // Sign in with Google
+  async signInWithGoogle(userType: 'applicant' | 'restaurant' = 'applicant'): Promise<{ user: User; userProfile: UserProfile | null; isNewUser: boolean }> {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
+      // Sign in with popup
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      // const credential = GoogleAuthProvider.credentialFromResult(result); // Keep if needed for other purposes
+      
+      // Check if this is a new user using getAdditionalUserInfo
+      const additionalInfo = getAdditionalUserInfo(result);
+      const isNewUser = additionalInfo?.isNewUser || false;
+      
+      // Get or create user profile
+      let userProfile = await this.getUserProfile(user.uid);
+      
+      // If new user or no profile exists, create one
+      if (isNewUser || !userProfile) {
+        // Extract name parts from displayName
+        const displayName = user.displayName || '';
+        const nameParts = displayName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        // Create new profile
+        const newProfile: UserProfile = {
+          id: user.uid,
+          email: user.email || '',
+          userType,
+          firstName,
+          lastName,
+          phoneNumber: user.phoneNumber || '',
+          photoURL: user.photoURL || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          isActive: true,
+          skills: [],
+          experience: '',
+          availability: [],
+          preferredLocation: '',
+          bio: '',
+          education: '',
+          jobPreferences: [],
+          location: '',
+          cuisineType: '',
+          hiringPositions: [],
+          jobTypes: [],
+          benefits: '',
+          profileComplete: false,
+        };
+        
+        // Save to Firestore
+        await setDoc(doc(db, 'users', user.uid), newProfile);
+        
+        // Get the profile with server timestamps
+        userProfile = await this.getUserProfile(user.uid);
+      }
+      
+      return { user, userProfile, isNewUser };
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      
+      let errorMessage = 'Failed to sign in with Google. Please try again.';
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/account-exists-with-different-credential':
+            errorMessage = 'An account already exists with the same email address but different sign-in credentials. Sign in using a provider associated with this email address.';
+            break;
+          case 'auth/popup-blocked':
+            errorMessage = 'The popup was blocked by your browser. Please allow popups for this website and try again.';
+            break;
+          case 'auth/popup-closed-by-user':
+            errorMessage = 'The sign-in popup was closed before completing the sign in. Please try again.';
+            break;
+          case 'auth/cancelled-popup-request':
+            errorMessage = 'The sign-in operation was cancelled. Please try again.';
+            break;
+          default:
+            errorMessage = error.message ? error.message.replace(/@/g, ' at ') : errorMessage;
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Handle redirect result (for mobile devices)
+  async handleRedirectResult(): Promise<{ user: User; userProfile: UserProfile | null; isNewUser: boolean } | null> {
+    try {
+      const result = await getRedirectResult(auth);
+      
+      if (!result) {
+        return null;
+      }
+      
+      const user = result.user;
+      // Check if this is a new user using getAdditionalUserInfo
+      const additionalInfo = getAdditionalUserInfo(result);
+      const isNewUser = additionalInfo?.isNewUser || false;
+      
+      // Get or create user profile
+      let userProfile = await this.getUserProfile(user.uid);
+      
+      // If new user or no profile exists, create one
+      if (isNewUser || !userProfile) {
+        // Extract name parts from displayName
+        const displayName = user.displayName || '';
+        const nameParts = displayName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        // Default to applicant for redirect flow
+        const userType = 'applicant';
+        
+        // Create new profile
+        const newProfile: UserProfile = {
+          id: user.uid,
+          email: user.email || '',
+          userType,
+          firstName,
+          lastName,
+          phoneNumber: user.phoneNumber || '',
+          photoURL: user.photoURL || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          isActive: true,
+          skills: [],
+          experience: '',
+          availability: [],
+          preferredLocation: '',
+          bio: '',
+          education: '',
+          jobPreferences: [],
+          location: '',
+          cuisineType: '',
+          hiringPositions: [],
+          jobTypes: [],
+          benefits: '',
+          profileComplete: false,
+        };
+        
+        // Save to Firestore
+        await setDoc(doc(db, 'users', user.uid), newProfile);
+        
+        // Get the profile with server timestamps
+        userProfile = await this.getUserProfile(user.uid);
+      }
+      
+      return { user, userProfile, isNewUser };
+    } catch (error: any) {
+      console.error('Redirect result error:', error);
+      throw error;
     }
   },
 

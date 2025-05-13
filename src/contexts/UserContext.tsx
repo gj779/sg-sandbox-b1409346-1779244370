@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useRouter } from "next/router";
 import { useFirebaseAuth, UserProfile } from '@/hooks/useFirebaseAuth';
@@ -13,6 +14,11 @@ interface UserContextType {
   login: (email: string, password: string) => Promise<{
     userProfile: UserProfile;
     dashboardPath: string;
+  }>;
+  loginWithGoogle: (userType: 'applicant' | 'restaurant') => Promise<{
+    userProfile: UserProfile;
+    dashboardPath: string;
+    isNewUser: boolean;
   }>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string, userType: "applicant" | "restaurant") => Promise<{
@@ -46,6 +52,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     error,
     isAuthenticated,
     signIn,
+    signInWithGoogle,
     signOut,
     signUp,
     updateUserProfile,
@@ -98,6 +105,32 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         return '/applicant/dashboard';
       default:
         return '/';
+    }
+  };
+
+  // Google login function
+  const loginWithGoogle = async (userType: 'applicant' | 'restaurant' = 'applicant') => {
+    try {
+      console.log(`Attempting to login with Google as ${userType}`);
+      const result = await signInWithGoogle(userType);
+      console.log('Google login successful');
+      return {
+        userProfile: result.userProfile,
+        dashboardPath: result.dashboardPath,
+        isNewUser: result.isNewUser
+      };
+    } catch (error: any) {
+      console.error('Google login error in context:', error);
+      
+      // Ensure we're returning a clean error message
+      let errorMessage = 'Failed to sign in with Google. Please try again.';
+      
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message).replace(/@/g, ' at ');
+      }
+      
+      console.error('Google login error:', errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
@@ -197,6 +230,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         error,
         isAuthenticated,
         login,
+        loginWithGoogle,
         logout,
         register,
         signUp,

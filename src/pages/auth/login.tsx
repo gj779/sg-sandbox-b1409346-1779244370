@@ -24,6 +24,9 @@ import { ChefHat, Briefcase, Loader2 } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { Separator } from "@/components/ui/separator";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import Layout from "@/components/layout/Layout";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,10 +35,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   
   const { login, isAuthenticated, isLoading: authLoading } = useUser();
   const { toast } = useToast();
+  const returnUrl = router.query.returnUrl as string || "/";
 
   // Check if user is already authenticated
   useEffect(() => {
@@ -116,8 +120,31 @@ export default function LoginPage() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const result = await login(email, password);
+      router.push(result.dashboardPath || returnUrl);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = ({ dashboardPath }: { dashboardPath: string }) => {
+    router.push(dashboardPath || returnUrl);
+  };
+
+  const handleGoogleError = (err: Error) => {
+    setError(err.message);
+  };
+
   return (
-    <>
+    <Layout>
       <Head>
         <title>Sign In | StaffSpace</title>
         <meta name='description' content='Sign in to your StaffSpace account to find restaurant jobs or hire talented staff.' />
@@ -155,59 +182,63 @@ export default function LoginPage() {
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
-                <div className='space-y-2'>
-                  <Label htmlFor='applicant-email'>Email</Label>
-                  <Input
-                    id='applicant-email'
-                    type='email'
-                    placeholder='your.email@example.com'
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <div className='flex items-center justify-between'>
-                    <Label htmlFor='applicant-password'>Password</Label>
-                    <Link
-                      href='/auth/reset-password'
-                      className='text-sm text-primary hover:underline'
-                    >
-                      Forgot password?
-                    </Link>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className='space-y-2'>
+                    <Label htmlFor='applicant-email'>Email</Label>
+                    <Input
+                      id='applicant-email'
+                      type='email'
+                      placeholder='your.email@example.com'
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
-                  <Input
-                    id='applicant-password'
-                    type='password'
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
+                  <div className='space-y-2'>
+                    <div className='flex items-center justify-between'>
+                      <Label htmlFor='applicant-password'>Password</Label>
+                      <Link
+                        href='/auth/reset-password'
+                        className='text-sm text-primary hover:underline'
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <Input
+                      id='applicant-password'
+                      type='password'
+                      placeholder='••••••••'
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                        Signing In...
+                      </>
+                    ) : (
+                      'Sign In'
+                    )}
+                  </Button>
+                </form>
+
+                <div className="mt-4 flex items-center">
+                  <Separator className="flex-1" />
+                  <span className="mx-2 text-xs text-muted-foreground">OR</span>
+                  <Separator className="flex-1" />
                 </div>
-                <div className='flex items-center space-x-2'>
-                  <Checkbox
-                    id='applicant-remember'
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+
+                <div className="mt-4">
+                  <GoogleSignInButton 
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
                   />
-                  <Label htmlFor='applicant-remember' className='text-sm'>
-                    Remember me
-                  </Label>
                 </div>
               </CardContent>
               <CardFooter className='flex flex-col gap-4'>
-                <Button
-                  className='w-full'
-                  onClick={() => handleLogin('applicant')}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                      Signing In...
-                    </>
-                  ) : (
-                    'Sign In'
-                  )}
-                </Button>
                 <p className='text-sm text-center text-muted-foreground'>
                   Don't have an account?{' '}
                   <Link href='/auth/register?type=applicant' className='text-primary hover:underline'>
@@ -240,6 +271,7 @@ export default function LoginPage() {
                     placeholder='restaurant@example.com'
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
                   />
                 </div>
                 <div className='space-y-2'>
@@ -255,8 +287,10 @@ export default function LoginPage() {
                   <Input
                     id='restaurant-password'
                     type='password'
+                    placeholder='••••••••'
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    required
                   />
                 </div>
                 <div className='flex items-center space-x-2'>
@@ -296,6 +330,6 @@ export default function LoginPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </>
+    </Layout>
   );
 }

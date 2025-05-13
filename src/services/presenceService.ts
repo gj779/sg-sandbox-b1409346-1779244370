@@ -1,3 +1,4 @@
+
 import { ref, onValue, onDisconnect, set, serverTimestamp } from 'firebase/database';
 import { realTimeDb, auth } from '@/lib/firebase';
 import { User } from 'firebase/auth';
@@ -28,65 +29,70 @@ export const presenceService = {
       return () => {};
     }
 
-    // Create references to the presence locations
-    const userStatusRef = ref(realTimeDb, `${USER_STATUS_REF}/${user.uid}`);
-    const presenceRef = ref(realTimeDb, `${PRESENCE_REF}/${user.uid}`);
+    try {
+      // Create references to the presence locations
+      const userStatusRef = ref(realTimeDb, `${USER_STATUS_REF}/${user.uid}`);
+      const presenceRef = ref(realTimeDb, `${PRESENCE_REF}/${user.uid}`);
 
-    // Set up the presence data
-    const presenceData: UserPresence = {
-      userId: user.uid,
-      status: 'online',
-      lastActive: new Date(),
-      displayName: user.displayName || undefined,
-      photoURL: user.photoURL || undefined
-    };
+      // Set up the presence data
+      const presenceData: UserPresence = {
+        userId: user.uid,
+        status: 'online',
+        lastActive: new Date(),
+        displayName: user.displayName || undefined,
+        photoURL: user.photoURL || undefined
+      };
 
-    // When the client's connection state changes, update the presence data
-    const connectedRef = ref(realTimeDb, '.info/connected');
-    
-    // Store the onValue unsubscribe function
-    const unsubscribe = onValue(connectedRef, (snapshot) => {
-      // If we're connected (or reconnected)
-      if (snapshot.val() === true) {
-        console.log('Connected to Firebase Realtime Database');
-        
-        // Set presence data and remove it when disconnected
-        const onDisconnectRef = onDisconnect(presenceRef);
-        
-        // When this client disconnects, update the presence data
-        onDisconnectRef.set({
+      // When the client's connection state changes, update the presence data
+      const connectedRef = ref(realTimeDb, '.info/connected');
+      
+      // Store the onValue unsubscribe function
+      const unsubscribe = onValue(connectedRef, (snapshot) => {
+        // If we're connected (or reconnected)
+        if (snapshot.val() === true) {
+          console.log('Connected to Firebase Realtime Database');
+          
+          // Set presence data and remove it when disconnected
+          const onDisconnectRef = onDisconnect(presenceRef);
+          
+          // When this client disconnects, update the presence data
+          onDisconnectRef.set({
+            ...presenceData,
+            status: 'offline',
+            lastActive: serverTimestamp()
+          }).then(() => {
+            // Now that we've set up the disconnect handler, set the presence data
+            set(presenceRef, presenceData);
+            
+            // Also update the user status
+            set(userStatusRef, {
+              state: 'online',
+              last_changed: serverTimestamp()
+            });
+          }).catch(error => {
+            console.error('Error setting onDisconnect handler:', error);
+          });
+        } else {
+          console.log('Disconnected from Firebase Realtime Database');
+        }
+      });
+
+      // Return a cleanup function
+      return () => {
+        unsubscribe();
+        // Set the user as offline when manually cleaning up
+        set(presenceRef, {
           ...presenceData,
           status: 'offline',
           lastActive: serverTimestamp()
-        }).then(() => {
-          // Now that we've set up the disconnect handler, set the presence data
-          set(presenceRef, presenceData);
-          
-          // Also update the user status
-          set(userStatusRef, {
-            state: 'online',
-            last_changed: serverTimestamp()
-          });
         }).catch(error => {
-          console.error('Error setting onDisconnect handler:', error);
+          console.error('Error updating presence on cleanup:', error);
         });
-      } else {
-        console.log('Disconnected from Firebase Realtime Database');
-      }
-    });
-
-    // Return a cleanup function
-    return () => {
-      unsubscribe();
-      // Set the user as offline when manually cleaning up
-      set(presenceRef, {
-        ...presenceData,
-        status: 'offline',
-        lastActive: serverTimestamp()
-      }).catch(error => {
-        console.error('Error updating presence on cleanup:', error);
-      });
-    };
+      };
+    } catch (error) {
+      console.error("Error in initializePresence:", error);
+      return () => {};
+    }
   },
 
   /**
@@ -123,26 +129,31 @@ export const presenceService = {
    * @returns Unsubscribe function
    */
   subscribeToUserPresence(userId: string, callback: (presence: UserPresence | null) => void): () => void {
-    const presenceRef = ref(realTimeDb, `${PRESENCE_REF}/${userId}`);
-    
-    return onValue(presenceRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        
-        // Convert server timestamp to Date if needed
-        const lastActive = data.lastActive ? new Date(data.lastActive) : null;
-        
-        callback({
-          ...data,
-          lastActive
-        });
-      } else {
+    try {
+      const presenceRef = ref(realTimeDb, `${PRESENCE_REF}/${userId}`);
+      
+      return onValue(presenceRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          
+          // Convert server timestamp to Date if needed
+          const lastActive = data.lastActive ? new Date(data.lastActive) : null;
+          
+          callback({
+            ...data,
+            lastActive
+          });
+        } else {
+          callback(null);
+        }
+      }, (error) => {
+        console.error(`Error in presence subscription for user ${userId}:`, error);
         callback(null);
-      }
-    }, (error) => {
-      console.error(`Error in presence subscription for user ${userId}:`, error);
-      callback(null);
-    });
+      });
+    } catch (error) {
+      console.error(`Error setting up presence subscription for user ${userId}:`, error);
+      return () => {};
+    }
   },
 
   /**
@@ -152,35 +163,40 @@ export const presenceService = {
    * @returns Unsubscribe function
    */
   subscribeToMultipleUsersPresence(userIds: string[], callback: (presenceMap: Record<string, UserPresence>) => void): () => void {
-    // Create a map to store unsubscribe functions for each user
-    const unsubscribeFunctions: Record<string, () => void> = {};
-    
-    // Create a map to store presence data
-    const presenceMap: Record<string, UserPresence> = {};
-    
-    // Subscribe to each user's presence
-    userIds.forEach(userId => {
-      unsubscribeFunctions[userId] = this.subscribeToUserPresence(userId, (presence) => {
-        if (presence) {
-          presenceMap[userId] = presence;
-        } else {
-          // If presence is null, set a default offline state
-          presenceMap[userId] = {
-            userId,
-            status: 'offline',
-            lastActive: null
-          };
-        }
-        
-        // Call the callback with the updated map
-        callback({ ...presenceMap });
+    try {
+      // Create a map to store unsubscribe functions for each user
+      const unsubscribeFunctions: Record<string, () => void> = {};
+      
+      // Create a map to store presence data
+      const presenceMap: Record<string, UserPresence> = {};
+      
+      // Subscribe to each user's presence
+      userIds.forEach(userId => {
+        unsubscribeFunctions[userId] = this.subscribeToUserPresence(userId, (presence) => {
+          if (presence) {
+            presenceMap[userId] = presence;
+          } else {
+            // If presence is null, set a default offline state
+            presenceMap[userId] = {
+              userId,
+              status: 'offline',
+              lastActive: null
+            };
+          }
+          
+          // Call the callback with the updated map
+          callback({ ...presenceMap });
+        });
       });
-    });
-    
-    // Return a function to unsubscribe from all
-    return () => {
-      Object.values(unsubscribeFunctions).forEach(unsubscribe => unsubscribe());
-    };
+      
+      // Return a function to unsubscribe from all
+      return () => {
+        Object.values(unsubscribeFunctions).forEach(unsubscribe => unsubscribe());
+      };
+    } catch (error) {
+      console.error("Error in subscribeToMultipleUsersPresence:", error);
+      return () => {};
+    }
   },
 
   /**
@@ -189,35 +205,40 @@ export const presenceService = {
    * @returns Unsubscribe function
    */
   subscribeToOnlineUsers(callback: (users: UserPresence[]) => void): () => void {
-    const presenceRef = ref(realTimeDb, PRESENCE_REF);
-    
-    return onValue(presenceRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const onlineUsers: UserPresence[] = [];
-        
-        // Convert the object to an array and filter for online users
-        Object.keys(data).forEach(userId => {
-          const presence = data[userId];
-          if (presence.status === 'online') {
-            // Convert server timestamp to Date if needed
-            const lastActive = presence.lastActive ? new Date(presence.lastActive) : null;
-            
-            onlineUsers.push({
-              ...presence,
-              userId,
-              lastActive
-            });
-          }
-        });
-        
-        callback(onlineUsers);
-      } else {
+    try {
+      const presenceRef = ref(realTimeDb, PRESENCE_REF);
+      
+      return onValue(presenceRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const onlineUsers: UserPresence[] = [];
+          
+          // Convert the object to an array and filter for online users
+          Object.keys(data).forEach(userId => {
+            const presence = data[userId];
+            if (presence.status === 'online') {
+              // Convert server timestamp to Date if needed
+              const lastActive = presence.lastActive ? new Date(presence.lastActive) : null;
+              
+              onlineUsers.push({
+                ...presence,
+                userId,
+                lastActive
+              });
+            }
+          });
+          
+          callback(onlineUsers);
+        } else {
+          callback([]);
+        }
+      }, (error) => {
+        console.error('Error in online users subscription:', error);
         callback([]);
-      }
-    }, (error) => {
-      console.error('Error in online users subscription:', error);
-      callback([]);
-    });
+      });
+    } catch (error) {
+      console.error("Error in subscribeToOnlineUsers:", error);
+      return () => {};
+    }
   }
 };

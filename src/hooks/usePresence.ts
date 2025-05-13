@@ -1,18 +1,36 @@
+
 import { useState, useEffect } from 'react';
 import { presenceService, UserPresence } from '@/services/presenceService';
-import { useUser } from '@/contexts/UserContext';
+import { User } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
+// Create a standalone hook that doesn't depend on UserContext
 export function usePresence() {
-  const { user, isAuthenticated } = useUser();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Listen for auth state changes directly instead of using UserContext
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+      setIsAuthenticated(!!user);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Initialize presence tracking when the user is authenticated
   useEffect(() => {
     let cleanup: (() => void) | undefined;
 
-    if (isAuthenticated && user && !isInitialized) {
-      cleanup = presenceService.initializePresence();
-      setIsInitialized(true);
+    if (isAuthenticated && currentUser && !isInitialized) {
+      try {
+        cleanup = presenceService.initializePresence();
+        setIsInitialized(true);
+      } catch (error) {
+        console.error("Error initializing presence:", error);
+      }
     }
 
     return () => {
@@ -20,14 +38,14 @@ export function usePresence() {
         cleanup();
       }
     };
-  }, [isAuthenticated, user, isInitialized]);
+  }, [isAuthenticated, currentUser, isInitialized]);
 
   /**
    * Set the user's status
    * @param status - The user's status ('online', 'offline', 'away')
    */
   const setStatus = async (status: 'online' | 'offline' | 'away') => {
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !currentUser) {
       console.warn('Cannot set status: User not authenticated');
       return;
     }
@@ -101,7 +119,7 @@ export function usePresence() {
       return () => {
         unsubscribe();
       };
-    }, [userIds]); // Changed dependency from userIds.join(',') to userIds
+    }, [userIds]);
 
     return { presenceMap, loading };
   };
@@ -136,5 +154,7 @@ export function usePresence() {
     useUserPresence,
     useMultipleUsersPresence,
     useOnlineUsers,
+    currentUser,
+    isAuthenticated
   };
 }

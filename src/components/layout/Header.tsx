@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -15,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Menu, Sun, Moon, Globe, User, LogOut, Shield } from 'lucide-react';
+import { Menu, Sun, Moon, Globe, User, LogOut, Shield, Briefcase, ChefHat } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Logo from '@/components/common/Logo';
 import { useUser } from '@/contexts/UserContext';
@@ -74,149 +75,203 @@ export default function Header() {
   }
 
   return (
-    <header className='sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
-      <div className='container flex h-16 items-center justify-between'>
-        <div className='flex items-center gap-2'>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant='ghost' size='icon' className='md:hidden'>
-                <Menu className='h-5 w-5' />
-                <span className='sr-only'>Toggle menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side='left'>
-              <nav className='flex flex-col gap-4 mt-8'>
-                <Link href='/' className='text-lg font-semibold'>
-                  Home
-                </Link>
-                <Link href='/jobs' className='text-lg'>
-                  Browse Jobs
-                </Link>
-                <Link href='/about' className='text-lg'>
-                  About Us
-                </Link>
-                <Link href='/contact' className='text-lg'>
-                  Contact
-                </Link>
-              </nav>
-            </SheetContent>
-          </Sheet>
-          
-          <Link href='/' className='flex items-center gap-2'>
-            <Logo />
-          </Link>
-          
-          <nav className='hidden md:flex items-center gap-6 ml-6'>
-            <Link href='/' className='text-sm font-medium transition-colors hover:text-primary'>
-              Home
-            </Link>
-            <Link href='/jobs' className='text-sm font-medium transition-colors hover:text-primary'>
-              Browse Jobs
-            </Link>
-            <Link href='/about' className='text-sm font-medium transition-colors hover:text-primary'>
-              About Us
-            </Link>
-            <Link href='/contact' className='text-sm font-medium transition-colors hover:text-primary'>
-              Contact
-            </Link>
-          </nav>
-        </div>
-        
-        <div className='flex items-center gap-2'>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon'>
-                <Globe className='h-5 w-5' />
-                <span className='sr-only'>Change language</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuLabel>Select Language</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {languages.map((lang) => (
-                <DropdownMenuItem 
-                  key={lang.code}
-                  onClick={() => handleLanguageChange(lang.code)}
-                  className={currentLanguage === lang.code ? 'bg-muted' : ''}
-                >
-                  {lang.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button 
-            variant='ghost' 
-            size='icon'
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          >
-            {theme === 'dark' ? (
-              <Sun className='h-5 w-5' />
-            ) : (
-              <Moon className='h-5 w-5' />
-            )}
-            <span className='sr-only'>Toggle theme</span>
-          </Button>
-          
+    <>
+      {/* Top Authentication Bar */}
+      <div className="w-full bg-primary text-primary-foreground py-2">
+        <div className="container flex justify-end items-center">
           {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant='ghost' size='icon'>
-                  <User className='h-5 w-5' />
-                  <span className='sr-only'>User menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end'>
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/profile/edit')}>
-                  Edit Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={navigateToDashboard}>
-                  {userProfile?.userType === 'admin' ? (
-                    <>
-                      <Shield className='h-4 w-4 mr-2' />
-                      Admin Dashboard
-                    </>
-                  ) : (
-                    'Dashboard'
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/messaging')}>
-                  Messages
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className='h-4 w-4 mr-2' />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2 text-sm">
+              <span>Signed in as {userProfile?.firstName || 'User'}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleLogout}
+                className="text-primary-foreground hover:text-primary-foreground/80 hover:bg-primary/80"
+              >
+                <LogOut className="h-3 w-3 mr-1" />
+                Logout
+              </Button>
+            </div>
           ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant='default'>Sign In</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end'>
-                <DropdownMenuItem onClick={() => handleLogin('applicant')}>
-                  Sign in as Job Seeker
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleLogin('restaurant')}>
-                  Sign in as Restaurant
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleLogin('admin')}>
-                  <Shield className='h-4 w-4 mr-2' />
-                  Sign in as Admin
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/auth/register')}>
-                  Create Account
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-4 text-sm">
+              <span>Sign in as:</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleLogin('applicant')}
+                className="text-primary-foreground hover:text-primary-foreground/80 hover:bg-primary/80 flex items-center"
+              >
+                <Briefcase className="h-3 w-3 mr-1" />
+                Job Seeker
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleLogin('restaurant')}
+                className="text-primary-foreground hover:text-primary-foreground/80 hover:bg-primary/80 flex items-center"
+              >
+                <ChefHat className="h-3 w-3 mr-1" />
+                Restaurant
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleLogin('admin')}
+                className="text-primary-foreground hover:text-primary-foreground/80 hover:bg-primary/80 flex items-center"
+              >
+                <Shield className="h-3 w-3 mr-1" />
+                Admin
+              </Button>
+            </div>
           )}
         </div>
       </div>
-    </header>
+
+      {/* Main Header */}
+      <header className='sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
+        <div className='container flex h-16 items-center justify-between'>
+          <div className='flex items-center gap-2'>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant='ghost' size='icon' className='md:hidden'>
+                  <Menu className='h-5 w-5' />
+                  <span className='sr-only'>Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side='left'>
+                <nav className='flex flex-col gap-4 mt-8'>
+                  <Link href='/' className='text-lg font-semibold'>
+                    Home
+                  </Link>
+                  <Link href='/jobs' className='text-lg'>
+                    Browse Jobs
+                  </Link>
+                  <Link href='/about' className='text-lg'>
+                    About Us
+                  </Link>
+                  <Link href='/contact' className='text-lg'>
+                    Contact
+                  </Link>
+                </nav>
+              </SheetContent>
+            </Sheet>
+            
+            <Link href='/' className='flex items-center gap-2'>
+              <Logo />
+            </Link>
+            
+            <nav className='hidden md:flex items-center gap-6 ml-6'>
+              <Link href='/' className='text-sm font-medium transition-colors hover:text-primary'>
+                Home
+              </Link>
+              <Link href='/jobs' className='text-sm font-medium transition-colors hover:text-primary'>
+                Browse Jobs
+              </Link>
+              <Link href='/about' className='text-sm font-medium transition-colors hover:text-primary'>
+                About Us
+              </Link>
+              <Link href='/contact' className='text-sm font-medium transition-colors hover:text-primary'>
+                Contact
+              </Link>
+            </nav>
+          </div>
+          
+          <div className='flex items-center gap-2'>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant='ghost' size='icon'>
+                  <Globe className='h-5 w-5' />
+                  <span className='sr-only'>Change language</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end'>
+                <DropdownMenuLabel>Select Language</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {languages.map((lang) => (
+                  <DropdownMenuItem 
+                    key={lang.code}
+                    onClick={() => handleLanguageChange(lang.code)}
+                    className={currentLanguage === lang.code ? 'bg-muted' : ''}
+                  >
+                    {lang.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            <Button 
+              variant='ghost' 
+              size='icon'
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              {theme === 'dark' ? (
+                <Sun className='h-5 w-5' />
+              ) : (
+                <Moon className='h-5 w-5' />
+              )}
+              <span className='sr-only'>Toggle theme</span>
+            </Button>
+            
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant='ghost' size='icon'>
+                    <User className='h-5 w-5' />
+                    <span className='sr-only'>User menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => router.push('/profile/edit')}>
+                    Edit Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={navigateToDashboard}>
+                    {userProfile?.userType === 'admin' ? (
+                      <>
+                        <Shield className='h-4 w-4 mr-2' />
+                        Admin Dashboard
+                      </>
+                    ) : (
+                      'Dashboard'
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/messaging')}>
+                    Messages
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className='h-4 w-4 mr-2' />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant='default'>Sign In</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuItem onClick={() => handleLogin('applicant')}>
+                    Sign in as Job Seeker
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleLogin('restaurant')}>
+                    Sign in as Restaurant
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleLogin('admin')}>
+                    <Shield className='h-4 w-4 mr-2' />
+                    Sign in as Admin
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => router.push('/auth/register')}>
+                    Create Account
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
+      </header>
+    </>
   );
 }

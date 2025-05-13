@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -19,7 +20,6 @@ import { Menu, Sun, Moon, Globe, User, LogOut, Shield, Briefcase, ChefHat } from
 import { useTheme } from 'next-themes';
 import Logo from '@/components/common/Logo';
 import { useUser } from '@/contexts/UserContext';
-import { useNotifications } from "@/hooks/useNotifications";
 import NotificationBell from "@/components/common/NotificationBell";
 
 const languages = [
@@ -35,8 +35,23 @@ export default function Header() {
   const [mounted, setMounted] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('en');
   
-  // Use the user context instead of local state
-  const { user, userProfile, logout, isAuthenticated } = useUser();
+  // Safely access user context with error handling
+  let userContextValue;
+  let isAuthenticated = false;
+  let userProfile = null;
+  let user = null;
+  let logout = () => Promise.resolve();
+  
+  try {
+    userContextValue = useUser();
+    isAuthenticated = userContextValue.isAuthenticated;
+    userProfile = userContextValue.userProfile;
+    user = userContextValue.user;
+    logout = userContextValue.logout;
+  } catch (error) {
+    console.error("Error accessing user context:", error);
+    // Continue with default values
+  }
 
   useEffect(() => {
     setMounted(true);
@@ -56,7 +71,9 @@ export default function Header() {
   };
 
   const handleLogout = () => {
-    logout();
+    if (logout) {
+      logout();
+    }
   };
 
   const navigateToDashboard = () => {
@@ -74,6 +91,77 @@ export default function Header() {
   if (!mounted) {
     return null;
   }
+
+  // Render a simplified header if user context is not available
+  const renderAuthSection = () => {
+    if (!mounted) return null;
+    
+    if (isAuthenticated) {
+      return (
+        <>
+          {userContextValue && <NotificationBell />}
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='ghost' size='icon'>
+                <User className='h-5 w-5' />
+                <span className='sr-only'>User menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='end'>
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push('/profile/edit')}>
+                Edit Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={navigateToDashboard}>
+                {userProfile?.userType === 'admin' ? (
+                  <>
+                    <Shield className='h-4 w-4 mr-2' />
+                    Admin Dashboard
+                  </>
+                ) : (
+                  'Dashboard'
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/messaging')}>
+                Messages
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className='h-4 w-4 mr-2' />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      );
+    } else {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant='default'>Sign In</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align='end'>
+            <DropdownMenuItem onClick={() => handleLogin('applicant')}>
+              Sign in as Job Seeker
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleLogin('restaurant')}>
+              Sign in as Restaurant
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleLogin('admin')}>
+              <Shield className='h-4 w-4 mr-2' />
+              Sign in as Admin
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push('/auth/register')}>
+              Create Account
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+  };
 
   return (
     <header className='sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
@@ -160,67 +248,7 @@ export default function Header() {
             <span className='sr-only'>Toggle theme</span>
           </Button>
           
-          {isAuthenticated && (
-            <NotificationBell />
-          )}
-          
-          {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant='ghost' size='icon'>
-                  <User className='h-5 w-5' />
-                  <span className='sr-only'>User menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end'>
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/profile/edit')}>
-                  Edit Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={navigateToDashboard}>
-                  {userProfile?.userType === 'admin' ? (
-                    <>
-                      <Shield className='h-4 w-4 mr-2' />
-                      Admin Dashboard
-                    </>
-                  ) : (
-                    'Dashboard'
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push('/messaging')}>
-                  Messages
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className='h-4 w-4 mr-2' />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant='default'>Sign In</Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align='end'>
-                <DropdownMenuItem onClick={() => handleLogin('applicant')}>
-                  Sign in as Job Seeker
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleLogin('restaurant')}>
-                  Sign in as Restaurant
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleLogin('admin')}>
-                  <Shield className='h-4 w-4 mr-2' />
-                  Sign in as Admin
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/auth/register')}>
-                  Create Account
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          {renderAuthSection()}
         </div>
       </div>
     </header>

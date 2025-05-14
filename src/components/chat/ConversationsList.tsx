@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { usePresence } from "@/hooks/usePresence";
 import { 
   conversationsService, 
-  Conversation 
+  Conversation,
+  Message
 } from "@/services/conversationsService";
 import { 
   Card, 
@@ -17,18 +19,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Plus, MessageSquare } from "lucide-react";
+import { Search, Plus, MessageSquare, UserPlus } from "lucide-react";
+import { UserProfile } from "@/types"; // Import UserProfile
 
 interface ConversationsListProps {
-  onSelectConversation: (conversation: Conversation, otherUserId: string, otherUserName: string) => void;
+  onSelectConversation: (conversationId: string, otherParticipant: UserProfile | null) => void;
   selectedConversationId?: string;
+  onCreateConversation: () => void; // Callback to handle new conversation creation
 }
 
 export default function ConversationsList({
   onSelectConversation,
-  selectedConversationId
+  selectedConversationId,
+  onCreateConversation
 }: ConversationsListProps) {
-  const { user, userProfile } = useUser();
+  const { user } = useUser();
   const { useMultipleUsersPresence } = usePresence();
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -36,102 +41,97 @@ export default function ConversationsList({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get all participant IDs for presence tracking
   const allParticipantIds = conversations
     .flatMap(conv => conv.participants)
     .filter(id => id !== user?.uid);
   
-  // Subscribe to presence for all participants
   const { presenceMap } = useMultipleUsersPresence(allParticipantIds);
 
-  // Subscribe to conversations for the current user
   useEffect(() => {
     if (!user) return;
 
     setIsLoading(true);
     setError(null);
 
-    try {
-      const unsubscribe = conversationsService.subscribeToUserConversations(
-        user.uid,
-        (conversations) => {
-          setConversations(conversations);
-          setIsLoading(false);
-        }
-      );
+    const unsubscribe = conversationsService.subscribeToUserConversations(
+      user.uid,
+      (fetchedConversations) => {
+        setConversations(fetchedConversations);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error("Error subscribing to conversations:", err);
+        setError("Failed to load conversations");
+        setIsLoading(false);
+      }
+    );
 
-      return () => {
-        unsubscribe();
-      };
-    } catch (error) {
-      console.error("Error subscribing to conversations:", error);
-      setError("Failed to load conversations");
-      setIsLoading(false);
-      return () => {};
-    }
+    return () => unsubscribe();
   }, [user]);
 
-  // Filter conversations based on search term
+  const getOtherParticipant = (conversation: Conversation): UserProfile | null => {
+    if (!user) return null;
+    const otherParticipantId = conversation.participants.find(id => id !== user.uid);
+    if (!otherParticipantId) return null;
+    return conversation.participantProfiles?.find(p => p.id === otherParticipantId) || null;
+  };
+
   const filteredConversations = conversations.filter(conversation => {
-    // For now, we're just filtering by the last message text
-    // In a real app, you would also filter by participant names
     if (!searchTerm) return true;
-    
     const searchTermLower = searchTerm.toLowerCase();
+    const otherParticipant = getOtherParticipant(conversation);
+    const participantName = otherParticipant ? `${otherParticipant.firstName || ""} ${otherParticipant.lastName || ""}`.trim() || otherParticipant.email : "";
     
-    return conversation.lastMessage?.text.toLowerCase().includes(searchTermLower);
+    return (
+      (conversation.lastMessage?.content.toLowerCase().includes(searchTermLower)) ||
+      (participantName.toLowerCase().includes(searchTermLower))
+    );
   });
 
-  // Get the other user's ID from a conversation
-  const getOtherUserId = (conversation: Conversation) => {
-    return conversation.participants.find(id => id !== user?.uid) || "";
+  const getUserInitials = (participant: UserProfile | null) => {
+    if (!participant) return "U";
+    const name = `${participant.firstName || ""} ${participant.lastName || ""}`.trim();
+    if (!name && participant.email) return participant.email.substring(0, 2).toUpperCase();
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map(part => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
   };
 
-  // Get user initials for avatar fallback
-  const getUserInitials = (userId: string) => {
-    // In a real app, you would get the user's name from a users collection
-    // For now, we'll just use the first 2 characters of the user ID
-    return userId.substring(0, 2).toUpperCase();
-  };
-
-  // Format the last message timestamp
-  const formatLastMessageTime = (timestamp: Date | undefined | null) => {
+  const formatLastMessageTime = (timestamp: Date | undefined | string | null) => {
     if (!timestamp) return "";
-    return formatDistanceToNow(timestamp, { addSuffix: true });
+    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    return formatDistanceToNow(date, { addSuffix: true });
   };
 
-  // Get the unread count for a conversation
   const getUnreadCount = (conversation: Conversation) => {
-    if (!user || !conversation.unreadCount) return 0;
-    return conversation.unreadCount[user.uid] || 0;
+    if (!user || !conversation.unreadCounts) return 0;
+    return conversation.unreadCounts[user.uid] || 0;
   };
 
-  // Get the online status indicator for a user
-  const getOnlineStatus = (userId: string) => {
+  const getOnlineStatusIndicator = (userId: string | undefined) => {
+    if (!userId) return null;
     const presence = presenceMap[userId];
-    if (!presence) return null;
+    if (!presence || presence.status === "offline") return null;
     
-    switch (presence.status) {
-      case "online":
-        return <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />;
-      case "away":
-        return <div className="absolute bottom-0 right-0 w-3 h-3 bg-yellow-500 rounded-full border-2 border-background" />;
-      default:
-        return null;
-    }
+    const color = presence.status === "online" ? "bg-green-500" : "bg-yellow-500";
+    return <div className={`absolute bottom-0 right-0 w-3 h-3 ${color} rounded-full border-2 border-background`} />;
   };
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-[calc(100vh-180px)] md:h-[calc(100vh-200px)] lg:h-[700px] flex flex-col w-full md:w-[350px] lg:w-[400px]">
       <CardHeader className="p-4 border-b">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Messages</CardTitle>
-          <Button variant="ghost" size="icon">
-            <Plus className="h-5 w-5" />
+          <Button variant="ghost" size="icon" onClick={onCreateConversation} title="Start new conversation">
+            <UserPlus className="h-5 w-5" />
           </Button>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <div className="relative mt-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search conversations..."
             className="pl-10"
@@ -144,73 +144,69 @@ export default function ConversationsList({
       <CardContent className="flex-1 p-0 overflow-hidden">
         <ScrollArea className="h-full">
           {isLoading ? (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full p-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full p-4">
               <p className="text-destructive">{error}</p>
             </div>
           ) : filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-4 text-center">
               <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
-              {searchTerm ? (
-                <p className="text-muted-foreground">No conversations match your search</p>
-              ) : (
-                <>
-                  <p className="text-muted-foreground mb-2">No conversations yet</p>
-                  <p className="text-sm text-muted-foreground">
-                    Start a new conversation by clicking the + button
-                  </p>
-                </>
+              <p className="text-muted-foreground">
+                {searchTerm ? "No conversations match your search" : "No conversations yet"}
+              </p>
+              {!searchTerm && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Click <UserPlus className="inline h-4 w-4 mx-1" /> to start a new chat.
+                </p>
               )}
             </div>
           ) : (
-            <div>
+            <div className="divide-y">
               {filteredConversations.map((conversation) => {
-                const otherUserId = getOtherUserId(conversation);
+                const otherParticipant = getOtherParticipant(conversation);
                 const unreadCount = getUnreadCount(conversation);
                 const isSelected = selectedConversationId === conversation.id;
-                
+                const participantName = otherParticipant ? `${otherParticipant.firstName || ""} ${otherParticipant.lastName || ""}`.trim() || otherParticipant.email || "Unknown User" : "Unknown User";
+
                 return (
                   <div
                     key={conversation.id}
-                    className={`p-4 cursor-pointer transition-colors hover:bg-muted ${
+                    className={`p-3 cursor-pointer transition-colors hover:bg-muted/50 ${
                       isSelected ? "bg-muted" : ""
                     }`}
-                    onClick={() => onSelectConversation(
-                      conversation, 
-                      otherUserId, 
-                      // In a real app, you would get the user's name from a users collection
-                      `User ${otherUserId.substring(0, 6)}`
-                    )}
+                    onClick={() => onSelectConversation(conversation.id, otherParticipant)}
                   >
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <Avatar>
-                          <AvatarImage src="" alt="" />
-                          <AvatarFallback>{getUserInitials(otherUserId)}</AvatarFallback>
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={otherParticipant?.photoURL} alt={participantName} />
+                          <AvatarFallback>{getUserInitials(otherParticipant)}</AvatarFallback>
                         </Avatar>
-                        {getOnlineStatus(otherUserId)}
+                        {getOnlineStatusIndicator(otherParticipant?.id)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className="font-medium truncate">
-                            {/* In a real app, you would get the user's name from a users collection */}
-                            User {otherUserId.substring(0, 6)}
+                          <p className={`font-medium truncate ${unreadCount > 0 ? "font-semibold" : ""}`}>
+                            {participantName}
                           </p>
                           {conversation.lastMessage?.timestamp && (
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground whitespace-nowrap">
                               {formatLastMessageTime(conversation.lastMessage.timestamp)}
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm text-muted-foreground truncate">
-                            {conversation.lastMessage?.text || "No messages yet"}
+                        <div className="flex items-center justify-between mt-1">
+                          <p className={`text-sm text-muted-foreground truncate ${unreadCount > 0 ? "font-semibold text-primary" : ""}`}>
+                            {conversation.lastMessage?.senderId === user?.uid && "You: "}
+                            {conversation.lastMessage?.contentType === "image" ? "📷 Image" : 
+                             conversation.lastMessage?.contentType === "file" ? `📄 ${conversation.lastMessage.fileName || "File"}` :
+                             conversation.lastMessage?.content || "No messages yet"}
                           </p>
                           {unreadCount > 0 && (
-                            <Badge className="ml-2">{unreadCount}</Badge>
+                            <Badge className="ml-2 px-2 py-0.5 text-xs">{unreadCount}</Badge>
                           )}
                         </div>
                       </div>

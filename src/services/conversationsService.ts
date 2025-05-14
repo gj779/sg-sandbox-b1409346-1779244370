@@ -1,4 +1,3 @@
-
 import { 
   db 
 } from "@/lib/firebase"; // Import db from firebase setup
@@ -17,7 +16,9 @@ import {
   onSnapshot,
   writeBatch,
   serverTimestamp, // For server-side timestamps if needed
-  FieldValue 
+  FieldValue,
+  arrayUnion, // Added import
+  arrayRemove  // Added import
 } from 'firebase/firestore';
 
 import { 

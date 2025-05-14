@@ -1,8 +1,10 @@
-
 import { useState, useEffect, useCallback } from "react";
-import { profilesService } from "@/services/profilesService";
 import { useUser } from "@/contexts/UserContext";
-import { UserProfile } from "@/hooks/useFirebaseAuth";
+import { profilesService } from "@/services/profilesService";
+import { UserProfile } from "@/types"; // Corrected import path
+import { JobListing, JobApplication } from "@/types";
+import { jobsService } from "@/services/jobsService";
+import { applicationsService } from "@/services/applicationsService";
 
 interface ProfileDataState {
   profile: UserProfile | null;

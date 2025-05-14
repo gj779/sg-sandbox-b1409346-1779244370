@@ -1,13 +1,13 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { usePresence } from "@/hooks/usePresence";
+import { conversationsService } from "@/services/conversationsService";
 import { 
-  conversationsService, 
-  Conversation, 
   Message,
-  MessageStatus
-} from "@/services/conversationsService";
+  Conversation, // Added import from @/types
+  MessageStatus,
+  UserProfile // Added import from @/types
+} from "@/types"; 
 import { 
   Card, 
   CardContent, 
@@ -24,7 +24,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatDistanceToNow } from "date-fns";
 import { Send, Phone, Video, MoreHorizontal, ArrowLeft, Smile, Paperclip, Check, CheckCheck, Download } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
-import { UserProfile } from "@/types";
 
 interface ChatInterfaceProps {
   conversationId: string;

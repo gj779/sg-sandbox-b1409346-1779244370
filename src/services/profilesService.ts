@@ -9,6 +9,7 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { firebaseDatabaseService } from './firebaseDatabase';
+import { db } from "@/lib/firebase"; // Import db directly
 import { z } from 'zod';
 import { UserProfile } from "@/types"; // Ensure UserProfile is imported
 
@@ -186,7 +187,7 @@ export const profilesService = {
    */
   async getAllUserProfiles(): Promise<UserProfile[]> {
     try {
-      const usersRef = collection(firebaseDatabaseService.db, USERS_COLLECTION);
+      const usersRef = collection(db, USERS_COLLECTION); // Use imported db
       const q = query(usersRef); // No specific filters, gets all users
       const querySnapshot = await getDocs(q);
       const profiles: UserProfile[] = [];

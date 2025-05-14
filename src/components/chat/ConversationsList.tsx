@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { usePresence } from "@/hooks/usePresence";
+import { conversationsService } from "@/services/conversationsService";
 import { 
-  conversationsService, 
   Conversation,
-  Message
-} from "@/services/conversationsService";
+  Message,
+  UserProfile // Added import from @/types
+} from "@/types"; 
 import { 
   Card, 
   CardContent, 
@@ -19,7 +20,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { Search, Plus, MessageSquare, UserPlus } from "lucide-react";
-import { UserProfile } from "@/types"; // Import UserProfile
 
 interface ConversationsListProps {
   onSelectConversation: (conversationId: string, otherParticipant: UserProfile | null) => void;
@@ -65,9 +65,9 @@ export default function ConversationsList({
 
   const getOtherParticipant = (conversation: Conversation): UserProfile | null => {
     if (!user) return null;
-    const otherParticipantId = conversation.participants.find(id => id !== user.uid);
+    const otherParticipantId = conversation.participants.find((id: string) => id !== user.uid);
     if (!otherParticipantId) return null;
-    return conversation.participantProfiles?.find(p => p.id === otherParticipantId) || null;
+    return conversation.participantProfiles?.find((p: UserProfile) => p.id === otherParticipantId) || null;
   };
 
   const filteredConversations = conversations.filter(conversation => {

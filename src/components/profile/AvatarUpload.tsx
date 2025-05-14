@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,6 @@ import {
   Camera, 
   Loader2, 
   X, 
-  Upload, 
   Check 
 } from "lucide-react";
 import { 
@@ -33,12 +33,17 @@ export default function AvatarUpload({
   onAvatarChange,
   size = "md" 
 }: AvatarUploadProps) {
-  const { user, userProfile } = useUser(); // Call useUser at the top level
+  // Safely use the user context with error handling
+  const userContext = useUser();
+  const user = userContext?.user;
+  const userProfile = userContext?.userProfile;
+  
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Size classes based on the size prop
@@ -61,17 +66,18 @@ export default function AvatarUpload({
 
     // Check file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      setUploadError('Please select an image file');
       return;
     }
 
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size should be less than 5MB');
+      setUploadError('File size should be less than 5MB');
       return;
     }
 
     setSelectedFile(file);
+    setUploadError(null);
     
     // Create a preview URL
     const objectUrl = URL.createObjectURL(file);
@@ -86,11 +92,20 @@ export default function AvatarUpload({
 
   // Handle upload confirmation
   const handleConfirmUpload = async () => {
-    if (!selectedFile || !user) return;
+    if (!selectedFile) {
+      setUploadError("No file selected");
+      return;
+    }
+    
+    if (!user?.uid) {
+      setUploadError("You must be logged in to upload a profile picture");
+      return;
+    }
     
     setShowConfirmDialog(false);
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadError(null);
     
     try {
       // Upload the file to Firebase Storage
@@ -109,7 +124,7 @@ export default function AvatarUpload({
       setPreviewUrl(downloadURL);
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      alert('Failed to upload avatar. Please try again.');
+      setUploadError('Failed to upload avatar. Please try again.');
     } finally {
       setIsUploading(false);
       setSelectedFile(null);
@@ -120,6 +135,7 @@ export default function AvatarUpload({
   const handleCancelUpload = () => {
     setShowConfirmDialog(false);
     setSelectedFile(null);
+    setUploadError(null);
     
     // Revoke the object URL to avoid memory leaks
     if (previewUrl && !previewUrl.startsWith("http")) {
@@ -131,11 +147,15 @@ export default function AvatarUpload({
 
   // Get initials from user profile for avatar fallback
   const getInitials = () => {
-    // userProfile is now available from the top-level hook call
     if (userProfile?.firstName && userProfile?.lastName) {
       return `${userProfile.firstName[0]}${userProfile.lastName[0]}`.toUpperCase();
     }
-    return userProfile?.email?.[0]?.toUpperCase() || "?";
+    
+    if (userProfile?.email) {
+      return userProfile.email[0].toUpperCase();
+    }
+    
+    return "?";
   };
 
   return (
@@ -162,6 +182,7 @@ export default function AvatarUpload({
             variant="secondary"
             className={`absolute bottom-0 right-0 ${buttonSizeClasses[size]} rounded-full shadow-md`}
             onClick={() => fileInputRef.current?.click()}
+            disabled={!user} // Disable if no user is logged in
           >
             <Camera className="h-4 w-4" />
             <span className="sr-only">Change avatar</span>
@@ -184,6 +205,10 @@ export default function AvatarUpload({
             Uploading... {Math.round(uploadProgress)}%
           </p>
         </div>
+      )}
+      
+      {uploadError && (
+        <p className="text-xs text-center text-destructive">{uploadError}</p>
       )}
       
       {/* Confirmation Dialog */}

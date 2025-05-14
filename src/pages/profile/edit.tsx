@@ -36,9 +36,12 @@ import {
   Save,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Camera
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import AvatarUpload from "@/components/profile/AvatarUpload";
+import { useProfileData } from "@/hooks/useProfileData";
 
 // Define form schemas for different user types
 const applicantProfileSchema = z.object({
@@ -69,6 +72,7 @@ type ProfileFormValues = z.infer<typeof applicantProfileSchema> & z.infer<typeof
 
 export default function EditProfilePage() {
   const { userProfile, updateUserProfile, error: authError, refreshUserProfile, isLoading: authLoading } = useFirebaseAuth();
+  const { updateProfile } = useProfileData();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,6 +81,7 @@ export default function EditProfilePage() {
   const [userType, setUserType] = useState<"applicant" | "restaurant" | "admin" | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   
   // Create a form instance with a combined schema
   const form = useForm<ProfileFormValues>({
@@ -157,6 +162,8 @@ export default function EditProfilePage() {
         keepValues: false
       });
       
+      setAvatarUrl(profile.photoURL);
+      
       console.log('Form values set successfully');
     } catch (error) {
       console.error("Error setting form values:", error);
@@ -230,6 +237,30 @@ export default function EditProfilePage() {
       });
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Handle avatar change
+  const handleAvatarChange = (url: string) => {
+    setAvatarUrl(url);
+    
+    // Update the user profile with the new avatar URL
+    if (userProfile) {
+      updateUserProfile({ photoURL: url })
+        .then(() => {
+          toast({
+            title: "Avatar updated",
+            description: "Your profile picture has been updated successfully.",
+          });
+        })
+        .catch((error) => {
+          console.error("Error updating avatar:", error);
+          toast({
+            title: "Error",
+            description: "Failed to update profile picture. Please try again.",
+            variant: "destructive",
+          });
+        });
     }
   };
 
@@ -316,6 +347,7 @@ export default function EditProfilePage() {
         userType: userType,
         isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
         email: userProfile.email,
+        photoURL: avatarUrl || userProfile.photoURL,
       };
       
       // Add user type specific fields
@@ -460,7 +492,18 @@ export default function EditProfilePage() {
                   Update your basic information
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                <div className="flex flex-col items-center mb-4">
+                  <AvatarUpload 
+                    currentPhotoURL={avatarUrl} 
+                    onAvatarChange={handleAvatarChange}
+                    size="lg"
+                  />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Click the camera icon to update your profile picture
+                  </p>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}

@@ -71,14 +71,18 @@ export const profilesService = {
   async updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<{ id: string; data: Partial<UserProfile> }> {
     try {
       const dataToValidate = { ...profileData };
+      // Ensure photoURL is undefined if it's null before Zod parsing,
+      // as Zod schema allows null but the database service might not.
       if (dataToValidate.photoURL === null) {
         dataToValidate.photoURL = undefined;
       }
 
       const validatedData = userProfileSchema.partial().parse(dataToValidate);
       
-      // Ensure photoURL is undefined if it was null after validation as well
-      const finalValidatedData = { ...validatedData };
+      // Explicitly ensure photoURL is undefined if it's null after validation
+      // This handles cases where Zod might pass through null if allowed by schema,
+      // but our database service expects string | undefined.
+      const finalValidatedData: Partial<UserProfile> = { ...validatedData };
       if (finalValidatedData.photoURL === null) {
         finalValidatedData.photoURL = undefined;
       }

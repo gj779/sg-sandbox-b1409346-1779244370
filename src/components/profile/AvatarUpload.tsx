@@ -1,5 +1,4 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { storageHelpers } from "@/services/firebaseStorage";
@@ -21,30 +20,80 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 
 interface AvatarUploadProps {
   currentPhotoURL?: string;
-  onAvatarChange: (url: string) => void;
+  onAvatarChange: (file: File) => void; // Changed from (url: string) => void
   size?: "sm" | "md" | "lg";
+  className?: string;
+  disabled?: boolean;
 }
 
 export default function AvatarUpload({ 
   currentPhotoURL, 
   onAvatarChange,
-  size = "md" 
+  size = "md",
+  className,
+  disabled = false,
 }: AvatarUploadProps) {
+  const [preview, setPreview] = useState<string | null>(currentPhotoURL || null);
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const { user } = useUser(); // Get user from context
+
+  useEffect(() => {
+    setPreview(currentPhotoURL || null);
+  }, [currentPhotoURL]);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 2MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file (e.g., JPG, PNG, GIF).",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadstart = () => setIsLoading(true);
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+        onAvatarChange(file); // Pass the file object
+        setIsLoading(false);
+      };
+      reader.onerror = () => {
+        toast({
+          title: "Error reading file",
+          description: "Could not read the selected file. Please try again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Safely use the user context with error handling
   const userContext = useUser();
-  const user = userContext?.user;
   const userProfile = userContext?.userProfile;
   
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Size classes based on the size prop
   const sizeClasses = {
@@ -59,44 +108,8 @@ export default function AvatarUpload({
     lg: "h-10 w-10"
   };
 
-  // Handle file selection
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please select an image file');
-      return;
-    }
-
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('File size should be less than 5MB');
-      return;
-    }
-
-    setSelectedFile(file);
-    setUploadError(null);
-    
-    // Create a preview URL
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
-    
-    // Show confirmation dialog
-    setShowConfirmDialog(true);
-    
-    // Reset the input value to allow selecting the same file again
-    e.target.value = '';
-  };
-
   // Handle upload confirmation
   const handleConfirmUpload = async () => {
-    if (!selectedFile) {
-      setUploadError("No file selected");
-      return;
-    }
-    
     if (!user?.uid) {
       setUploadError("You must be logged in to upload a profile picture");
       return;
@@ -111,7 +124,7 @@ export default function AvatarUpload({
       // Upload the file to Firebase Storage
       const downloadURL = await storageHelpers.uploadProfileImage(
         user.uid, 
-        selectedFile,
+        preview,
         (progress) => {
           setUploadProgress(progress);
         }
@@ -121,28 +134,20 @@ export default function AvatarUpload({
       onAvatarChange(downloadURL);
       
       // Update preview
-      setPreviewUrl(downloadURL);
+      setPreview(downloadURL);
     } catch (error) {
       console.error('Error uploading avatar:', error);
       setUploadError('Failed to upload avatar. Please try again.');
     } finally {
       setIsUploading(false);
-      setSelectedFile(null);
     }
   };
 
   // Handle cancel upload
   const handleCancelUpload = () => {
     setShowConfirmDialog(false);
-    setSelectedFile(null);
     setUploadError(null);
-    
-    // Revoke the object URL to avoid memory leaks
-    if (previewUrl && !previewUrl.startsWith("http")) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    
-    setPreviewUrl(null);
+    setPreview(null);
   };
 
   // Get initials from user profile for avatar fallback
@@ -159,11 +164,11 @@ export default function AvatarUpload({
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className={`flex flex-col items-center gap-4 ${className}`}>
       <div className="relative">
         <Avatar className={`${sizeClasses[size]} border-2 border-primary/10`}>
           <AvatarImage 
-            src={previewUrl || currentPhotoURL} 
+            src={preview} 
             alt="Profile avatar" 
           />
           <AvatarFallback className="bg-primary/10 text-primary">
@@ -171,7 +176,7 @@ export default function AvatarUpload({
           </AvatarFallback>
         </Avatar>
         
-        {isUploading ? (
+        {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
@@ -182,7 +187,7 @@ export default function AvatarUpload({
             variant="secondary"
             className={`absolute bottom-0 right-0 ${buttonSizeClasses[size]} rounded-full shadow-md`}
             onClick={() => fileInputRef.current?.click()}
-            disabled={!user} // Disable if no user is logged in
+            disabled={disabled || !user} // Disable if no user is logged in
           >
             <Camera className="h-4 w-4" />
             <span className="sr-only">Change avatar</span>
@@ -194,7 +199,7 @@ export default function AvatarUpload({
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={handleFileSelect}
+          onChange={handleFileChange}
         />
       </div>
       
@@ -224,7 +229,7 @@ export default function AvatarUpload({
           <div className="flex justify-center py-4">
             <Avatar className="h-32 w-32 border-2 border-primary/10">
               <AvatarImage 
-                src={previewUrl || ''} 
+                src={preview || ''} 
                 alt="Preview" 
               />
               <AvatarFallback className="bg-primary/10 text-primary">

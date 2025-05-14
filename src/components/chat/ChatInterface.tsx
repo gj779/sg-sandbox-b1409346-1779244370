@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatDistanceToNow } from "date-fns";
 import { Send, Phone, Video, MoreHorizontal, ArrowLeft, Smile, Paperclip, Check, CheckCheck, Download } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import Image from "next/image"; // Import Next.js Image component
 
 interface ChatInterfaceProps {
   conversationId: string;
@@ -253,7 +254,16 @@ export default function ChatInterface({
                         }`}
                       >
                         {message.contentType === "image" && message.fileURL && (
-                          <img src={message.fileURL} alt={message.fileName || "Shared image"} className="max-w-xs max-h-64 rounded my-1" />
+                          <div className="relative w-full max-w-xs max-h-64 my-1 rounded overflow-hidden">
+                            <Image 
+                              src={message.fileURL} 
+                              alt={message.fileName || "Shared image"} 
+                              width={300} // Provide appropriate width
+                              height={200} // Provide appropriate height
+                              className="object-contain"
+                              unoptimized={message.fileURL.startsWith("")} // Add this if using data URLs for previews
+                            />
+                          </div>
                         )}
                         {message.contentType === "file" && message.fileURL && (
                           <a 

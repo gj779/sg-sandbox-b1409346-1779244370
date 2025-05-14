@@ -64,30 +64,26 @@ export default function EditProfilePage() {
     resolver: zodResolver(userProfileSchema.partial()), // Use partial for updates
     defaultValues: async () => {
       if (currentUserProfile) {
-        // Ensure all fields required by ProfileFormData (even if optional in UserProfile)
-        // have a default value if not present in currentUserProfile, or are explicitly undefined.
         return {
           firstName: currentUserProfile.firstName || "",
           lastName: currentUserProfile.lastName || "",
-          email: currentUserProfile.email!, // email is non-optional in UserProfile
+          email: currentUserProfile.email!, 
           phoneNumber: currentUserProfile.phoneNumber || "",
-          photoURL: currentUserProfile.photoURL || "", // Zod schema allows empty string or null
-          userType: currentUserProfile.userType, // userType is non-optional
+          photoURL: currentUserProfile.photoURL || "", 
+          userType: currentUserProfile.userType, 
           isActive: currentUserProfile.isActive !== undefined ? currentUserProfile.isActive : true,
-          
           bio: currentUserProfile.bio || "",
           skills: Array.isArray(currentUserProfile.skills) 
             ? currentUserProfile.skills 
             : (typeof currentUserProfile.skills === 'string' ? currentUserProfile.skills.split(',').map(s => s.trim()).filter(s => s) : undefined),
           experience: typeof currentUserProfile.experience === "string" ? currentUserProfile.experience : "",
           availability: Array.isArray(currentUserProfile.availability) 
-            ? currentUserProfile.availability.map(av => typeof av === 'string' ? av : (av as any).day) // Ensure 'av' is treated correctly
+            ? currentUserProfile.availability.map(av => typeof av === 'string' ? av : (av as any).day)
             : [],
           preferredLocation: currentUserProfile.preferredLocation || "",
           education: typeof currentUserProfile.education === "string" ? currentUserProfile.education : "",
           jobPreferences: currentUserProfile.jobPreferences || [],
           location: currentUserProfile.location || "",
-          
           businessName: currentUserProfile.businessName || "",
           businessAddress: currentUserProfile.businessAddress || "",
           businessDescription: currentUserProfile.businessDescription || currentUserProfile.bio || "",
@@ -96,21 +92,14 @@ export default function EditProfilePage() {
           jobTypes: currentUserProfile.jobTypes || [],
           benefits: currentUserProfile.benefits || "",
           profileComplete: currentUserProfile.profileComplete !== undefined ? currentUserProfile.profileComplete : false,
-          // Ensure 'name' is also provided if it's part of ProfileFormData and non-optional
-          name: currentUserProfile.name || `${currentUserProfile.firstName || ""} ${currentUserProfile.lastName || ""}`.trim(),
         };
       }
-      // Return a structure that satisfies ProfileFormData if currentUserProfile is null
-      // This might mean providing default empty/null/undefined values for all fields.
-      // However, this block should ideally not be reached if the page is protected.
       return { 
         email: "", 
         userType: "applicant", 
         firstName: "", 
         lastName: "", 
         isActive: true, 
-        name: "" 
-        /* other fields as undefined or default */ 
       };
     }
   });
@@ -122,10 +111,10 @@ export default function EditProfilePage() {
         form.reset({
           firstName: currentUserProfile.firstName || "",
           lastName: currentUserProfile.lastName || "",
-          email: currentUserProfile.email!, // email is non-optional
+          email: currentUserProfile.email!, 
           phoneNumber: currentUserProfile.phoneNumber || "",
           photoURL: currentUserProfile.photoURL || "",
-          userType: currentUserProfile.userType, // userType is non-optional
+          userType: currentUserProfile.userType, 
           isActive: currentUserProfile.isActive !== undefined ? currentUserProfile.isActive : true,
           bio: currentUserProfile.bio || "",
           skills: Array.isArray(currentUserProfile.skills) 
@@ -147,7 +136,6 @@ export default function EditProfilePage() {
           jobTypes: currentUserProfile.jobTypes || [],
           benefits: currentUserProfile.benefits || "",
           profileComplete: currentUserProfile.profileComplete !== undefined ? currentUserProfile.profileComplete : false,
-          name: currentUserProfile.name || `${currentUserProfile.firstName || ""} ${currentUserProfile.lastName || ""}`.trim(),
         });
       }
     }

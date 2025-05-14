@@ -1,68 +1,73 @@
 
-import { ref, uploadBytesResumable, getDownloadURL, deleteObject, listAll, getMetadata, updateMetadata, StorageReference, ListResult } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  getMetadata,
+  updateMetadata,
+  deleteObject,
+  listAll,
+  FullMetadata,
+} from "firebase/storage";
+import { app } from "@/lib/firebase"; // Your Firebase app initialization
 
-// File metadata interface
-export interface FileMetadata {
-  name: string;
-  path: string;
-  contentType: string;
-  size: number;
-  createdAt: string;
-  updatedAt: string;
-  downloadURL: string;
-  customMetadata?: {
-    ownerId?: string;
-    accessLevel?: "private" | "shared" | "public";
-    category?: string;
-    description?: string;
-    tags?: string;
-    sharedWith?: string; // Comma-separated user IDs
-  };
-}
-
-// Upload progress interface
 export interface UploadProgress {
   progress: number;
-  state: "paused" | "running" | "success" | "error" | "canceled";
   bytesTransferred: number;
   totalBytes: number;
+  state: "running" | "paused" | "success" | "error";
   error?: Error;
 }
 
-export const firebaseStorageService = {
-  // Upload a file and get download URL with enhanced metadata
+export interface FileCustomMetadata {
+  ownerId?: string;
+  accessLevel?: "private" | "shared" | "public";
+  category?: string;
+  description?: string;
+  tags?: string[]; // Changed to string[]
+  sharedWith?: string[]; // Changed to string[]
+  originalName?: string;
+  uploadedBy?: string;
+}
+
+export interface FileMetadata {
+  name: string;
+  path: string;
+  fullPath: string;
+  size: number;
+  contentType: string;
+  timeCreated: string;
+  updated: string;
+  downloadURL: string; // Added this field
+  customMeta FileCustomMetadata;
+}
+
+
+class FirebaseStorageService {
+  private storage = getStorage(app);
+
   async uploadFile(
-    path: string, 
-    file: File, 
-    metadata: {
-      ownerId: string;
-      accessLevel?: "private" | "shared" | "public";
-      category?: string;
-      description?: string;
-      tags?: string[];
-      sharedWith?: string[];
-    },
+    filePath: string,
+    file: File,
+    customMeta FileCustomMetadata = {},
     onProgress?: (progress: UploadProgress) => void
   ): Promise<FileMetadata> {
-    const storageRef = ref(storage, path);
-    
-    // Prepare custom metadata
-    const customMetadata = {
-      ownerId: metadata.ownerId,
-      accessLevel: metadata.accessLevel || "private",
-      category: metadata.category || "uncategorized",
-      description: metadata.description || "",
-      tags: metadata.tags ? metadata.tags.join(",") : "",
-      sharedWith: metadata.sharedWith ? metadata.sharedWith.join(",") : "",
+    const storageRef = ref(this.storage, filePath);
+    const metadataToSet = {
+      contentType: file.type,
+      customMeta {
+        ...customMetadata,
+        tags: JSON.stringify(customMetadata.tags || []), // Store as JSON string
+        sharedWith: JSON.stringify(customMetadata.sharedWith || []), // Store as JSON string
+        originalName: file.name,
+        uploadedBy: customMetadata.ownerId, // Assuming ownerId is the uploader's ID
+      },
     };
-    
+
+    const uploadTask = uploadBytesResumable(storageRef, file, metadataToSet);
+
     return new Promise((resolve, reject) => {
-      const uploadTask = uploadBytesResumable(storageRef, file, {
-        contentType: file.type,
-        customMetadata
-      });
-      
       uploadTask.on(
         "state_changed",
         (snapshot) => {
@@ -70,288 +75,225 @@ export const firebaseStorageService = {
           if (onProgress) {
             onProgress({
               progress,
-              state: snapshot.state,
               bytesTransferred: snapshot.bytesTransferred,
-              totalBytes: snapshot.totalBytes
+              totalBytes: snapshot.totalBytes,
+              state: snapshot.state,
             });
           }
         },
         (error) => {
+          console.error("Upload failed:", error);
           if (onProgress) {
             onProgress({
               progress: 0,
-              state: "error",
               bytesTransferred: 0,
-              totalBytes: 0,
-              error
+              totalBytes: file.size,
+              state: "error",
+              error,
             });
           }
           reject(error);
         },
         async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          const metadata = await getMetadata(uploadTask.snapshot.ref);
-          
-          resolve({
-            name: metadata.name,
-            path: metadata.fullPath,
-            contentType: metadata.contentType || "",
-            size: metadata.size,
-            createdAt: metadata.timeCreated,
-            updatedAt: metadata.updated,
-            downloadURL,
-            customMetadata: metadata.customMetadata
-          });
+          try {
+            // const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            const uploadedFileMetadata = await this.getFileMetadata(filePath); // Get full metadata
+             if (onProgress) {
+              onProgress({
+                progress: 100,
+                bytesTransferred: file.size,
+                totalBytes: file.size,
+                state: "success",
+              });
+            }
+            resolve(uploadedFileMetadata);
+          } catch (error) {
+            console.error("Failed to get metadata after upload:", error);
+            reject(error);
+          }
         }
       );
     });
-  },
-  
-  // Get download URL for a file
-  async getDownloadURL(path: string): Promise<string> {
-    const storageRef = ref(storage, path);
-    return getDownloadURL(storageRef);
-  },
-  
-  // Get file metadata
-  async getFileMetadata(path: string): Promise<FileMetadata> {
-    const storageRef = ref(storage, path);
+  }
+
+  async getFileMetadata(filePath: string): Promise<FileMetadata> {
+    const storageRef = ref(this.storage, filePath);
     const metadata = await getMetadata(storageRef);
     const downloadURL = await getDownloadURL(storageRef);
+
+    const customMeta = metadata.customMetadata || {};
     
+    let parsedTags: string[] = [];
+    if (customMeta.tags && typeof customMeta.tags === "string") {
+        try {
+            const tagsAttempt = JSON.parse(customMeta.tags);
+            if (Array.isArray(tagsAttempt)) {
+                parsedTags = tagsAttempt.filter(tag => typeof tag === "string");
+            } else {
+                 parsedTags = [String(tagsAttempt)];
+            }
+        } catch (e) { 
+            parsedTags = customMeta.tags.split(",").map(s => s.trim()).filter(s => s);
+        }
+    }
+
+    let parsedSharedWith: string[] = [];
+    if (customMeta.sharedWith && typeof customMeta.sharedWith === "string") {
+        try {
+            const sharedAttempt = JSON.parse(customMeta.sharedWith);
+            if (Array.isArray(sharedAttempt)) {
+                parsedSharedWith = sharedAttempt.filter(id => typeof id === "string");
+            } else {
+                parsedSharedWith = [String(sharedAttempt)];
+            }
+        } catch (e) {
+            parsedSharedWith = customMeta.sharedWith.split(",").map(s => s.trim()).filter(s => s);
+        }
+    }
+
     return {
       name: metadata.name,
-      path: metadata.fullPath,
-      contentType: metadata.contentType || "",
+      path: metadata.fullPath, // Firebase SDK uses fullPath for path
+      fullPath: metadata.fullPath,
       size: metadata.size,
-      createdAt: metadata.timeCreated,
-      updatedAt: metadata.updated,
-      downloadURL,
-      customMetadata: metadata.customMetadata
+      contentType: metadata.contentType || "application/octet-stream",
+      timeCreated: metadata.timeCreated,
+      updated: metadata.updated,
+      downloadURL: downloadURL,
+      customMeta {
+        ownerId: customMeta.ownerId,
+        accessLevel: customMeta.accessLevel as FileCustomMetadata["accessLevel"],
+        category: customMeta.category,
+        description: customMeta.description,
+        tags: parsedTags,
+        sharedWith: parsedSharedWith,
+        originalName: customMeta.originalName || metadata.name,
+        uploadedBy: customMeta.uploadedBy,
+      },
     };
-  },
-  
-  // Update file metadata
-  async updateFileMetadata(
-    path: string, 
-    metadata: {
-      accessLevel?: "private" | "shared" | "public";
-      category?: string;
-      description?: string;
-      tags?: string[];
-      sharedWith?: string[];
-    }
-  ): Promise<FileMetadata> {
-    const storageRef = ref(storage, path);
-    
-    // Prepare custom metadata
-    const customMetadata: Record<string, string> = {};
-    
-    if (metadata.accessLevel) customMetadata.accessLevel = metadata.accessLevel;
-    if (metadata.category) customMetadata.category = metadata.category;
-    if (metadata.description) customMetadata.description = metadata.description;
-    if (metadata.tags) customMetadata.tags = metadata.tags.join(",");
-    if (metadata.sharedWith) customMetadata.sharedWith = metadata.sharedWith.join(",");
-    
-    await updateMetadata(storageRef, { customMetadata });
-    return this.getFileMetadata(path);
-  },
-  
-  // Delete a file
-  async deleteFile(path: string): Promise<void> {
-    const storageRef = ref(storage, path);
-    return deleteObject(storageRef);
-  },
-  
-  // List files in a directory
-  async listFiles(directory: string): Promise<FileMetadata[]> {
-    const storageRef = ref(storage, directory);
-    const result = await listAll(storageRef);
-    
-    const filePromises = result.items.map(async (itemRef) => {
-      try {
-        const metadata = await getMetadata(itemRef);
-        const downloadURL = await getDownloadURL(itemRef);
-        
-        return {
-          name: metadata.name,
-          path: metadata.fullPath,
-          contentType: metadata.contentType || "",
-          size: metadata.size,
-          createdAt: metadata.timeCreated,
-          updatedAt: metadata.updated,
-          downloadURL,
-          customMetadata: metadata.customMetadata
-        };
-      } catch (error) {
-        console.error(`Error getting metadata for ${itemRef.fullPath}:`, error);
-        return null;
-      }
-    });
-    
-    const files = await Promise.all(filePromises);
-    return files.filter((file): file is FileMetadata => file !== null);
-  },
-  
-  // List files recursively (including subdirectories)
-  async listFilesRecursive(directory: string): Promise<FileMetadata[]> {
-    const storageRef = ref(storage, directory);
-    const result = await listAll(storageRef);
-    
-    // Process files in current directory
-    const filePromises = result.items.map(async (itemRef) => {
-      try {
-        const metadata = await getMetadata(itemRef);
-        const downloadURL = await getDownloadURL(itemRef);
-        
-        return {
-          name: metadata.name,
-          path: metadata.fullPath,
-          contentType: metadata.contentType || "",
-          size: metadata.size,
-          createdAt: metadata.timeCreated,
-          updatedAt: metadata.updated,
-          downloadURL,
-          customMetadata: metadata.customMetadata
-        };
-      } catch (error) {
-        console.error(`Error getting metadata for ${itemRef.fullPath}:`, error);
-        return null;
-      }
-    });
-    
-    // Process subdirectories recursively
-    const subDirPromises = result.prefixes.map(prefix => 
-      this.listFilesRecursive(prefix.fullPath)
-    );
-    
-    // Combine results
-    const files = await Promise.all(filePromises);
-    const subDirFiles = await Promise.all(subDirPromises);
-    
-    return [
-      ...files.filter((file): file is FileMetadata => file !== null),
-      ...subDirFiles.flat()
-    ];
-  },
-  
-  // Check if user has access to a file
-  async checkFileAccess(path: string, userId: string): Promise<boolean> {
-    try {
-      const metadata = await this.getFileMetadata(path);
-      
-      if (!metadata.customMetadata) return false;
-      
-      const { ownerId, accessLevel, sharedWith } = metadata.customMetadata;
-      
-      // Owner always has access
-      if (ownerId === userId) return true;
-      
-      // Public files are accessible to everyone
-      if (accessLevel === "public") return true;
-      
-      // Shared files are accessible to specific users
-      if (accessLevel === "shared" && sharedWith) {
-        const sharedWithArray = sharedWith.split(",");
-        return sharedWithArray.includes(userId);
-      }
-      
-      return false;
-    } catch (error) {
-      console.error("Error checking file access:", error);
-      return false;
-    }
   }
-};
 
-// Helper functions for common storage operations
-export const storageHelpers = {
-  // Upload a resume file
-  async uploadResume(userId: string, file: File, metadata: { description?: string, tags?: string[] }, onProgress?: (progress: UploadProgress) => void): Promise<FileMetadata> {
-    const path = `resumes/${userId}/${file.name}`;
-    return firebaseStorageService.uploadFile(
-      path, 
-      file, 
-      {
-        ownerId: userId,
-        accessLevel: "private",
-        category: "resume",
-        description: metadata.description,
-        tags: metadata.tags
-      },
-      onProgress
-    );
-  },
-  
-  // Upload a profile image
-  async uploadProfileImage(userId: string, file: File, onProgress?: (progress: UploadProgress) => void): Promise<FileMetadata> {
-    const path = `profiles/${userId}/${file.name}`;
-    return firebaseStorageService.uploadFile(
-      path, 
-      file, 
-      {
-        ownerId: userId,
-        accessLevel: "public",
-        category: "profile"
-      },
-      onProgress
-    );
-  },
-  
-  // Upload a document to a specific folder
-  async uploadDocument(
-    userId: string, 
-    file: File, 
-    folder: string,
-    metadata: {
-      accessLevel?: "private" | "shared" | "public";
-      category?: string;
-      description?: string;
-      tags?: string[];
-      sharedWith?: string[];
-    },
-    onProgress?: (progress: UploadProgress) => void
+  async updateFileMetadata(
+    filePath: string,
+    newCustomMeta Partial<FileCustomMetadata>
   ): Promise<FileMetadata> {
-    const path = `documents/${userId}/${folder}/${file.name}`;
-    return firebaseStorageService.uploadFile(
-      path, 
-      file, 
-      {
-        ownerId: userId,
-        ...metadata
-      },
-      onProgress
-    );
-  },
-  
-  // Get all user documents
-  async getUserDocuments(userId: string, folder?: string): Promise<FileMetadata[]> {
-    const path = folder 
-      ? `documents/${userId}/${folder}`
-      : `documents/${userId}`;
+    const storageRef = ref(this.storage, filePath);
     
-    return firebaseStorageService.listFilesRecursive(path);
-  },
-  
-  // Get files shared with a user
-  async getSharedFiles(userId: string): Promise<FileMetadata[]> {
-    // This is a simplified approach - in a real app, you might want to use Firestore
-    // to track shared files instead of scanning all files
-    const allUserFiles = await firebaseStorageService.listFilesRecursive("documents");
+    const updateObject: { customMeta any } = { customMeta {} };
+
+    // Merge with existing custom metadata if necessary, or build fresh
+    const existingMetadata = await getMetadata(storageRef);
+    updateObject.customMetadata = { ...existingMetadata.customMetadata };
+
+
+    if (newCustomMetadata.ownerId !== undefined) updateObject.customMetadata.ownerId = newCustomMetadata.ownerId;
+    if (newCustomMetadata.accessLevel !== undefined) updateObject.customMetadata.accessLevel = newCustomMetadata.accessLevel;
+    if (newCustomMetadata.category !== undefined) updateObject.customMetadata.category = newCustomMetadata.category;
+    if (newCustomMetadata.description !== undefined) updateObject.customMetadata.description = newCustomMetadata.description;
     
-    return allUserFiles.filter(file => {
-      if (!file.customMetadata) return false;
-      
-      const { accessLevel, sharedWith } = file.customMetadata;
-      
-      if (accessLevel === "public") return true;
-      
-      if (accessLevel === "shared" && sharedWith) {
-        const sharedWithArray = sharedWith.split(",");
-        return sharedWithArray.includes(userId);
-      }
-      
-      return false;
-    });
+    if (newCustomMetadata.tags !== undefined) {
+        updateObject.customMetadata.tags = JSON.stringify(Array.isArray(newCustomMetadata.tags) ? newCustomMetadata.tags : []);
+    }
+    if (newCustomMetadata.sharedWith !== undefined) {
+        updateObject.customMetadata.sharedWith = JSON.stringify(Array.isArray(newCustomMetadata.sharedWith) ? newCustomMetadata.sharedWith : []);
+    }
+    if (newCustomMetadata.originalName !== undefined) updateObject.customMetadata.originalName = newCustomMetadata.originalName;
+    if (newCustomMetadata.uploadedBy !== undefined) updateObject.customMetadata.uploadedBy = newCustomMetadata.uploadedBy;
+
+    // Remove undefined fields from customMetadata to avoid errors
+    for (const key in updateObject.customMetadata) {
+        if (updateObject.customMetadata[key] === undefined) {
+            delete updateObject.customMetadata[key];
+        }
+    }
+    // Ensure customMetadata itself is not set to null if it becomes empty
+    if (Object.keys(updateObject.customMetadata).length === 0) {
+        // Firebase might error if customMetadata is an empty object or null during update.
+        // It's safer to set it to null to clear it, or ensure it has at least one valid field.
+        // For clearing, you might need to pass null: await updateMetadata(storageRef, { customMeta null });
+        // For this implementation, we assume we are always setting some metadata.
+        // If all fields are cleared, customMetadata will be an empty object.
+    }
+
+
+    await updateMetadata(storageRef, updateObject);
+    return this.getFileMetadata(filePath); // Return full, updated metadata
   }
-};
+
+  async deleteFile(filePath: string): Promise<void> {
+    const storageRef = ref(this.storage, filePath);
+    await deleteObject(storageRef);
+  }
+
+  async listFiles(folderPath: string): Promise<FileMetadata[]> {
+    const listRef = ref(this.storage, folderPath);
+    const result = await listAll(listRef); // listAll is fine for non-recursive, gets items and prefixes
+
+    const filesPromises = result.items.map(itemRef => 
+        this.getFileMetadata(itemRef.fullPath).catch(e => {
+            console.error(`Error getting metadata for ${itemRef.fullPath} in listFiles:`, e);
+            return null;
+        })
+    );
+    
+    const files = (await Promise.all(filesPromises)).filter(file => file !== null) as FileMetadata[];
+    return files;
+  }
+
+  async listFilesRecursive(folderPath: string): Promise<FileMetadata[]> {
+    const listRef = ref(this.storage, folderPath);
+    const result = await listAll(listRef);
+    
+    const filesPromises = result.items.map(itemRef => this.getFileMetadata(itemRef.fullPath).catch(e => {
+      console.error(`Skipping file ${itemRef.fullPath} due to metadata error:`, e);
+      return null; 
+    }));
+    
+    const foldersPromises = result.prefixes.map(folderRef => this.listFilesRecursive(folderRef.fullPath));
+
+    const files = (await Promise.all(filesPromises)).filter(file => file !== null) as FileMetadata[];
+    const filesInFolders = (await Promise.all(foldersPromises)).flat();
+    
+    return [...files, ...filesInFolders];
+  }
+
+
+  async getDownloadUrl(filePath: string): Promise<string> {
+    const storageRef = ref(this.storage, filePath);
+    return getDownloadURL(storageRef);
+  }
+
+  async checkFileAccess(filePath: string, userId: string | null): Promise<boolean> {
+    if (!userId) return false; 
+
+    let metadata;
+    try {
+        metadata = await this.getFileMetadata(filePath);
+    } catch (error: any) {
+        // If file doesn't exist or metadata is inaccessible, deny access.
+        // Specific error codes like 'storage/object-not-found' can be checked.
+        console.warn(`Metadata check failed for ${filePath}: ${error.message}. Denying access.`);
+        return false;
+    }
+    
+    if (!metadata || !metadata.customMetadata) {
+        console.warn(`No metadata or customMetadata found for ${filePath} in checkFileAccess. Denying access.`);
+        return false; 
+    }
+
+    const { accessLevel, ownerId, sharedWith } = metadata.customMetadata;
+
+    if (accessLevel === "public") return true;
+    if (ownerId === userId) return true;
+
+    if (accessLevel === "shared") {
+        // sharedWith is now string[] from getFileMetadata
+        if (!Array.isArray(sharedWith) || sharedWith.length === 0) return false;
+        return sharedWith.includes(userId);
+    }
+    return false;
+  }
+}
+
+export const firebaseStorageService = new FirebaseStorageService();
+

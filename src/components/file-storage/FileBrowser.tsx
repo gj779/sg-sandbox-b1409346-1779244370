@@ -10,8 +10,8 @@ import { Loader2, FolderOpen, Search, RefreshCw } from "lucide-react";
 import { useAuth } from "@/contexts/UserContext";
 
 interface FileBrowserProps {
-  userId: string; // Or get from context
-  initialFolderPath?: string; // e.g., "documents/userId/"
+  userId: string; 
+  initialFolderPath?: string;
 }
 
 export default function FileBrowser({ userId, initialFolderPath }: FileBrowserProps) {
@@ -21,45 +21,89 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
   const [currentPath, setCurrentPath] = useState(initialFolderPath || `documents/${userId}/`);
   const [searchTerm, setSearchTerm] = useState("");
   const [showUpload, setShowUpload] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const { user } = useAuth();
+  const { user: authUser } = useAuth(); // User from context
 
-  const fetchFiles = useCallback(async (path: string) => {
-    if (!user) {
-        setError("User not authenticated.");
+  // Effect for path changes from props
+  useEffect(() => {
+    const newPath = initialFolderPath || `documents/${userId}/`;
+    setCurrentPath(newPath);
+  }, [initialFolderPath, userId]);
+
+
+  const loadDirectoryFiles = useCallback(async (pathToList: string, isMountedChecker: () => boolean) => {
+    if (!userId || !authUser) {
+      if (isMountedChecker()) {
+        setError(!authUser ? "User not authenticated." : "User ID is missing.");
         setIsLoading(false);
-        return;
+        setFiles([]);
+      }
+      return;
     }
-    setIsLoading(true);
-    setError(null);
+
+    if (isMountedChecker()) {
+      setIsLoading(true);
+      setError(null);
+    }
+
     try {
-      // For simplicity, listing recursively. Could be adapted for non-recursive listing.
-      const fetchedFiles = await firebaseStorageService.listFilesRecursive(path);
-      // Filter out files that the user might not have direct access to if listing a broader path
-      // This example assumes `listFilesRecursive` already handles some level of access or we filter client-side
-      const accessibleFiles = [];
-      for (const file of fetchedFiles) {
-        if (await firebaseStorageService.checkFileAccess(file.path, userId)) {
-            accessibleFiles.push(file);
+      const fetchedItems = await firebaseStorageService.listFilesRecursive(pathToList);
+      if (!isMountedChecker()) return;
+
+      const accessibleItems = [];
+      for (const item of fetchedItems) {
+        if (!isMountedChecker()) return;
+        // Ensure item.path is valid before checking access
+        if (item && typeof item.path === "string") {
+            const hasAccess = await firebaseStorageService.checkFileAccess(item.path, userId);
+            if (hasAccess) {
+                accessibleItems.push(item);
+            }
+        } else {
+            console.warn("Skipping item with invalid path:", item);
         }
       }
-      setFiles(accessibleFiles);
+      
+      if (isMountedChecker()) {
+        setFiles(accessibleItems);
+      }
     } catch (err: any) {
       console.error("Error fetching files:", err);
-      setError(`Failed to load files from ${path}: ${err.message}`);
-      setFiles([]);
+      if (isMountedChecker()) {
+        setError(`Failed to load files: ${err.message}`);
+        setFiles([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedChecker()) {
+        setIsLoading(false);
+      }
     }
-  }, [userId, user]);
+  }, [userId, authUser]); // authUser from context
 
   useEffect(() => {
-    fetchFiles(currentPath);
-  }, [currentPath, fetchFiles]);
+    let isMounted = true;
+    const isMountedChecker = () => isMounted;
+    
+    loadDirectoryFiles(currentPath, isMountedChecker);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentPath, loadDirectoryFiles, refreshTrigger]);
+
 
   const handleFileUploaded = (uploadedFile: FileMetadata) => {
-    setFiles(prevFiles => [uploadedFile, ...prevFiles.filter(f => f.path !== uploadedFile.path)]); // Add or update
-    setShowUpload(false); // Optionally hide upload form after success
+    setFiles(prevFiles => {
+      const existingFileIndex = prevFiles.findIndex(f => f.path === uploadedFile.path);
+      if (existingFileIndex > -1) {
+        const updatedFiles = [...prevFiles];
+        updatedFiles[existingFileIndex] = uploadedFile;
+        return updatedFiles;
+      }
+      return [uploadedFile, ...prevFiles];
+    });
+    setShowUpload(false); 
   };
 
   const handleFileDeleted = (filePath: string) => {
@@ -70,30 +114,36 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
     setFiles(prevFiles => prevFiles.map(file => file.path === updatedFile.path ? updatedFile : file));
   };
 
-  const filteredFiles = files.filter(file => 
-    file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    file.customMetadata?.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    file.customMetadata?.tags?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    file.customMetadata?.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFiles = files.filter(file => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+        file.name.toLowerCase().includes(searchLower) ||
+        (file.customMetadata?.category && file.customMetadata.category.toLowerCase().includes(searchLower)) ||
+        (Array.isArray(file.customMetadata?.tags) && file.customMetadata.tags.some(tag => tag.toLowerCase().includes(searchLower))) ||
+        (file.customMetadata?.description && file.customMetadata.description.toLowerCase().includes(searchLower))
+    );
+  });
 
-  // Basic path navigation (very simplified)
   const navigateUp = () => {
     if (currentPath.endsWith("/")) {
-        const newPath = currentPath.substring(0, currentPath.length -1);
+        const newPath = currentPath.substring(0, currentPath.length -1); // remove trailing slash
         const lastSlash = newPath.lastIndexOf("/");
-        if (lastSlash > 0) {
+        if (lastSlash >= 0) { // Check for >=0 to handle root like "documents/"
             setCurrentPath(newPath.substring(0, lastSlash + 1));
         }
-    } else {
+    } else { // Should not happen if paths always end with /
         const lastSlash = currentPath.lastIndexOf("/");
-        if (lastSlash > 0) {
+        if (lastSlash >= 0) {
             setCurrentPath(currentPath.substring(0, lastSlash + 1));
         }
     }
   };
+  
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
-  if (!user) {
+  if (!authUser) { // Check authUser from context for main render block
     return (
       <Alert variant="destructive">
         <AlertTitle>Authentication Error</AlertTitle>
@@ -101,13 +151,19 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
       </Alert>
     );
   }
+  
+  // Ensure currentPath always ends with a slash for consistency
+  const displayPath = currentPath.endsWith("/") ? currentPath : `${currentPath}/`;
+  const rootPath = `documents/${userId}/`;
+  const canNavigateUp = displayPath !== rootPath && displayPath.replace(/\/$/, "").includes("/");
+
 
   return (
     <div className="space-y-6 p-4">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h2 className="text-2xl font-semibold">File Manager</h2>
         <div className="flex gap-2">
-          <Button onClick={() => fetchFiles(currentPath)} variant="outline" disabled={isLoading}>
+          <Button onClick={handleRefresh} variant="outline" disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh
           </Button>
           <Button onClick={() => setShowUpload(!showUpload)}>
@@ -118,8 +174,8 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
 
       {showUpload && (
         <FileUpload
-          userId={userId}
-          folderPath={currentPath}
+          userId={userId} // Pass the prop userId
+          folderPath={displayPath} // Use consistent displayPath
           onUploadSuccess={handleFileUploaded}
           onUploadError={(err) => setError(`Upload failed: ${err.message}`)}
         />
@@ -128,8 +184,8 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border rounded-lg">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <FolderOpen className="h-5 w-5" />
-          <span>Current Path: {currentPath}</span>
-          {currentPath !== `documents/${userId}/` && currentPath !== `documents/${userId}` && (
+          <span>Current Path: {displayPath}</span>
+          {canNavigateUp && (
             <Button onClick={navigateUp} size="sm" variant="ghost">Up</Button>
           )}
         </div>
@@ -168,7 +224,7 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
             <FileListItem 
               key={file.path} 
               file={file} 
-              currentUserId={userId}
+              currentUserId={userId} // Pass the prop userId
               onDelete={handleFileDeleted}
               onMetadataUpdate={handleMetadataUpdated}
             />
@@ -178,3 +234,4 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
     </div>
   );
 }
+

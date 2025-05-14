@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { usePresence } from "@/hooks/usePresence";
@@ -57,11 +56,6 @@ export default function ConversationsList({
       user.uid,
       (fetchedConversations) => {
         setConversations(fetchedConversations);
-        setIsLoading(false);
-      },
-      (err) => {
-        console.error("Error subscribing to conversations:", err);
-        setError("Failed to load conversations");
         setIsLoading(false);
       }
     );

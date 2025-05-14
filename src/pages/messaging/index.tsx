@@ -1,12 +1,11 @@
-
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useUser } from "@/contexts/UserContext";
 import ConversationsList from "@/components/chat/ConversationsList";
 import ChatInterface from "@/components/chat/ChatInterface";
-import { UserProfile } from "@/types"; // Import UserProfile
-import { conversationsService } // Import conversationsService
+import { UserProfile } from "@/types"; 
+import { conversationsService } 
 from "@/services/conversationsService"; 
 import { profilesService } from "@/services/profilesService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -14,10 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search } from "lucide-react";
+import { Search, MessageSquare } from "lucide-react"; // Added MessageSquare
 
 export default function MessagingPage() {
-  const { user, isAuthenticated, loading: userLoading } = useUser();
+  const { user, isAuthenticated, isLoading: userLoading } = useUser(); // Ensure isLoading is used
   const router = useRouter();
   
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -58,9 +57,6 @@ export default function MessagingPage() {
     }
     setIsSearchingUsers(true);
     try {
-      // This is a simplified search. In a real app, you'd have a dedicated user search endpoint/service.
-      // For now, let's assume profilesService can search or we fetch a few users.
-      // This might need a backend function for efficient searching if user base is large.
       const allProfiles = await profilesService.getAllUserProfiles(); // Potentially inefficient
       const filtered = allProfiles.filter(p => 
         (p.id !== user?.uid) &&
@@ -100,7 +96,6 @@ export default function MessagingPage() {
   }
 
   if (!isAuthenticated) {
-    // This will be handled by the useEffect redirect, but good to have a fallback UI
     return (
       <div className="container py-12 text-center">
         <p>Redirecting to login...</p>

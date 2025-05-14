@@ -1,14 +1,16 @@
-
 import { 
   where, 
   orderBy, 
   limit, 
   QueryConstraint,
-  DocumentData
+  DocumentData,
+  collection,
+  query,
+  getDocs
 } from 'firebase/firestore';
 import { firebaseDatabaseService } from './firebaseDatabase';
 import { z } from 'zod';
-import { UserProfile } from '@/hooks/useFirebaseAuth';
+import { UserProfile } from "@/types"; // Ensure UserProfile is imported
 
 // Define the UserProfile schema for validation
 export const userProfileSchema = z.object({
@@ -168,33 +170,45 @@ export const profilesService = {
    */
   async isProfileComplete(userId: string): Promise<boolean> {
     const profile = await this.getUserProfile(userId);
-    
     if (!profile) return false;
-    
-    if (profile.userType === 'applicant') {
-      // Check required fields for applicant profiles
-      return !!(
-        profile.firstName &&
-        profile.lastName &&
-        profile.email &&
-        profile.skills &&
-        profile.skills.length > 0 &&
-        profile.experience &&
-        profile.preferredLocation
-      );
-    } else if (profile.userType === 'restaurant') {
-      // Check required fields for restaurant profiles
-      return !!(
-        profile.firstName &&
-        profile.lastName &&
-        profile.email &&
-        profile.businessName &&
-        profile.businessAddress &&
-        profile.cuisineType
-      );
+    // Define what constitutes a complete profile based on userType
+    if (profile.userType === "applicant") {
+      return !!(profile.firstName && profile.lastName && profile.skills?.length && profile.experience?.length);
+    } else if (profile.userType === "restaurant") {
+      return !!(profile.businessName && profile.businessAddress && profile.cuisineType?.length);
     }
-    
-    return false;
+    return false; // Default for admin or unknown types
+  },
+
+  /**
+   * Get all user profiles
+   * @returns Promise with an array of user profiles
+   */
+  async getAllUserProfiles(): Promise<UserProfile[]> {
+    try {
+      const usersRef = collection(firebaseDatabaseService.db, USERS_COLLECTION);
+      const q = query(usersRef); // No specific filters, gets all users
+      const querySnapshot = await getDocs(q);
+      const profiles: UserProfile[] = [];
+      querySnapshot.forEach((doc) => {
+        // Map Firestore document to UserProfile type
+        // Ensure this mapping is correct and handles potential missing fields gracefully
+        const data = doc.data();
+        profiles.push({
+          id: doc.id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          photoURL: data.photoURL,
+          userType: data.userType,
+          // Add any other fields from 'users' collection that are part of UserProfile
+        } as UserProfile); // Type assertion might be needed if fields are optional
+      });
+      return profiles;
+    } catch (error) {
+      console.error("Error fetching all user profiles:", error);
+      throw error; // Or return empty array: return [];
+    }
   },
 
   /**

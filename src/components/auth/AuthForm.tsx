@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
@@ -8,15 +7,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useUser } from "@/contexts/UserContext";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface AuthFormProps {
   mode: "login" | "register";
-  userType?: "applicant" | "restaurant";
+  onSuccess?: () => void; // Add onSuccess prop
 }
 
-export default function AuthForm({ mode, userType = "applicant" }: AuthFormProps) {
-  const router = useRouter();
-  const { signIn, signUp, isLoading, error } = useFirebaseAuth();
+export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
+  const router = useRouter(); // Added router
+  const { signIn, signUp, error: authError, isLoading: authIsLoading, clearAuthError } = useUser();
   
   // Form state
   const [email, setEmail] = useState("");
@@ -25,41 +27,55 @@ export default function AuthForm({ mode, userType = "applicant" }: AuthFormProps
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmPassword, setConfirmPassword] = useState(""); // Added confirm password state
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
+    clearAuthError(); // Clear previous errors
+    setFormError(null); // Clear local errors
+
+    if (mode === "register") {
+      if (password !== confirmPassword) {
+        setFormError("Passwords do not match");
+        return;
+      }
+      if (!firstName || !lastName) {
+        setFormError("First and last name are required for registration.");
+        return;
+      }
+    }
 
     try {
+      let profile;
       if (mode === "login") {
-        await signIn(email, password);
-        router.push(userType === "applicant" ? "/applicant/dashboard" : "/restaurant/dashboard");
+        profile = await signIn(email, password);
       } else {
-        // Validation
-        if (!firstName || !lastName) {
-          setFormError("Please provide your first and last name");
-          return;
-        }
+        // Ensure userType is passed for registration
+        const userType = router.query.type === "restaurant" ? "restaurant" : "applicant";
+        profile = await signUp(email, password, firstName, lastName, userType);
+      }
 
-        if (password.length < 6) {
-          setFormError("Password must be at least 6 characters");
-          return;
-        }
-
-        await signUp({
-          email,
-          password,
-          userType: userType as "applicant" | "restaurant",
-          firstName,
-          lastName,
-          phoneNumber: phoneNumber || undefined,
+      if (profile) {
+        toast({
+          title: mode === "login" ? "Sign In Successful" : "Registration Successful",
+          description: `Welcome, ${profile.firstName || profile.email}!`,
         });
-
-        // Redirect to dashboard after successful registration
-        router.push(userType === "applicant" ? "/applicant/dashboard" : "/restaurant/dashboard");
+        if (onSuccess) {
+          onSuccess(); // Call onSuccess callback
+        } else {
+          // Default redirection logic if onSuccess is not provided
+          const redirectPath = profile.userType === "admin" ? "/admin/dashboard"
+                             : profile.userType === "restaurant" ? (profile.profileComplete ? "/restaurant/dashboard" : "/onboarding")
+                             : (profile.profileComplete ? "/applicant/dashboard" : "/onboarding");
+          router.push(redirectPath);
+        }
+      } else if (!authError) { // If profile is null but no global authError, set local error
+        setFormError(`Failed to ${mode}. Please try again.`);
       }
     } catch (err: any) {
-      setFormError(err.message || "Authentication failed");
+      // This catch block might be redundant if useUser hook handles and sets authError
+      console.error(`${mode} error:`, err);
+      setFormError(err.message || `An unexpected error occurred during ${mode}.`);
     }
   };
 
@@ -70,45 +86,39 @@ export default function AuthForm({ mode, userType = "applicant" }: AuthFormProps
         <CardDescription>
           {mode === "login" 
             ? "Enter your credentials to access your account" 
-            : `Join as a ${userType} and start using StaffSpace`}
+            : `Join as a ${router.query.type === "restaurant" ? "restaurant" : "applicant"} and start using StaffSpace`}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {(formError || authError) && (
+            <Alert variant="destructive">
+              <AlertDescription>{formError || authError}</AlertDescription>
+            </Alert>
+          )}
           {mode === "register" && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input 
-                    id="firstName"
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input 
-                    id="lastName"
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="phoneNumber">Phone Number (Optional)</Label>
+                <Label htmlFor="firstName">First Name</Label>
                 <Input 
-                  id="phoneNumber"
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
                 />
               </div>
-            </>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input 
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
           )}
           
           <div className="space-y-2">
@@ -133,25 +143,29 @@ export default function AuthForm({ mode, userType = "applicant" }: AuthFormProps
             />
           </div>
 
-          {(formError || error) && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {formError || error}
-              </AlertDescription>
-            </Alert>
+          {mode === "register" && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input 
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
           )}
-          
+
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isLoading}
+            disabled={authIsLoading}
           >
-            {isLoading 
-              ? "Processing..." 
-              : mode === "login" 
-                ? "Sign In" 
-                : "Create Account"}
+            {authIsLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              mode === "login" ? "Sign In" : "Create Account"
+            )}
           </Button>
         </form>
       </CardContent>
@@ -164,7 +178,7 @@ export default function AuthForm({ mode, userType = "applicant" }: AuthFormProps
             variant="link" 
             className="p-0" 
             onClick={() => router.push(mode === "login" 
-              ? `/auth/register?type=${userType}` 
+              ? `/auth/register?type=${router.query.type}` 
               : "/auth/login")}
           >
             {mode === "login" ? "Sign Up" : "Sign In"}

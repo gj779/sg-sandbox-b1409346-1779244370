@@ -1,41 +1,61 @@
+
 // User Types
 export interface User {
   id: string;
   email: string;
-  name: string;
+  name: string; // Typically concatenation of firstName and lastName, or displayName from Firebase
   photoURL?: string;
   phoneNumber?: string;
   userType: "applicant" | "restaurant" | "admin";
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date; // Make optional as it might not always be present on client-side objects
+  updatedAt?: Date; // Make optional
   profileComplete?: boolean;
+  isActive?: boolean; // Added from profilesService schema
 }
 
-export interface Applicant extends User {
-  userType: "applicant";
+export interface ApplicantSpecificProfile {
   resume?: Resume;
-  skills: string[];
-  experience: Experience[];
-  availability: Availability[];
-  preferences: {
-    cuisineTypes: string[];
-    jobTypes: string[];
+  skills?: string[] | string; // Allow string for form input, array for storage
+  experience?: Experience[] | string; // Allow string for form input (e.g. "1-3 years"), array for detailed storage
+  availability?: Availability[] | string[]; // Allow string array for form input
+  preferences?: {
+    cuisineTypes?: string[];
+    jobTypes?: string[];
     locationPreference?: string;
     radius?: number;
   };
-  appliedJobs: string[];
-  isPremium: boolean;
+  appliedJobs?: string[];
+  isPremium?: boolean;
+  bio?: string;
+  education?: Education[] | string; // Allow string for form input
+  jobPreferences?: string[];
+  preferredLocation?: string;
+  location?: string; // General location field
 }
 
-export interface Restaurant extends User {
-  userType: "restaurant";
-  businessName: string;
-  businessAddress: string;
-  businessDescription?: string;
-  cuisineType: string[];
-  listings: string[];
-  isPremium: boolean;
+export interface RestaurantSpecificProfile {
+  businessName?: string;
+  businessAddress?: string;
+  businessDescription?: string; // Can map to 'bio' from UserProfile for consistency
+  cuisineType?: string[] | string; // Allow string for form input
+  listings?: string[];
+  isPremium?: boolean; // Assuming restaurants can also be premium
+  hiringPositions?: string[];
+  jobTypes?: string[]; // e.g., Full-time, Part-time
+  benefits?: string;
 }
+
+// Comprehensive UserProfile combining User and specific fields
+export interface UserProfile extends User, ApplicantSpecificProfile, RestaurantSpecificProfile {
+  // All fields from User, ApplicantSpecificProfile, and RestaurantSpecificProfile are merged.
+  // Optional fields remain optional.
+  // Ensure no direct field conflicts, or resolve them (e.g. 'name' vs 'firstName'/'lastName')
+  // 'name' from User can be derived or stored as displayName.
+  // For forms, often individual fields like firstName, lastName are preferred.
+  firstName?: string; // Explicitly add if not covered by 'name'
+  lastName?: string;  // Explicitly add
+}
+
 
 // Resume Types
 export interface Resume {
@@ -50,8 +70,8 @@ export interface Resume {
   education: Education[];
   experience: Experience[];
   skills: string[];
-  certifications: Certification[];
-  languages: Language[];
+  certifications?: Certification[];
+  languages?: Language[];
   references?: Reference[];
   createdAt: Date;
   updatedAt: Date;
@@ -61,8 +81,8 @@ export interface Education {
   institution: string;
   degree: string;
   fieldOfStudy?: string;
-  startDate: Date;
-  endDate?: Date;
+  startDate: Date | string; // Allow string for form input
+  endDate?: Date | string;   // Allow string for form input
   isCurrentlyStudying?: boolean;
   description?: string;
 }
@@ -71,8 +91,8 @@ export interface Experience {
   company: string;
   position: string;
   location?: string;
-  startDate: Date;
-  endDate?: Date;
+  startDate: Date | string; // Allow string for form input
+  endDate?: Date | string;   // Allow string for form input
   isCurrentlyWorking?: boolean;
   description?: string;
   responsibilities?: string[];
@@ -81,8 +101,8 @@ export interface Experience {
 export interface Certification {
   name: string;
   issuingOrganization: string;
-  issueDate: Date;
-  expirationDate?: Date;
+  issueDate: Date | string;
+  expirationDate?: Date | string;
   credentialID?: string;
   credentialURL?: string;
 }
@@ -111,49 +131,54 @@ export interface JobListing {
   requirements: string[];
   location: string;
   cuisineType: string[];
-  jobType: "Full-time" | "Part-time" | "Temporary" | "Event" | "Seasonal" | "full-time" | "part-time" | "contract" | "temporary";
+  jobType: "Full-time" | "Part-time" | "Temporary" | "Event" | "Seasonal" | "full-time" | "part-time" | "contract"; // Added 'contract'
   salary?: {
     amount: number;
     period: "Hourly" | "Daily" | "Weekly" | "Monthly" | "Yearly";
   };
-  startDate?: Date;
-  endDate?: Date;
-  eventDate?: Date;
-  applicationDeadline?: Date;
+  startDate?: Date | string;
+  endDate?: Date | string;
+  eventDate?: Date | string;
+  applicationDeadline?: Date | string;
   requiredAvailability?: Availability[];
   isPremium: boolean;
   createdAt: Date;
   updatedAt: Date;
-  applicants: string[];
+  applicants: string[]; // Array of applicant User IDs
+  status?: "open" | "closed" | "filled"; // Added status
+  createdBy?: string; // User ID of restaurant user who created it
 }
 
 export interface Availability {
   day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
-  startTime: string;
-  endTime: string;
+  startTime: string; // e.g., "09:00"
+  endTime: string;   // e.g., "17:00"
 }
 
 export interface JobApplication {
   id: string;
   jobId: string;
   applicantId: string;
+  restaurantId: string; // Added for easier querying/filtering
   resumeId?: string;
   coverLetter?: string;
-  status: "Pending" | "Reviewed" | "Shortlisted" | "Rejected" | "Hired";
+  status: "Pending" | "Reviewed" | "Shortlisted" | "Interviewing" | "Offered" | "Rejected" | "Hired" | "Withdrawn"; // Expanded statuses
   appliedAt: Date;
   updatedAt: Date;
+  notes?: string; // Notes by restaurant or applicant
 }
 
 // Notification Types
 export interface Notification {
   id: string;
-  userId: string;
+  userId: string; // User to whom the notification belongs
   title: string;
   message: string;
-  type: "job_alert" | "application_update" | "message" | "system";
-  relatedId?: string;
+  type: "job_alert" | "application_update" | "message" | "system" | "interview_scheduled" | "interview_reminder";
+  relatedId?: string; // e.g., jobId, applicationId, conversationId
   isRead: boolean;
   createdAt: Date;
+  link?: string; // Optional link for navigation
 }
 
 // Settings Types
@@ -167,9 +192,64 @@ export interface UserSettings {
     jobAlerts: boolean;
     applicationUpdates: boolean;
     messages: boolean;
+    interviewUpdates?: boolean; // Added
   };
   privacySettings: {
     profileVisibility: "Public" | "Registered Users" | "Private";
     contactInfoVisibility: "Public" | "Registered Users" | "Private";
+    resumeVisibility?: "Public" | "Employers Applied To" | "Private"; // Added
   };
 }
+
+// Message and Conversation Types
+export type MessageStatus = "sent" | "delivered" | "read" | "failed" | "sending"; // Added "sending"
+
+export interface MessageReaction {
+  [emoji: string]: string[]; // emoji: [userId1, userId2]
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName?: string;
+  senderPhotoURL?: string;
+  content: string;
+  contentType: "text" | "image" | "file" | "emoji" | "system" | "voice"; // Added "voice"
+  fileURL?: string;
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
+  timestamp: Date; // Or Firestore Timestamp
+  status: MessageStatus;
+  reactions?: MessageReaction;
+  isEdited?: boolean;
+  deletedFor?: string[];
+  readBy?: string[]; // User IDs who have read this message
+  replyToMessageId?: string; // For threaded replies
+  metadata?: Record<string, any>; // For additional data like link previews
+}
+
+export interface Conversation {
+  id: string;
+  participants: string[];
+  participantProfiles?: UserProfile[];
+  lastMessage?: Message | null;
+  unreadCounts: { [userId: string]: number };
+  createdAt: Date;
+  updatedAt: Date;
+  typingUserIds?: string[];
+  theme?: string;
+  isGroupChat?: boolean;
+  groupName?: string;
+  groupAvatar?: string;
+  archivedBy?: string[];
+  mutedBy?: { [userId: string]: Date | boolean };
+  pinnedBy?: string[];
+  adminIds?: string[]; // For group chats
+  description?: string; // For group chats
+}
+
+// Job interface (if different from JobListing, or can be merged)
+// Assuming Job is similar to JobListing for now. If it's a simpler version, define separately.
+export type Job = JobListing;

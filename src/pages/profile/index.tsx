@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { useRouter } from "next/router";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -11,9 +11,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
+import { UserProfile as AppUserProfile } from "@/types"; // Import UserProfile type
 
 export default function ProfilePage() {
-  const { user, userProfile, isLoading: authLoading, updateUserProfileData } = useUser(); // Changed updateUserProfile to updateUserProfileData
+  const { user, userProfile, isLoading: authLoading, updateUserProfileData, error: authError } = useUser(); // Changed updateUserProfile to updateUserProfileData, added authError
   const router = useRouter();
   
   const [formData, setFormData] = useState({
@@ -27,6 +28,21 @@ export default function ProfilePage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [formError, setFormError] = useState<string | null>(null); // Local error state for the form
+
+  // Update formData when userProfile changes
+  useEffect(() => {
+    if (userProfile) {
+      setFormData({
+        firstName: userProfile.firstName || "",
+        lastName: userProfile.lastName || "",
+        email: userProfile.email || "",
+        phoneNumber: userProfile.phoneNumber || "",
+        bio: userProfile.bio || "",
+        preferredLocation: userProfile.preferredLocation || "",
+      });
+    }
+  }, [userProfile]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -35,21 +51,28 @@ export default function ProfilePage() {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.uid) {
+      setFormError("User not authenticated. Please log in again.");
+      return;
+    }
     setIsSubmitting(true);
     setSuccessMessage("");
+    setFormError(null);
     
     try {
-      await updateUserProfileData(user.uid, {
+      const updatePayload: Partial<AppUserProfile> = { // Use AppUserProfile for payload
         firstName: formData.firstName,
         lastName: formData.lastName,
         phoneNumber: formData.phoneNumber,
         bio: formData.bio,
         preferredLocation: formData.preferredLocation,
-      }); // Changed updateUserProfile to updateUserProfileData
+      };
+      await updateUserProfileData(user.uid, updatePayload);
       
       setSuccessMessage("Profile updated successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update profile:", error);
+      setFormError(error.message || "Failed to update profile. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -63,15 +86,20 @@ export default function ProfilePage() {
   };
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedUserTypes={["applicant", "restaurant", "admin"]}>
       <Layout>
         <div className="container py-10">
           <div className="max-w-3xl mx-auto">
             <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
             
-            {error && (
+            {authError && ( // Display global auth errors
               <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>{authError}</AlertDescription>
+              </Alert>
+            )}
+            {formError && ( // Display local form errors
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{formError}</AlertDescription>
               </Alert>
             )}
             

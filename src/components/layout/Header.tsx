@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -20,6 +19,7 @@ import { Menu, Sun, Moon, Globe, User, LogOut, Shield } from "lucide-react";
 import { useTheme } from "next-themes";
 import Logo from "@/components/common/Logo";
 import { useUser } from "@/contexts/UserContext";
+import { useToast } from "@/hooks/use-toast";
 import NotificationBell from "@/components/common/NotificationBell";
 
 const languages = [
@@ -30,13 +30,12 @@ const languages = [
 ];
 
 export default function Header() {
+  const { user, userProfile, signOut, isLoading } = useUser(); // Changed logout to signOut
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
   const [mounted, setMounted] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState("en");
-  
-  // Call useUser at the top level
-  const { isAuthenticated, userProfile, logout } = useUser();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -55,13 +54,14 @@ export default function Header() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     try {
-      await logout();
-      // router.push('/'); // UserContext already handles redirect on logout
+      await signOut(); // Changed logout to signOut
+      toast({ title: "Signed Out", description: "You have been successfully signed out." });
+      router.push("/");
     } catch (error) {
-      console.error("Error during logout:", error);
-      // Optionally show a toast notification for logout failure
+      toast({ title: "Sign Out Error", description: "Failed to sign out. Please try again.", variant: "destructive" });
+      console.error("Sign out error:", error);
     }
   };
 
@@ -82,10 +82,10 @@ export default function Header() {
   const renderAuthSection = () => {
     if (!mounted) return null; // Ensure mounted check is still effective
     
-    if (isAuthenticated) {
+    if (user) {
       return (
         <>
-          {isAuthenticated && <NotificationBell />}
+          {user && <NotificationBell />}
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -114,9 +114,9 @@ export default function Header() {
                 Messages
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign Out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

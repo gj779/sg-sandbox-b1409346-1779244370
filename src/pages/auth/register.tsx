@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -22,58 +22,41 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChefHat, Briefcase } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
+import AuthForm from "@/components/auth/AuthForm";
+import { useToast } from "@/hooks/useToast"; // Assuming useToast is imported from a hooks file
+import { Alert, AlertDescription } from "@/components/ui/alert"; // Assuming Alert component is available
 
 export default function RegisterPage() {
+  const { user, userProfile, signUp, isLoading: authIsLoading, error: authError, clearAuthError } = useUser(); // Changed register to signUp
   const router = useRouter();
-  const { type } = router.query;
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  
-  const { register } = useUser();
+  const { toast } = useToast();
+  const { type: queryType, redirect: queryRedirect } = router.query;
 
-  const validateForm = (userType: "applicant" | "restaurant") => {
-    if (!name || !email || !password || !confirmPassword) {
-      setError("All fields are required");
-      return false;
-    }
-    
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return false;
-    }
-    
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return false;
-    }
-    
-    if (!agreeTerms) {
-      setError("You must agree to the Terms of Service and Privacy Policy");
-      return false;
-    }
-    
-    return true;
-  };
+  const [currentTab, setCurrentTab] = useState<"applicant" | "restaurant">(
+    (queryType === "restaurant" ? "restaurant" : "applicant")
+  );
 
-  const handleRegister = async (userType: "applicant" | "restaurant") => {
-    if (!validateForm(userType)) {
-      return;
+  useEffect(() => {
+    clearAuthError();
+  }, [clearAuthError, currentTab]);
+
+  useEffect(() => {
+    if (user && userProfile) {
+      // If user is already signed in and has a profile, redirect them.
+      // Check if profile is complete to decide onboarding or dashboard.
+      const redirectPath = userProfile.profileComplete 
+        ? (userProfile.userType === "restaurant" ? "/restaurant/dashboard" : "/applicant/dashboard")
+        : "/onboarding";
+      router.push((queryRedirect as string) || redirectPath);
     }
-    
-    setError("");
-    setIsLoading(true);
-    
-    try {
-      await register(name, email, password, userType);
-    } catch (error) {
-      setError("Registration failed. Please try again.");
-      setIsLoading(false);
-    }
+  }, [user, userProfile, router, queryRedirect]);
+
+  const handleAuthSuccess = () => {
+    toast({
+      title: "Registration successful!",
+      description: `Welcome, ${userProfile?.firstName || user?.displayName || "User"}! Please complete your profile.`,
+    });
+    // Redirection is handled by the useEffect above, or AuthForm's default
   };
 
   return (
@@ -89,7 +72,7 @@ export default function RegisterPage() {
           <p className="text-muted-foreground mt-2">Join StaffSpace to connect with opportunities</p>
         </div>
 
-        <Tabs defaultValue={type as string || "applicant"} className="w-full">
+        <Tabs defaultValue={currentTab} className="w-full">
           <TabsList className="grid grid-cols-2 mb-8">
             <TabsTrigger value="applicant" className="flex items-center gap-2">
               <Briefcase className="h-4 w-4" />
@@ -104,79 +87,29 @@ export default function RegisterPage() {
           <TabsContent value="applicant">
             <Card>
               <CardHeader>
-                <CardTitle>Job Seeker Registration</CardTitle>
+                <CardTitle>Create Applicant Account</CardTitle>
                 <CardDescription>
-                  Create an account to find restaurant and hospitality jobs
+                  Sign up to find restaurant and hospitality jobs
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {error && (
-                  <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
-                    {error}
-                  </div>
+                {authError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{authError}</AlertDescription>
+                  </Alert>
                 )}
-                <div className="space-y-2">
-                  <Label htmlFor="applicant-name">Full Name</Label>
-                  <Input
-                    id="applicant-name"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="applicant-email">Email</Label>
-                  <Input
-                    id="applicant-email"
-                    type="email"
-                    placeholder="your.email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="applicant-password">Password</Label>
-                  <Input
-                    id="applicant-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="applicant-confirm-password">Confirm Password</Label>
-                  <Input
-                    id="applicant-confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="applicant-terms" 
-                    checked={agreeTerms}
-                    onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
-                  />
-                  <Label htmlFor="applicant-terms" className="text-sm">
-                    I agree to the{" "}
-                    <Link href="/terms" className="text-primary hover:underline">
-                      Terms of Service
-                    </Link>{" "}
-                    and{" "}
-                    <Link href="/privacy" className="text-primary hover:underline">
-                      Privacy Policy
-                    </Link>
-                  </Label>
+                <AuthForm mode="register" onSuccess={handleAuthSuccess} />
+                <div className="mt-4 flex items-center">
+                  {/* Additional content can go here */}
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-4">
                 <Button 
                   className="w-full" 
                   onClick={() => handleRegister("applicant")}
-                  disabled={isLoading}
+                  disabled={authIsLoading}
                 >
-                  {isLoading ? "Creating Account..." : "Create Account"}
+                  {authIsLoading ? "Creating Account..." : "Create Account"}
                 </Button>
                 <p className="text-sm text-center text-muted-foreground">
                   Already have an account?{" "}
@@ -191,79 +124,29 @@ export default function RegisterPage() {
           <TabsContent value="restaurant">
             <Card>
               <CardHeader>
-                <CardTitle>Restaurant Registration</CardTitle>
+                <CardTitle>Create Restaurant Account</CardTitle>
                 <CardDescription>
-                  Create an account to find talented staff for your restaurant
+                  Sign up to find talented staff for your restaurant
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {error && (
-                  <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
-                    {error}
-                  </div>
+                {authError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{authError}</AlertDescription>
+                  </Alert>
                 )}
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant-name">Restaurant Name</Label>
-                  <Input
-                    id="restaurant-name"
-                    placeholder="Restaurant Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant-email">Business Email</Label>
-                  <Input
-                    id="restaurant-email"
-                    type="email"
-                    placeholder="restaurant@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant-password">Password</Label>
-                  <Input
-                    id="restaurant-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant-confirm-password">Confirm Password</Label>
-                  <Input
-                    id="restaurant-confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="restaurant-terms" 
-                    checked={agreeTerms}
-                    onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
-                  />
-                  <Label htmlFor="restaurant-terms" className="text-sm">
-                    I agree to the{" "}
-                    <Link href="/terms" className="text-primary hover:underline">
-                      Terms of Service
-                    </Link>{" "}
-                    and{" "}
-                    <Link href="/privacy" className="text-primary hover:underline">
-                      Privacy Policy
-                    </Link>
-                  </Label>
+                <AuthForm mode="register" onSuccess={handleAuthSuccess} />
+                <div className="mt-4 flex items-center">
+                  {/* Additional content can go here */}
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-4">
                 <Button 
                   className="w-full" 
                   onClick={() => handleRegister("restaurant")}
-                  disabled={isLoading}
+                  disabled={authIsLoading}
                 >
-                  {isLoading ? "Creating Account..." : "Create Account"}
+                  {authIsLoading ? "Creating Account..." : "Create Account"}
                 </Button>
                 <p className="text-sm text-center text-muted-foreground">
                   Already have an account?{" "}

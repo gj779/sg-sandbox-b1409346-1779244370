@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { UserProfile } from "@/types"; // Import UserProfile
 import { 
   CheckCircle2, 
   ChefHat, 
@@ -45,7 +46,7 @@ interface OnboardingStep {
 }
 
 export default function UserOnboarding() {
-  const { user, userProfile, updateUserProfileData, isLoading: authLoading } = useFirebaseAuth(); // Changed updateUserProfile to updateUserProfileData
+  const { user, userProfile, updateUserProfileData, isLoading: authLoading } = useFirebaseAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
@@ -341,18 +342,17 @@ export default function UserOnboarding() {
     setError(null);
     try {
       if (user?.uid) {
-        // Ensure profileComplete is set to true
         const finalData = { ...formData, profileComplete: true };
-        await updateUserProfileData(user.uid, finalData); // Changed updateUserProfile to updateUserProfileData
-        // Redirect based on user type
+        await updateUserProfileData(user.uid, finalData); 
         if (userProfile?.userType === "applicant") {
           router.push("/applicant/dashboard");
         } else if (userProfile?.userType === "restaurant") {
           router.push("/restaurant/dashboard");
         } else {
-          router.push("/"); // Fallback
+          router.push("/"); 
         }
       } else {
+        setError("User not authenticated. Cannot proceed.");
         throw new Error("User not found.");
       }
     } catch (err: any) {
@@ -372,8 +372,11 @@ export default function UserOnboarding() {
     setIsCompleting(true);
     
     try {
-      // Prepare onboarding data based on user type
-      const onboardingData = isApplicant 
+      if (!user?.uid) {
+        setError("User not authenticated. Cannot complete onboarding.");
+        throw new Error("User not authenticated.");
+      }
+      const onboardingData: Partial<UserProfile> = isApplicant 
         ? {
             skills,
             experience,
@@ -382,22 +385,19 @@ export default function UserOnboarding() {
             bio,
             education,
             jobPreferences,
-            // Add this to the user profile
             profileComplete: true
           }
         : {
             location: preferredLocation,
             cuisineType: experience,
-            description: bio,
+            businessDescription: bio,
             hiringPositions: skills,
             jobTypes: jobPreferences,
             benefits: education,
-            // Add this to the user profile
             profileComplete: true
           };
       
-      // Update user profile with onboarding data
-      await updateUserProfileData(user.uid, onboardingData); // Changed updateUserProfile to updateUserProfileData
+      await updateUserProfileData(user.uid, onboardingData); 
       
       toast({
         title: "Onboarding completed!",
@@ -405,7 +405,6 @@ export default function UserOnboarding() {
         variant: "default",
       });
       
-      // Redirect to appropriate dashboard
       router.push(isApplicant ? "/applicant/dashboard" : "/restaurant/dashboard");
     } catch (error) {
       console.error("Error completing onboarding:", error);
@@ -421,10 +420,15 @@ export default function UserOnboarding() {
 
   const skipOnboarding = async () => {
     try {
+      if (!user?.uid) {
+        setError("User not authenticated. Cannot skip onboarding.");
+        throw new Error("User not authenticated.");
+      }
       await updateUserProfileData(user.uid, { profileComplete: true });
       router.push(isApplicant ? "/applicant/dashboard" : "/restaurant/dashboard");
     } catch (error) {
       console.error("Error skipping onboarding:", error);
+      setError("Failed to skip onboarding. Please try again.");
     }
   };
 

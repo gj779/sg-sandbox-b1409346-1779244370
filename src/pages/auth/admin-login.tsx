@@ -22,24 +22,66 @@ import Logo from "@/components/common/Logo";
 export default function AdminLoginPage() {
   const router = useRouter();
   const { redirect } = router.query;
-  const [email, setEmail] = useState("staffspace@gmail.com");
+  const [email, setEmail] = useState("staffspace@gmail.com"); // Default for convenience
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   
-  const { login } = useUser();
+  // Destructure correct functions and state from useUser
+  const { signIn, userProfile, isLoading: authIsLoading, error: authError, clearAuthError } = useUser();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Clear previous errors when component mounts
+    clearAuthError();
+  }, [clearAuthError]);
+
+  useEffect(() => {
+    if (userProfile) {
+      if (userProfile.userType === "admin") {
+        const redirectPath = (redirect as string) || "/admin/dashboard";
+        router.push(redirectPath);
+      } else {
+        // If logged in user is not an admin, redirect them appropriately
+        toast({
+          title: "Access Denied",
+          description: "You do not have administrator privileges.",
+          variant: "destructive",
+        });
+        // Redirect to their respective dashboard or home
+        const nonAdminRedirect = userProfile.userType === "restaurant" ? "/restaurant/dashboard" : "/applicant/dashboard";
+        router.push(nonAdminRedirect);
+      }
+    }
+  }, [userProfile, router, redirect, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      // Basic validation, consider more robust form validation
-      alert("Email and password are required.");
+      toast({
+        title: "Validation Error",
+        description: "Email and password are required.",
+        variant: "destructive",
+      });
       return;
     }
-    await signIn(email, password); // Changed login to signIn
-    // useEffect will handle redirection based on userProfile update
+    
+    const profile = await signIn(email, password);
+    if (profile && profile.userType !== "admin") {
+        // This case is handled by useEffect, but good to have explicit feedback if needed
+        toast({
+          title: "Access Denied",
+          description: "This account does not have administrator privileges.",
+          variant: "destructive",
+        });
+    } else if (!profile && !authError) { // If signIn returns null but no authError, it might be a logic issue
+        toast({
+          title: "Sign-In Issue",
+          description: "Could not complete sign-in. Please try again.",
+          variant: "destructive",
+        });
+    }
+    // If signIn is successful and user is admin, useEffect will redirect.
+    // If signIn fails, authError will be set and displayed by the Alert component.
   };
 
   return (
@@ -75,9 +117,9 @@ export default function AdminLoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {error && (
+            {authError && (
               <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
-                {error}
+                {authError}
               </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -119,9 +161,9 @@ export default function AdminLoginPage() {
               <Button 
                 type="submit"
                 className="w-full" 
-                disabled={isLoading}
+                disabled={authIsLoading}
               >
-                {isLoading ? "Signing in..." : "Sign In"}
+                {authIsLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
           </CardContent>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -28,7 +29,7 @@ import {
   FormMessage
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth"; // Using direct hook
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -36,307 +37,139 @@ import {
   Save,
   Loader2,
   AlertCircle,
-  RefreshCw,
-  Camera
+  RefreshCw
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import AvatarUpload from "@/components/profile/AvatarUpload";
-import { useProfileData } from "@/hooks/useProfileData";
-import { profilesService, userProfileSchema as profileFormSchema } from "@/services/profilesService"; // Use the schema from profilesService
+import { UserProfile } from "@/types"; // Using the comprehensive UserProfile from types
+import { profilesService, userProfileSchema } from "@/services/profilesService";
 
-// Define a type for the form data based on the schema
-type ProfileFormData = z.infer<typeof profileFormSchema>;
-
-// Define form schemas for different user types
-const applicantProfileSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
-  phoneNumber: z.string().optional(),
-  bio: z.string().optional(),
-  preferredLocation: z.string().optional(),
-  skills: z.string().optional(),
-  experience: z.string().optional(),
-  education: z.string().optional(),
-});
-
-const restaurantProfileSchema = z.object({
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
-  phoneNumber: z.string().optional(),
-  businessName: z.string().min(2, "Business name must be at least 2 characters"),
-  businessAddress: z.string().optional(),
-  businessDescription: z.string().optional(),
-  cuisineType: z.string().optional(),
-});
-
-// Create a combined type for the form values to handle both user types
-type ProfileFormValues = z.infer<typeof applicantProfileSchema> & z.infer<typeof restaurantProfileSchema>;
+// Define a type for the form data based on the schema from profilesService
+type ProfileFormData = z.infer<typeof userProfileSchema>;
 
 export default function EditProfilePage() {
-  const { user, userProfile, updateUserProfileData, uploadProfilePicture, isLoading: authLoading, fetchUserProfile } = useFirebaseAuth(); // Changed updateUserProfile to updateUserProfileData
+  const { user, userProfile: authUserProfile, updateUserProfileData, uploadProfilePicture, isLoading: authLoading, fetchUserProfile } = useFirebaseAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [userType, setUserType] = useState<"applicant" | "restaurant" | "admin" | undefined>(undefined);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [isNavigating, setIsNavigating] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(userProfile?.photoURL || null);
   
-  // Create a form instance with a combined schema
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingPage, setIsLoadingPage] = useState(true); // Page specific loading
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  
+  // Use the userProfile from useFirebaseAuth as the source of truth for initial form values
+  const currentUserProfile = authUserProfile; 
+
   const form = useForm<ProfileFormData>({
-    resolver: zodResolver(profileFormSchema.partial()), // Use partial for updates
+    resolver: zodResolver(userProfileSchema.partial()), // Use partial for updates
     defaultValues: async () => {
-      if (userProfile) {
-        // Map UserProfile to ProfileFormData, ensuring all fields are present or undefined
+      if (currentUserProfile) {
+        // Map UserProfile to ProfileFormData
+        // Ensure skills is a string for the form if it's an array in the profile
+        const skillsString = Array.isArray(currentUserProfile.skills) 
+          ? currentUserProfile.skills.join(", ") 
+          : typeof currentUserProfile.skills === "string" ? currentUserProfile.skills : "";
+
         return {
-          firstName: userProfile.firstName || "",
-          lastName: userProfile.lastName || "",
-          phoneNumber: userProfile.phoneNumber || "",
+          firstName: currentUserProfile.firstName || "",
+          lastName: currentUserProfile.lastName || "",
+          email: currentUserProfile.email || "", // Email should be pre-filled and disabled
+          phoneNumber: currentUserProfile.phoneNumber || "",
+          photoURL: currentUserProfile.photoURL || "",
+          
           // Applicant fields
-          bio: userProfile.bio || "",
-          skills: userProfile.skills || [],
-          experience: typeof userProfile.experience === "string" ? userProfile.experience : "", // Assuming experience is simplified to string for form
-          availability: Array.isArray(userProfile.availability) && userProfile.availability.every(item => typeof item === "string") ? userProfile.availability as string[] : [],
-          preferredLocation: userProfile.preferredLocation || "",
-          education: typeof userProfile.education === "string" ? userProfile.education : "", // Assuming education is simplified
-          jobPreferences: userProfile.jobPreferences || [],
-          location: userProfile.location || "",
+          bio: currentUserProfile.bio || "",
+          skills: skillsString, // Form expects a string
+          experience: typeof currentUserProfile.experience === "string" ? currentUserProfile.experience : "",
+          availability: Array.isArray(currentUserProfile.availability) && currentUserProfile.availability.every(item => typeof item === "string") ? currentUserProfile.availability as string[] : [],
+          preferredLocation: currentUserProfile.preferredLocation || "",
+          education: typeof currentUserProfile.education === "string" ? currentUserProfile.education : "",
+          jobPreferences: currentUserProfile.jobPreferences || [],
+          location: currentUserProfile.location || "",
+          
           // Restaurant fields
-          businessName: userProfile.businessName || "",
-          businessAddress: userProfile.businessAddress || "",
-          cuisineType: typeof userProfile.cuisineType === "string" ? userProfile.cuisineType : "", // Assuming cuisineType is simplified
-          hiringPositions: userProfile.hiringPositions || [],
-          jobTypes: userProfile.jobTypes || [],
-          benefits: userProfile.benefits || "",
+          businessName: currentUserProfile.businessName || "",
+          businessAddress: currentUserProfile.businessAddress || "",
+          businessDescription: currentUserProfile.businessDescription || currentUserProfile.bio || "", // Fallback to bio if businessDescription is not present
+          cuisineType: typeof currentUserProfile.cuisineType === "string" ? currentUserProfile.cuisineType : "",
+          hiringPositions: currentUserProfile.hiringPositions || [],
+          jobTypes: currentUserProfile.jobTypes || [],
+          benefits: currentUserProfile.benefits || "",
         };
       }
-      return {};
+      return {}; // Return empty object if no profile
     }
   });
 
-  // Handle loading state
   useEffect(() => {
-    // If we have a profile or auth is not loading, we're done loading
-    if (userProfile || !authLoading) {
-      setIsLoading(false);
-    }
-  }, [userProfile, authLoading]);
+    if (currentUserProfile || !authLoading) {
+      setIsLoadingPage(false);
+      if (currentUserProfile) {
+        // Reset form with fetched profile data when it becomes available
+        const skillsString = Array.isArray(currentUserProfile.skills) 
+          ? currentUserProfile.skills.join(", ") 
+          : typeof currentUserProfile.skills === "string" ? currentUserProfile.skills : "";
 
-  // Populate form with user profile data
-  const populateFormWithProfileData = useCallback((profile: any) => {
-    if (!profile) {
-      console.log('Cannot populate form: No profile data provided');
-      return;
-    }
-    
-    try {
-      console.log('Populating form with profile data:', profile.userType);
-      
-      // Set user type first
-      setUserType(profile.userType);
-      
-      // Prepare the data object
-      const formData: Partial<ProfileFormValues> = {
-        firstName: profile.firstName || "",
-        lastName: profile.lastName || "",
-        email: profile.email || "",
-        phoneNumber: profile.phoneNumber || "",
-      };
-      
-      // Add user type specific fields
-      if (profile.userType === "applicant") {
-        formData.bio = profile.bio || "";
-        formData.preferredLocation = profile.preferredLocation || "";
-        formData.skills = profile.skills && Array.isArray(profile.skills) 
-          ? profile.skills.join(", ") 
-          : "";
-        formData.experience = profile.experience || "";
-        formData.education = profile.education || "";
-      } else if (profile.userType === "restaurant") {
-        formData.businessName = profile.businessName || "";
-        formData.businessAddress = profile.businessAddress || "";
-        formData.businessDescription = profile.bio || ""; // Map from bio field in the database
-        formData.cuisineType = profile.cuisineType || "";
+        form.reset({
+          firstName: currentUserProfile.firstName || "",
+          lastName: currentUserProfile.lastName || "",
+          email: currentUserProfile.email || "",
+          phoneNumber: currentUserProfile.phoneNumber || "",
+          photoURL: currentUserProfile.photoURL || "",
+          bio: currentUserProfile.bio || "",
+          skills: skillsString,
+          experience: typeof currentUserProfile.experience === "string" ? currentUserProfile.experience : "",
+          availability: Array.isArray(currentUserProfile.availability) && currentUserProfile.availability.every(item => typeof item === "string") ? currentUserProfile.availability as string[] : [],
+          preferredLocation: currentUserProfile.preferredLocation || "",
+          education: typeof currentUserProfile.education === "string" ? currentUserProfile.education : "",
+          jobPreferences: currentUserProfile.jobPreferences || [],
+          location: currentUserProfile.location || "",
+          businessName: currentUserProfile.businessName || "",
+          businessAddress: currentUserProfile.businessAddress || "",
+          businessDescription: currentUserProfile.businessDescription || currentUserProfile.bio || "",
+          cuisineType: typeof currentUserProfile.cuisineType === "string" ? currentUserProfile.cuisineType : "",
+          hiringPositions: currentUserProfile.hiringPositions || [],
+          jobTypes: currentUserProfile.jobTypes || [],
+          benefits: currentUserProfile.benefits || "",
+        });
       }
-      
-      // Set all form values at once to avoid multiple re-renders
-      form.reset(formData, {
-        keepDefaultValues: false,
-        keepDirty: false,
-        keepErrors: false,
-        keepIsSubmitted: false,
-        keepIsValid: false,
-        keepTouched: false,
-        keepValues: false
-      });
-      
-      setAvatarUrl(profile.photoURL);
-      
-      console.log('Form values set successfully');
-    } catch (error) {
-      console.error("Error setting form values:", error);
-      setFormError("Error loading profile data. Please try refreshing the page.");
     }
-  }, [form]);
+  }, [currentUserProfile, authLoading, form]);
 
-  // Load profile data when available
-  useEffect(() => {
-    if (userProfile && !isLoading) {
-      populateFormWithProfileData(userProfile);
-    }
-  }, [userProfile, populateFormWithProfileData, isLoading]);
 
-  // Handle refreshing profile data
   const handleRefreshProfile = async () => {
-    if (isRefreshing || isNavigating) return;
-    
+    if (isRefreshing || !user?.uid) return;
     setIsRefreshing(true);
     setFormError(null);
-    
     try {
-      console.log('Refreshing profile data');
-      
-      // Clear form before refreshing
-      form.reset({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phoneNumber: '',
-        bio: '',
-        preferredLocation: '',
-        skills: '',
-        experience: '',
-        education: '',
-        businessName: '',
-        businessAddress: '',
-        businessDescription: '',
-        cuisineType: '',
-      });
-      
       const refreshedProfile = await fetchUserProfile(user.uid);
-      
       if (refreshedProfile) {
-        populateFormWithProfileData(refreshedProfile);
-        
+        // form.reset will be handled by the useEffect above when authUserProfile updates
         toast({
-          title: 'Profile refreshed',
-          description: 'Your profile data has been refreshed successfully.',
+          title: "Profile refreshed",
+          description: "Your profile data has been refreshed successfully.",
         });
       } else {
-        throw new Error('Failed to refresh profile data');
+        throw new Error("Failed to refresh profile data");
       }
     } catch (error: any) {
-      console.error('Error refreshing profile:', error);
-      
-      // Sanitize error message to prevent special characters
-      let errorMessage = 'Failed to refresh profile data. Please try again.';
-      if (error && typeof error === 'object' && 'message' in error) {
-        errorMessage = String(error.message)
-          .replace(/@/g, ' at ')
-          .replace(/[^\w\s.,]/g, ' ');
-      }
-      
-      setFormError(errorMessage);
-      
+      setFormError(error.message || "Failed to refresh profile data.");
       toast({
-        title: 'Error',
-        description: 'Failed to refresh profile data. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to refresh profile data. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsRefreshing(false);
     }
   };
 
-  // Handle avatar change
-  const handleAvatarChange = (url: string) => {
-    setAvatarUrl(url);
-    
-    // Update the user profile with the new avatar URL
-    if (userProfile) {
-      updateUserProfileData({ photoURL: url })
-        .then(() => {
-          toast({
-            title: "Avatar updated",
-            description: "Your profile picture has been updated successfully.",
-          });
-        })
-        .catch((error) => {
-          console.error("Error updating avatar:", error);
-          toast({
-            title: "Error",
-            description: "Failed to update profile picture. Please try again.",
-            variant: "destructive",
-          });
-        });
-    }
+  const handleAvatarUpload = (file: File) => {
+    setAvatarFile(file);
   };
 
-  // Redirect if not authenticated - improved with error handling
-  useEffect(() => {
-    let redirectTimer: NodeJS.Timeout | null = null;
-    
-    if (!authLoading && !userProfile && !isLoading && !isNavigating) {
-      setIsNavigating(true);
-      
-      try {
-        redirectTimer = setTimeout(() => {
-          router.push('/auth/login?redirect=/profile/edit')
-            .then(() => {
-              console.log('Redirected to login page');
-            })
-            .catch(err => {
-              console.error('Navigation error:', err);
-              setIsNavigating(false);
-            });
-        }, 1000);
-      } catch (error) {
-        console.error('Redirect error:', error);
-        setIsNavigating(false);
-      }
-
-      return () => {
-        if (redirectTimer) clearTimeout(redirectTimer);
-      };
-    }
-  }, [userProfile, authLoading, router, isLoading, isNavigating]);
-
-  // Safe navigation function to prevent multiple navigation attempts - improved with error handling
-  const safeNavigate = useCallback((path: string) => {
-    if (isNavigating) return;
-    
-    try {
-      setIsNavigating(true);
-      
-      // Use a timeout to prevent rapid navigation attempts
-      const navigationTimeout = setTimeout(() => {
-        router.push(path)
-          .then(() => {
-            // Navigation successful
-            console.log(`Navigation to ${path} successful`);
-          })
-          .catch(err => {
-            console.error(`Navigation error for path ${path}:`, err);
-            setIsNavigating(false);
-          });
-      }, 100);
-      
-      // Return cleanup function to clear timeout if component unmounts during navigation
-      return () => clearTimeout(navigationTimeout);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      setIsNavigating(false);
-    }
-  }, [router, isNavigating]);
-
-  // Handle form submission
-  const onSubmit = async (data: ProfileFormData) => {
+  const onSubmit = async ( ProfileFormData) => {
     if (!user?.uid) {
       setFormError("User not authenticated.");
       return;
@@ -345,57 +178,82 @@ export default function EditProfilePage() {
     setFormError(null);
     
     try {
-      let uploadedPhotoURL = userProfile?.photoURL;
+      let uploadedPhotoURL = currentUserProfile?.photoURL;
       if (avatarFile) {
         const newPhotoURL = await uploadProfilePicture(user.uid, avatarFile);
         if (newPhotoURL) {
           uploadedPhotoURL = newPhotoURL;
         } else {
-          throw new Error("Failed to upload avatar.");
+          // Keep existing photoURL if upload fails but don't throw error, or handle as needed
+          console.warn("Avatar upload failed, using existing photoURL.");
         }
       }
       
-      // Ensure userType is not part of the update data unless specifically allowed
-      const { userType, email, id, createdAt, updatedAt, profileComplete, isActive, ...updateData } = data;
-
-      await updateUserProfileData(user.uid, { ...updateData, photoURL: uploadedPhotoURL }); // Changed updateUserProfile to updateUserProfileData
+      // Prepare data for update, converting skills string back to array if necessary
+      const { email: formEmail, ...updateData } = data; // Exclude email from update
       
-      // Optionally, refresh the profile data from context if needed, though useUser should update it
-      await fetchUserProfile(user.uid); // Re-fetch to ensure context is up-to-date
+      let finalUpdateData: Partial<UserProfile> = { 
+        ...updateData, 
+        photoURL: uploadedPhotoURL 
+      };
 
+      if (typeof data.skills === "string") {
+        finalUpdateData.skills = data.skills.split(",").map(skill => skill.trim()).filter(skill => skill);
+      } else {
+        finalUpdateData.skills = data.skills; // Keep as is if already array or undefined
+      }
+      
+      // Ensure userType is not accidentally changed by the form
+      if (currentUserProfile?.userType) {
+        finalUpdateData.userType = currentUserProfile.userType;
+      }
+
+
+      await updateUserProfileData(user.uid, finalUpdateData as Partial<UserProfile>);
+      
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
       
-      // Redirect to dashboard
-      const dashboardPath = userType === "applicant" 
+      const dashboardPath = currentUserProfile?.userType === "applicant" 
         ? "/applicant/dashboard" 
-        : "/restaurant/dashboard";
-      
-      // Use safe navigation
-      safeNavigate(dashboardPath);
+        : currentUserProfile?.userType === "restaurant"
+        ? "/restaurant/dashboard"
+        : "/"; // Fallback
+      router.push(dashboardPath);
+
     } catch (error: any) {
-      console.error("Error updating profile:", error);
       setFormError(error.message || "Failed to update profile. Please try again.");
-      
       toast({
         title: "Error",
         description: error.message || "Failed to update profile. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Show loading state
-  if (isLoading || authLoading) {
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/auth/login?redirect=/profile/edit");
+    }
+  }, [authLoading, user, router]);
+
+  if (isLoadingPage || authLoading) {
     return (
       <div className="container py-12 flex justify-center items-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading your profile...</p>
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || !currentUserProfile) {
+     // This case should be handled by the redirect useEffect, but as a fallback:
+    return (
+      <div className="container py-12 text-center">
+        <p>User not found or not authenticated. Redirecting...</p>
       </div>
     );
   }
@@ -404,346 +262,174 @@ export default function EditProfilePage() {
     <>
       <Head>
         <title>Edit Profile | StaffSpace</title>
-        <meta name="description" content="Update your profile information on StaffSpace" />
       </Head>
-
       <div className="container max-w-3xl py-8 md:py-12">
-        <div className="flex flex-col items-start mb-8">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Edit Profile</h1>
-          <p className="text-muted-foreground">
-            Update your personal information and preferences
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Edit Profile</h1>
+        <p className="text-muted-foreground mb-8">Update your personal information.</p>
 
         {formError && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
-            <AlertDescription className="flex items-center justify-between">
-              <span>{formError}</span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleRefreshProfile}
-                disabled={isRefreshing || isNavigating}
-              >
-                {isRefreshing ? (
-                  <>
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    Refreshing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-3 w-3" />
-                    Refresh Profile
-                  </>
-                )}
-              </Button>
-            </AlertDescription>
+            <AlertDescription>{formError}</AlertDescription>
           </Alert>
         )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>
-                  Update your basic information
-                </CardDescription>
-              </CardHeader>
+              <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex flex-col items-center mb-4">
-                  <AvatarUpload 
-                    currentPhotoURL={avatarPreview} 
-                    onAvatarChange={handleAvatarChange}
-                    size="lg"
-                  />
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Click the camera icon to update your profile picture
-                  </p>
-                </div>
-                
+                <AvatarUpload 
+                  currentPhotoURL={currentUserProfile.photoURL || null} 
+                  onAvatarChange={handleAvatarUpload} // This should pass the File object
+                  size="lg"
+                />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="First name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Last name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <FormField control={form.control} name="firstName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="lastName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                 </div>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Email" {...field} disabled />
-                      </FormControl>
-                      <FormDescription>
-                        Email cannot be changed
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phoneNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Phone number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <FormField control={form.control} name="email" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl><Input {...field} disabled /></FormControl>
+                    <FormDescription>Email cannot be changed.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="phoneNumber" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </CardContent>
             </Card>
 
-            {/* Applicant specific fields */}
-            {userType === "applicant" && (
+            {currentUserProfile.userType === "applicant" && (
               <Card>
-                <CardHeader>
-                  <CardTitle>Professional Information</CardTitle>
-                  <CardDescription>
-                    Tell restaurants about your skills and experience
-                  </CardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle>Professional Information (Applicant)</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="bio"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bio</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Tell restaurants about yourself..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="preferredLocation"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preferred Location</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., New York, NY" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="skills"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Skills</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Cooking, Serving, Bartending (comma separated)" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Enter skills separated by commas
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="experience"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Experience</FormLabel>
-                        <FormControl>
-                          <Select 
-                            value={field.value || ""} 
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select experience level" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0-1">Less than 1 year</SelectItem>
-                              <SelectItem value="1-3">1-3 years</SelectItem>
-                              <SelectItem value="3-5">3-5 years</SelectItem>
-                              <SelectItem value="5+">5+ years</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="education"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Education</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Culinary Institute of America" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <FormField control={form.control} name="bio" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bio</FormLabel>
+                      <FormControl><Textarea {...field} placeholder="Tell us about yourself..." /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="skills" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Skills</FormLabel>
+                      <FormControl><Input {...field} placeholder="e.g., Cooking, Serving, Bartending" /></FormControl>
+                      <FormDescription>Enter skills separated by commas.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="experience" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Experience Level</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select experience" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="0-1">0-1 years</SelectItem>
+                          <SelectItem value="1-3">1-3 years</SelectItem>
+                          <SelectItem value="3-5">3-5 years</SelectItem>
+                          <SelectItem value="5+">5+ years</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                   <FormField control={form.control} name="preferredLocation" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Location</FormLabel>
+                      <FormControl><Input {...field} placeholder="e.g., New York, NY" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="education" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Education</FormLabel>
+                      <FormControl><Input {...field} placeholder="e.g., Culinary Institute of America" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                 </CardContent>
               </Card>
             )}
 
-            {/* Restaurant specific fields */}
-            {userType === "restaurant" && (
+            {currentUserProfile.userType === "restaurant" && (
               <Card>
-                <CardHeader>
-                  <CardTitle>Restaurant Information</CardTitle>
-                  <CardDescription>
-                    Tell job seekers about your restaurant
-                  </CardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle>Restaurant Information</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="businessName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Restaurant Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Restaurant name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="businessAddress"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Restaurant Address</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., 123 Main St, New York, NY" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="businessDescription"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Restaurant Description</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Tell job seekers about your restaurant..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="cuisineType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cuisine Type</FormLabel>
-                        <FormControl>
-                          <Select 
-                            value={field.value || ""} 
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select cuisine type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="italian">Italian</SelectItem>
-                              <SelectItem value="french">French</SelectItem>
-                              <SelectItem value="american">American</SelectItem>
-                              <SelectItem value="mexican">Mexican</SelectItem>
-                              <SelectItem value="asian">Asian</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <FormField control={form.control} name="businessName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Restaurant Name</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="businessAddress" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Restaurant Address</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="businessDescription" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Restaurant Description</FormLabel>
+                      <FormControl><Textarea {...field} placeholder="Describe your restaurant..." /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="cuisineType" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cuisine Type</FormLabel>
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select cuisine" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="italian">Italian</SelectItem>
+                          <SelectItem value="french">French</SelectItem>
+                          <SelectItem value="american">American</SelectItem>
+                          <SelectItem value="mexican">Mexican</SelectItem>
+                          <SelectItem value="asian">Asian</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                 </CardContent>
               </Card>
             )}
 
             <div className="flex justify-end gap-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => {
-                  if (isNavigating) return;
-                  
-                  const dashboardPath = userType === "applicant" 
-                    ? "/applicant/dashboard" 
-                    : "/restaurant/dashboard";
-                  
-                  safeNavigate(dashboardPath);
-                }}
-                disabled={isNavigating || isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting || isNavigating}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save Changes
               </Button>
             </div>
           </form>
         </Form>
+        <Button variant="outline" onClick={handleRefreshProfile} disabled={isRefreshing} className="mt-4">
+          {isRefreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+          Refresh Profile Data
+        </Button>
       </div>
     </>
   );

@@ -47,18 +47,18 @@ export const conversationsService = {
       const docSnap = querySnapshot.docs[0];
       const conversationData = docSnap.data() as Omit<Conversation, "id" | "participantProfiles">;
       const participantProfiles = await Promise.all(
-        conversationData.participants.map(id => profilesService.getUserProfile(id))
+        conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
       );
       return { 
         id: docSnap.id, 
         ...conversationData,
-        participantProfiles: participantProfiles.filter(p => p !== null) as UserProfile[]
+        participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
       };
     }
 
     const newConversationRef = doc(collection(db, CONVERSATIONS_COLLECTION));
     const unreadCounts: { [userId: string]: number } = {};
-    participantIds.forEach(id => unreadCounts[id] = 0);
+    participantIds.forEach((id: string) => unreadCounts[id] = 0);
 
     const newConversationData: Omit<Conversation, "id" | "participantProfiles"> = {
       participants: sortedParticipantIds,
@@ -71,12 +71,12 @@ export const conversationsService = {
 
     await setDoc(newConversationRef, newConversationData);
     const participantProfiles = await Promise.all(
-      newConversationData.participants.map(id => profilesService.getUserProfile(id))
+      newConversationData.participants.map((id: string) => profilesService.getUserProfile(id))
     );
     return { 
       id: newConversationRef.id, 
       ...newConversationData,
-      participantProfiles: participantProfiles.filter(p => p !== null) as UserProfile[]
+      participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
     };
   },
 
@@ -126,7 +126,7 @@ export const conversationsService = {
     if (conversationSnap.exists()) {
       const conversationData = conversationSnap.data() as Conversation;
       const updatedUnreadCounts = { ...(conversationData.unreadCounts || {}) };
-      conversationData.participants.forEach(participantId => {
+      conversationData.participants.forEach((participantId: string) => {
         if (participantId !== senderId) {
           updatedUnreadCounts[participantId] = (updatedUnreadCounts[participantId] || 0) + 1;
         }
@@ -150,7 +150,7 @@ export const conversationsService = {
       limit(messageLimit)
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Message)).reverse();
+    return snapshot.docs.map((docSnap): Message => ({ id: docSnap.id, ...docSnap.data() } as Message)).reverse();
   },
 
   subscribeToMessages(conversationId: string, callback: (messages: Message[]) => void): () => void {
@@ -161,7 +161,7 @@ export const conversationsService = {
     );
 
     return onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as Message));
+      const messages = snapshot.docs.map((docSnap): Message => ({ id: docSnap.id, ...docSnap.data() } as Message));
       callback(messages);
     });
   },
@@ -177,12 +177,12 @@ export const conversationsService = {
     const conversations = await Promise.all(snapshot.docs.map(async (docSnapshot) => {
       const conversationData = docSnapshot.data() as Omit<Conversation, "id" | "participantProfiles">;
       const participantProfiles = await Promise.all(
-        conversationData.participants.map(id => profilesService.getUserProfile(id))
+        conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
       );
       return { 
         id: docSnapshot.id, 
         ...conversationData,
-        participantProfiles: participantProfiles.filter(p => p !== null) as UserProfile[]
+        participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
       };
     }));
     return conversations;
@@ -204,12 +204,12 @@ export const conversationsService = {
         const conversations = await Promise.all(snapshot.docs.map(async (docSnapshot) => {
           const conversationData = docSnapshot.data() as Omit<Conversation, "id" | "participantProfiles">;
           const participantProfiles = await Promise.all(
-            conversationData.participants.map(id => profilesService.getUserProfile(id))
+            conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
           );
           return { 
             id: docSnapshot.id, 
             ...conversationData,
-            participantProfiles: participantProfiles.filter(p => p !== null) as UserProfile[]
+            participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
           };
         }));
         callback(conversations);
@@ -314,12 +314,12 @@ export const conversationsService = {
     if (docSnap.exists()) {
       const conversationData = docSnap.data() as Omit<Conversation, "id" | "participantProfiles">;
       const participantProfiles = await Promise.all(
-        conversationData.participants.map(id => profilesService.getUserProfile(id))
+        conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
       );
       return {
         id: docSnap.id,
         ...conversationData,
-        participantProfiles: participantProfiles.filter(p => p !== null) as UserProfile[]
+        participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
       };
     }
     return null;
@@ -331,12 +331,12 @@ export const conversationsService = {
       if (docSnap.exists()) {
         const conversationData = docSnap.data() as Omit<Conversation, "id" | "participantProfiles">;
         const participantProfiles = await Promise.all(
-          conversationData.participants.map(id => profilesService.getUserProfile(id))
+          conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
         );
         callback({
           id: docSnap.id,
           ...conversationData,
-          participantProfiles: participantProfiles.filter(p => p !== null) as UserProfile[]
+          participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
         });
       } else {
         callback(null);

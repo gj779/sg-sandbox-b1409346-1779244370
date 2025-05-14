@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import Head from 'next/head';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect } from "react";
+import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,191 +10,89 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ChefHat, Briefcase, Loader2 } from 'lucide-react';
-import { useUser } from '@/contexts/UserContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/tabs";
+import { ChefHat, Briefcase, Loader2 } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import Layout from "@/components/layout/Layout";
+import AuthForm from "@/components/auth/AuthForm"; // Import AuthForm
 
 export default function LoginPage() {
-  const { user, signIn, isLoading, error, clearAuthError } = useUser(); // Changed login to signIn
+  const { user, userProfile, isLoading: authIsLoading, error: authError, clearAuthError } = useUser();
   const router = useRouter();
-  const { type, redirect } = router.query;
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [showDemoCredentials, setShowDemoCredentials] = useState(false);
+  const { toast } = useToast();
+  const { type: queryType, redirect: queryRedirect } = router.query;
+  
+  const [currentTab, setCurrentTab] = useState<"applicant" | "restaurant">(
+    (queryType as string === "restaurant" ? "restaurant" : "applicant")
+  );
 
   useEffect(() => {
-    // Clear previous errors when component mounts
+    // Clear previous errors when component mounts or tab changes
     clearAuthError();
-  }, [clearAuthError]);
+  }, [clearAuthError, currentTab]);
 
   useEffect(() => {
-    if (user) {
-      const redirectPath = router.query.redirect as string;
-      if (redirectPath) {
-        router.push(redirectPath);
-      } else {
-        // Default redirect based on user type after login
-        if (userProfile?.userType === "admin") {
-          router.push("/admin/dashboard");
-        } else if (userProfile?.userType === "restaurant") {
-          router.push("/restaurant/dashboard");
-        } else {
-          router.push("/applicant/dashboard");
-        }
-      }
-    }
-  }, [user, router, userProfile]); // Added userProfile dependency
-
-  // Access userProfile from useUser hook
-  const { userProfile } = useUser();
-
-  // Handle form submission
-  const onSubmit = async (formData: { email: string; password: string }) => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      const { userProfile, dashboardPath } = await signIn(formData.email, formData.password); // Changed login to signIn
-      
-      toast({
-        title: 'Sign in successful',
-        description: `Welcome back, ${userProfile.firstName || 'User'}!`,
-      });
-      
-      // Get the redirect path from the URL query or use the dashboard path
-      const redirectPath = router.query.redirect as string || dashboardPath;
-      
-      // Use router.push for navigation to maintain state
+    if (user && userProfile) {
+      const defaultRedirectPath = userProfile.userType === "admin" ? "/admin/dashboard"
+                                : userProfile.userType === "restaurant" ? "/restaurant/dashboard"
+                                : "/applicant/dashboard";
+      const redirectPath = (queryRedirect as string) || defaultRedirectPath;
       router.push(redirectPath);
-    } catch (error: any) {
-      console.error('Login error:', error);
-      setError(error.message || 'Failed to sign in. Please check your credentials and try again.');
-      
-      toast({
-        title: 'Sign in failed',
-        description: error.message || 'Failed to sign in. Please check your credentials and try again.',
-        variant: 'destructive',
-      });
-      
-      setIsLoading(false);
     }
+  }, [user, userProfile, router, queryRedirect]);
+
+  const handleAuthSuccess = () => {
+    toast({
+      title: "Sign in successful",
+      description: `Welcome back, ${userProfile?.firstName || user?.displayName || "User"}!`,
+    });
+    // Redirection is handled by the useEffect above
   };
-
-  // Handle login form submission
-  const handleLogin = async (userType: 'applicant' | 'restaurant') => {
-    if (!email || !password) {
-      setError('Please enter both email and password');
-      return;
-    }
-    
-    setError('');
-    setIsLoading(true);
-    
-    try {
-      // Pass the userType to the login function so it can be used to determine the correct dashboard
-      const { userProfile, dashboardPath } = await signIn(email, password); // Changed login to signIn
-      
-      console.log(`Login successful, user type: ${userProfile.userType}, dashboard path: ${dashboardPath}`);
-      
-      // If there's a redirect query param, use that instead of the dashboard
-      // But never redirect to profile/edit directly after login
-      const redirectPath = typeof redirect === 'string' && redirect !== '/profile/edit' 
-        ? redirect 
-        : dashboardPath;
-      
-      console.log(`Redirecting to: ${redirectPath}`);
-      
-      // Use router.push for navigation
-      router.push(redirectPath);
-    } catch (error: any) {
-      // Ensure error message is properly sanitized
-      let errorMessage = 'Login failed. Please check your credentials and try again.';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message.replace(/@/g, ' at ');
-      }
-      
-      setError(errorMessage);
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      const result = await signIn(email, password); // Changed login to signIn
-      router.push(result.dashboardPath || returnUrl);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSuccess = ({ dashboardPath }: { dashboardPath: string }) => {
-    router.push(dashboardPath || returnUrl);
-  };
-
-  const handleGoogleError = (err: Error) => {
-    setError(err.message);
-  };
-
-  const handleDemoLogin = async (type: "applicant" | "restaurant" | "admin") => {
-    let demoEmail = "";
-    const demoPassword = "password"; // Assuming a common demo password
-
-    if (type === "applicant") demoEmail = "applicant@example.com";
-    else if (type === "restaurant") demoEmail = "restaurant@example.com";
-    else if (type === "admin") demoEmail = "admin@example.com";
-    
-    if (demoEmail) {
-      await signIn(demoEmail, demoPassword); // Changed login to signIn
-    }
+  
+  const handleGoogleError = (error: Error) => { // Changed parameter type to Error
+    toast({
+      title: "Google Sign-In Failed",
+      description: error.message, // Use error.message
+      variant: "destructive",
+    });
   };
 
   return (
     <Layout>
       <Head>
         <title>Sign In | StaffSpace</title>
-        <meta name='description' content='Sign in to your StaffSpace account to find restaurant jobs or hire talented staff.' />
+        <meta name="description" content="Sign in to your StaffSpace account to find restaurant jobs or hire talented staff." />
       </Head>
 
-      <div className='container max-w-md py-12'>
-        <div className='text-center mb-8'>
-          <h1 className='text-3xl font-bold'>Welcome Back</h1>
-          <p className='text-muted-foreground mt-2'>Sign in to your StaffSpace account</p>
+      <div className="container max-w-md py-12">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold">Welcome Back</h1>
+          <p className="text-muted-foreground mt-2">Sign in to your StaffSpace account</p>
         </div>
 
-        <Tabs defaultValue={type as string || 'applicant'} className='w-full'>
-          <TabsList className='grid grid-cols-2 mb-8'>
-            <TabsTrigger value='applicant' className='flex items-center gap-2'>
-              <Briefcase className='h-4 w-4' />
+        <Tabs defaultValue={currentTab} onValueChange={(value) => setCurrentTab(value as "applicant" | "restaurant")} className="w-full">
+          <TabsList className="grid grid-cols-2 mb-8">
+            <TabsTrigger value="applicant" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
               Job Seeker
             </TabsTrigger>
-            <TabsTrigger value='restaurant' className='flex items-center gap-2'>
-              <ChefHat className='h-4 w-4' />
+            <TabsTrigger value="restaurant" className="flex items-center gap-2">
+              <ChefHat className="h-4 w-4" />
               Restaurant
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value='applicant'>
+          <TabsContent value="applicant">
             <Card>
               <CardHeader>
                 <CardTitle>Job Seeker Sign In</CardTitle>
@@ -203,80 +100,37 @@ export default function LoginPage() {
                   Sign in to find restaurant and hospitality jobs
                 </CardDescription>
               </CardHeader>
-              <CardContent className='space-y-4'>
-                {error && (
-                  <Alert variant='destructive'>
-                    <AlertDescription>{error}</AlertDescription>
+              <CardContent className="space-y-4">
+                {authError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{authError}</AlertDescription>
                   </Alert>
                 )}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className='space-y-2'>
-                    <Label htmlFor='applicant-email'>Email</Label>
-                    <Input
-                      id='applicant-email'
-                      type='email'
-                      placeholder='your.email@example.com'
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className='space-y-2'>
-                    <div className='flex items-center justify-between'>
-                      <Label htmlFor='applicant-password'>Password</Label>
-                      <Link
-                        href='/auth/reset-password'
-                        className='text-sm text-primary hover:underline'
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
-                    <Input
-                      id='applicant-password'
-                      type='password'
-                      placeholder='••••••••'
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                        Signing In...
-                      </>
-                    ) : (
-                      'Sign In'
-                    )}
-                  </Button>
-                </form>
-
+                <AuthForm mode="login" onSuccess={handleAuthSuccess} />
                 <div className="mt-4 flex items-center">
                   <Separator className="flex-1" />
                   <span className="mx-2 text-xs text-muted-foreground">OR</span>
                   <Separator className="flex-1" />
                 </div>
-
                 <div className="mt-4">
                   <GoogleSignInButton 
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
+                    userType="applicant"
+                    onError={handleGoogleError} // This now matches the expected prop type
                   />
                 </div>
               </CardContent>
-              <CardFooter className='flex flex-col gap-4'>
-                <p className='text-sm text-center text-muted-foreground'>
-                  Don't have an account?{' '}
-                  <Link href='/auth/register?type=applicant' className='text-primary hover:underline'>
-                    Create account
+              <CardFooter className="flex flex-col gap-4">
+                <p className="text-sm text-center text-muted-foreground">
+                  Don&apos;t have an account?{" "}
+                  <Link href="/auth/register?type=applicant" legacyBehavior>
+                    <a className="text-primary hover:underline">Create account</a>
                   </Link>
                 </p>
               </CardFooter>
             </Card>
           </TabsContent>
 
-          <TabsContent value='restaurant'>
+          <TabsContent value="restaurant">
             <Card>
               <CardHeader>
                 <CardTitle>Restaurant Sign In</CardTitle>
@@ -284,72 +138,30 @@ export default function LoginPage() {
                   Sign in to find talented staff for your restaurant
                 </CardDescription>
               </CardHeader>
-              <CardContent className='space-y-4'>
-                {error && (
-                  <Alert variant='destructive'>
-                    <AlertDescription>{error}</AlertDescription>
+              <CardContent className="space-y-4">
+                 {authError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{authError}</AlertDescription>
                   </Alert>
                 )}
-                <div className='space-y-2'>
-                  <Label htmlFor='restaurant-email'>Business Email</Label>
-                  <Input
-                    id='restaurant-email'
-                    type='email'
-                    placeholder='restaurant@example.com'
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+                <AuthForm mode="login" onSuccess={handleAuthSuccess} />
+                 <div className="mt-4 flex items-center">
+                  <Separator className="flex-1" />
+                  <span className="mx-2 text-xs text-muted-foreground">OR</span>
+                  <Separator className="flex-1" />
                 </div>
-                <div className='space-y-2'>
-                  <div className='flex items-center justify-between'>
-                    <Label htmlFor='restaurant-password'>Password</Label>
-                    <Link
-                      href='/auth/reset-password'
-                      className='text-sm text-primary hover:underline'
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <Input
-                    id='restaurant-password'
-                    type='password'
-                    placeholder='••••••••'
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
+                <div className="mt-4">
+                  <GoogleSignInButton 
+                    userType="restaurant"
+                    onError={handleGoogleError} // This now matches the expected prop type
                   />
-                </div>
-                <div className='flex items-center space-x-2'>
-                  <Checkbox
-                    id='restaurant-remember'
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                  />
-                  <Label htmlFor='restaurant-remember' className='text-sm'>
-                    Remember me
-                  </Label>
                 </div>
               </CardContent>
-              <CardFooter className='flex flex-col gap-4'>
-                <Button
-                  className='w-full'
-                  onClick={() => handleLogin('restaurant')}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                      Signing In...
-                    </>
-                  ) : (
-                    'Sign In'
-                  )}
-                </Button>
-                <p className='text-sm text-center text-muted-foreground'>
-                  Don't have an account?{' '}
-                  <Link href='/auth/register?type=restaurant' className='text-primary hover:underline'>
-                    Create account
+              <CardFooter className="flex flex-col gap-4">
+                <p className="text-sm text-center text-muted-foreground">
+                  Don&apos;t have an account?{" "}
+                  <Link href="/auth/register?type=restaurant" legacyBehavior>
+                    <a className="text-primary hover:underline">Create account</a>
                   </Link>
                 </p>
               </CardFooter>

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { FileMetadata, firebaseStorageService, FileCustomMetadata } from "@/services/firebaseStorage";
 import { Button } from "@/components/ui/button";
@@ -56,7 +55,7 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
   const handleEditSubmit = async () => {
     setError(null);
     try {
-      const updatedCustomMeta Partial<FileCustomMetadata> = {
+      const updatedCustomMetadata: Partial<FileCustomMetadata> = {
         category: editData.category,
         description: editData.description,
         tags: editData.tags.split(",").map(t => t.trim()).filter(t => t),

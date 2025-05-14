@@ -1,4 +1,3 @@
-
 import {
   getStorage,
   ref,
@@ -40,7 +39,7 @@ export interface FileMetadata {
   timeCreated: string;
   updated: string;
   downloadURL: string; // Added this field
-  customMeta FileCustomMetadata;
+  customMeta: FileCustomMetadata;
 }
 
 
@@ -50,18 +49,18 @@ class FirebaseStorageService {
   async uploadFile(
     filePath: string,
     file: File,
-    customMeta FileCustomMetadata = {},
+    customMeta: FileCustomMetadata = {},
     onProgress?: (progress: UploadProgress) => void
   ): Promise<FileMetadata> {
     const storageRef = ref(this.storage, filePath);
     const metadataToSet = {
       contentType: file.type,
-      customMeta {
-        ...customMetadata,
-        tags: JSON.stringify(customMetadata.tags || []), // Store as JSON string
-        sharedWith: JSON.stringify(customMetadata.sharedWith || []), // Store as JSON string
+      customMeta: {
+        ...customMeta,
+        tags: JSON.stringify(customMeta.tags || []), // Store as JSON string
+        sharedWith: JSON.stringify(customMeta.sharedWith || []), // Store as JSON string
         originalName: file.name,
-        uploadedBy: customMetadata.ownerId, // Assuming ownerId is the uploader's ID
+        uploadedBy: customMeta.ownerId, // Assuming ownerId is the uploader's ID
       },
     };
 
@@ -96,7 +95,6 @@ class FirebaseStorageService {
         },
         async () => {
           try {
-            // const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             const uploadedFileMetadata = await this.getFileMetadata(filePath); // Get full metadata
              if (onProgress) {
               onProgress({
@@ -160,7 +158,7 @@ class FirebaseStorageService {
       timeCreated: metadata.timeCreated,
       updated: metadata.updated,
       downloadURL: downloadURL,
-      customMeta {
+      customMeta: {
         ownerId: customMeta.ownerId,
         accessLevel: customMeta.accessLevel as FileCustomMetadata["accessLevel"],
         category: customMeta.category,
@@ -175,30 +173,30 @@ class FirebaseStorageService {
 
   async updateFileMetadata(
     filePath: string,
-    newCustomMeta Partial<FileCustomMetadata>
+    newCustomMeta: Partial<FileCustomMetadata>
   ): Promise<FileMetadata> {
     const storageRef = ref(this.storage, filePath);
     
-    const updateObject: { customMeta any } = { customMeta {} };
+    const updateObject: { customMetadata?: any } = { customMeta: {} };
 
     // Merge with existing custom metadata if necessary, or build fresh
     const existingMetadata = await getMetadata(storageRef);
-    updateObject.customMetadata = { ...existingMetadata.customMetadata };
+    updateObject.customMetadata = { ...(existingMetadata.customMetadata || {}) };
 
 
-    if (newCustomMetadata.ownerId !== undefined) updateObject.customMetadata.ownerId = newCustomMetadata.ownerId;
-    if (newCustomMetadata.accessLevel !== undefined) updateObject.customMetadata.accessLevel = newCustomMetadata.accessLevel;
-    if (newCustomMetadata.category !== undefined) updateObject.customMetadata.category = newCustomMetadata.category;
-    if (newCustomMetadata.description !== undefined) updateObject.customMetadata.description = newCustomMetadata.description;
+    if (newCustomMeta.ownerId !== undefined) updateObject.customMetadata.ownerId = newCustomMeta.ownerId;
+    if (newCustomMeta.accessLevel !== undefined) updateObject.customMetadata.accessLevel = newCustomMeta.accessLevel;
+    if (newCustomMeta.category !== undefined) updateObject.customMetadata.category = newCustomMeta.category;
+    if (newCustomMeta.description !== undefined) updateObject.customMetadata.description = newCustomMeta.description;
     
-    if (newCustomMetadata.tags !== undefined) {
-        updateObject.customMetadata.tags = JSON.stringify(Array.isArray(newCustomMetadata.tags) ? newCustomMetadata.tags : []);
+    if (newCustomMeta.tags !== undefined) {
+        updateObject.customMetadata.tags = JSON.stringify(Array.isArray(newCustomMeta.tags) ? newCustomMeta.tags : []);
     }
-    if (newCustomMetadata.sharedWith !== undefined) {
-        updateObject.customMetadata.sharedWith = JSON.stringify(Array.isArray(newCustomMetadata.sharedWith) ? newCustomMetadata.sharedWith : []);
+    if (newCustomMeta.sharedWith !== undefined) {
+        updateObject.customMetadata.sharedWith = JSON.stringify(Array.isArray(newCustomMeta.sharedWith) ? newCustomMeta.sharedWith : []);
     }
-    if (newCustomMetadata.originalName !== undefined) updateObject.customMetadata.originalName = newCustomMetadata.originalName;
-    if (newCustomMetadata.uploadedBy !== undefined) updateObject.customMetadata.uploadedBy = newCustomMetadata.uploadedBy;
+    if (newCustomMeta.originalName !== undefined) updateObject.customMetadata.originalName = newCustomMeta.originalName;
+    if (newCustomMeta.uploadedBy !== undefined) updateObject.customMetadata.uploadedBy = newCustomMeta.uploadedBy;
 
     // Remove undefined fields from customMetadata to avoid errors
     for (const key in updateObject.customMetadata) {
@@ -210,7 +208,7 @@ class FirebaseStorageService {
     if (Object.keys(updateObject.customMetadata).length === 0) {
         // Firebase might error if customMetadata is an empty object or null during update.
         // It's safer to set it to null to clear it, or ensure it has at least one valid field.
-        // For clearing, you might need to pass null: await updateMetadata(storageRef, { customMeta null });
+        // For clearing, you might need to pass null: await updateMetadata(storageRef, { customMeta: null });
         // For this implementation, we assume we are always setting some metadata.
         // If all fields are cleared, customMetadata will be an empty object.
     }
@@ -296,4 +294,3 @@ class FirebaseStorageService {
 }
 
 export const firebaseStorageService = new FirebaseStorageService();
-

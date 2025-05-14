@@ -33,6 +33,7 @@ export default function Header() {
   const { user, userProfile, signOut, isLoading } = useUser(); // Changed logout to signOut
   const router = useRouter();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme(); // Added this line
   const [mounted, setMounted] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState("en");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

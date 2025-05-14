@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode } from "react";
 import { User as FirebaseUser } from "firebase/auth";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
@@ -26,7 +25,7 @@ interface UserContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
   fetchUserProfile: (userId: string) => Promise<UserProfile | null>;
-  updateUserProfileData: (userId: string,  Partial<UserProfile>) => Promise<boolean>;
+  updateUserProfileData: (userId: string, data: Partial<UserProfile>) => Promise<boolean>; // Corrected: Added 'data'
   uploadProfilePicture: (userId: string, file: File) => Promise<string | null>;
   deleteAccount: (password?: string) => Promise<boolean>;
   clearAuthError: () => void;
@@ -43,11 +42,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     isLoading: auth.isLoading, // Ensure this matches
     userProfile: auth.userProfile as UserProfile | null, // Cast if necessary, ensure types align
     fetchUserProfile: auth.fetchUserProfile as (userId: string) => Promise<UserProfile | null>,
-    updateUserProfileData: auth.updateUserProfileData as (userId: string,  Partial<UserProfile>) => Promise<boolean>,
+    updateUserProfileData: auth.updateUserProfileData as (userId: string, data: Partial<UserProfile>) => Promise<boolean>, // Corrected: Added 'data'
     signUp: auth.signUp as (email: string, password: string, firstName: string, lastName: string, userType: "applicant" | "restaurant") => Promise<UserProfile | null>,
     signIn: auth.signIn as (email: string, password: string) => Promise<UserProfile | null>,
     signInWithGoogle: auth.signInWithGoogle as (userType: "applicant" | "restaurant") => Promise<UserProfile | null>,
-
   };
 
   return (

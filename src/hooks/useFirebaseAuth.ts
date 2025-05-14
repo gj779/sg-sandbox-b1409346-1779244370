@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { 
   User as FirebaseUser, 
@@ -237,7 +236,7 @@ export function useFirebaseAuth() {
     }
   };
 
-  const updateUserProfileData = async (userId: string,  Partial<UserProfile>): Promise<boolean> => {
+  const updateUserProfileData = async (userId: string, data: Partial<UserProfile>): Promise<boolean> => { // Corrected: Added ''
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const userDocRef = doc(db, "users", userId);

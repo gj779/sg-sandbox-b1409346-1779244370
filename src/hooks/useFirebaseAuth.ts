@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { firebaseAuthService } from "@/services/firebaseAuth";
 import { auth } from "@/lib/firebase";
@@ -11,7 +10,7 @@ export interface UserProfile {
   id: string;
   email: string;
   name?: string;
-  photoURL?: string;
+  photoURL: string; // Changed from photoURL?: string
   phoneNumber?: string;
   userType: "applicant" | "restaurant" | "admin";
   createdAt?: Date;
@@ -94,7 +93,7 @@ export function useFirebaseAuth() {
               firstName: userProfile.firstName || '',
               lastName: userProfile.lastName || '',
               phoneNumber: userProfile.phoneNumber || '',
-              photoURL: userProfile.photoURL || user.photoURL || '',
+              photoURL: userProfile.photoURL || "", // Ensure default empty string
               isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
               createdAt: userProfile.createdAt,
               updatedAt: userProfile.updatedAt,
@@ -125,7 +124,7 @@ export function useFirebaseAuth() {
               email: user.email || '',
               firstName: user.displayName?.split(' ')[0] || 'User',
               lastName: user.displayName?.split(' ')[1] || '',
-              photoURL: user.photoURL || '',
+              photoURL: user.photoURL || "", // Ensure default empty string
               userType: 'applicant', // Default type
               role: 'applicant', // Set role to match userType for compatibility with UserContext
               isActive: true,
@@ -168,7 +167,7 @@ export function useFirebaseAuth() {
             email: user.email || '',
             firstName: user.displayName?.split(' ')[0] || 'User',
             lastName: user.displayName?.split(' ')[1] || '',
-            photoURL: user.photoURL || '',
+            photoURL: user.photoURL || "", // Ensure default empty string
             userType: 'applicant', // Default type
             role: 'applicant', // Set role to match userType for compatibility with UserContext
             isActive: true,
@@ -238,7 +237,7 @@ export function useFirebaseAuth() {
           firstName: result.userProfile.firstName || '',
           lastName: result.userProfile.lastName || '',
           phoneNumber: result.userProfile.phoneNumber || '',
-          photoURL: result.userProfile.photoURL || result.user.photoURL || '',
+          photoURL: result.userProfile.photoURL || result.user.photoURL || "", // Ensure default empty string
           isActive: result.userProfile.isActive !== undefined ? result.userProfile.isActive : true,
           createdAt: result.userProfile.createdAt,
           updatedAt: result.userProfile.updatedAt,
@@ -383,7 +382,7 @@ export function useFirebaseAuth() {
           email: user.email || '',
           firstName: user.displayName?.split(' ')[0] || 'User',
           lastName: user.displayName?.split(' ')[1] || '',
-          photoURL: user.photoURL || '',
+          photoURL: user.photoURL || "", // Ensure default empty string
           userType: email.includes('restaurant') ? 'restaurant' : 'applicant',
           role: email.includes('restaurant') ? 'restaurant' : 'applicant',
           isActive: true,
@@ -418,7 +417,7 @@ export function useFirebaseAuth() {
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
           phoneNumber: userProfile.phoneNumber || '',
-          photoURL: userProfile.photoURL || user.photoURL || '',
+          photoURL: userProfile.photoURL || user.photoURL || "", // Ensure default empty string
           isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
           createdAt: userProfile.createdAt,
           updatedAt: userProfile.updatedAt,
@@ -563,7 +562,7 @@ export function useFirebaseAuth() {
         firstName: result.userProfile.firstName || '',
         lastName: result.userProfile.lastName || '',
         phoneNumber: result.userProfile.phoneNumber || '',
-        photoURL: result.userProfile.photoURL || result.user.photoURL || '',
+        photoURL: result.userProfile.photoURL || result.user.photoURL || "", // Ensure default empty string
         isActive: result.userProfile.isActive !== undefined ? result.userProfile.isActive : true,
         createdAt: result.userProfile.createdAt,
         updatedAt: result.userProfile.updatedAt,
@@ -739,7 +738,8 @@ export function useFirebaseAuth() {
         education: updates.education || authState.userProfile?.education || '',
         businessName: updates.businessName || authState.userProfile?.businessName || '',
         businessAddress: updates.businessAddress || authState.userProfile?.businessAddress || '',
-        cuisineType: updates.cuisineType || authState.userProfile?.cuisineType || ''
+        cuisineType: updates.cuisineType || authState.userProfile?.cuisineType || '',
+        photoURL: updates.photoURL || authState.userProfile?.photoURL || "", // Ensure default empty string
       };
       
       // Try to update with Firebase service
@@ -759,7 +759,7 @@ export function useFirebaseAuth() {
             firstName: firebaseUpdatedProfile.firstName || '',
             lastName: firebaseUpdatedProfile.lastName || '',
             phoneNumber: firebaseUpdatedProfile.phoneNumber || '',
-            photoURL: firebaseUpdatedProfile.photoURL || authState.user.photoURL || '',
+            photoURL: firebaseUpdatedProfile.photoURL || authState.user.photoURL || "", // Ensure default empty string
             isActive: firebaseUpdatedProfile.isActive !== undefined ? firebaseUpdatedProfile.isActive : true,
             createdAt: firebaseUpdatedProfile.createdAt,
             updatedAt: firebaseUpdatedProfile.updatedAt,
@@ -827,7 +827,7 @@ export function useFirebaseAuth() {
           firstName: userProfile.firstName || '',
           lastName: userProfile.lastName || '',
           phoneNumber: userProfile.phoneNumber || '',
-          photoURL: userProfile.photoURL || authState.user.photoURL || '',
+          photoURL: userProfile.photoURL || authState.user.photoURL || "", // Ensure default empty string
           isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
           createdAt: userProfile.createdAt,
           updatedAt: userProfile.updatedAt,
@@ -856,7 +856,7 @@ export function useFirebaseAuth() {
           email: authState.user.email || '',
           firstName: authState.user.displayName?.split(' ')[0] || 'User',
           lastName: authState.user.displayName?.split(' ')[1] || '',
-          photoURL: authState.user.photoURL || '',
+          photoURL: authState.user.photoURL || "", // Ensure default empty string
           userType: authState.userProfile?.userType || 'applicant',
           role: authState.userProfile?.userType || 'applicant',
           isActive: true,
@@ -940,7 +940,7 @@ export function useFirebaseAuth() {
         email: authState.user.email || '',
         firstName: authState.user.displayName?.split(' ')[0] || 'User',
         lastName: authState.user.displayName?.split(' ')[1] || '',
-        photoURL: authState.user.photoURL || '',
+        photoURL: authState.user.photoURL || "", // Ensure default empty string
         userType: authState.userProfile?.userType || 'applicant',
         role: authState.userProfile?.userType || 'applicant',
         isActive: true,

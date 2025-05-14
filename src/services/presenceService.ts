@@ -1,4 +1,3 @@
-
 import { ref, onValue, onDisconnect, set, serverTimestamp } from 'firebase/database';
 import { realTimeDb, auth } from '@/lib/firebase';
 import { User } from 'firebase/auth';
@@ -9,7 +8,7 @@ export interface UserPresence {
   status: 'online' | 'offline' | 'away';
   lastActive: Date | null;
   displayName?: string;
-  photoURL?: string;
+  photoURL: string; // Changed from photoURL?: string
 }
 
 // Collection path in the Realtime Database
@@ -40,7 +39,7 @@ export const presenceService = {
         status: 'online',
         lastActive: new Date(),
         displayName: user.displayName || undefined,
-        photoURL: user.photoURL || undefined
+        photoURL: user.photoURL || "" // Ensure default empty string
       };
 
       // When the client's connection state changes, update the presence data
@@ -114,7 +113,7 @@ export const presenceService = {
         status,
         lastActive: serverTimestamp(),
         displayName: user.displayName || undefined,
-        photoURL: user.photoURL || undefined
+        photoURL: user.photoURL || "" // Ensure default empty string
       });
     } catch (error) {
       console.error('Error setting user status:', error);
@@ -141,7 +140,8 @@ export const presenceService = {
           
           callback({
             ...data,
-            lastActive
+            lastActive,
+            photoURL: data.photoURL || "" // Ensure default empty string for existing data
           });
         } else {
           callback(null);
@@ -180,7 +180,8 @@ export const presenceService = {
             presenceMap[userId] = {
               userId,
               status: 'offline',
-              lastActive: null
+              lastActive: null,
+              photoURL: "" // Ensure default empty string
             };
           }
           
@@ -223,7 +224,8 @@ export const presenceService = {
               onlineUsers.push({
                 ...presence,
                 userId,
-                lastActive
+                lastActive,
+                photoURL: presence.photoURL || "" // Ensure default empty string
               });
             }
           });

@@ -45,12 +45,14 @@ interface OnboardingStep {
 }
 
 export default function UserOnboarding() {
+  const { user, userProfile, updateUserProfileData, isLoading: authLoading } = useFirebaseAuth(); // Changed updateUserProfile to updateUserProfileData
   const router = useRouter();
   const { toast } = useToast();
-  const { userProfile, updateUserProfile } = useFirebaseAuth();
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [isCompleting, setIsCompleting] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Form state
   const [skills, setSkills] = useState<string[]>([]);
@@ -334,11 +336,29 @@ export default function UserOnboarding() {
 
   const steps = isApplicant ? applicantSteps : restaurantSteps;
 
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      completeOnboarding();
+  const handleNext = async () => {
+    setIsCompleting(true);
+    setError(null);
+    try {
+      if (user?.uid) {
+        // Ensure profileComplete is set to true
+        const finalData = { ...formData, profileComplete: true };
+        await updateUserProfileData(user.uid, finalData); // Changed updateUserProfile to updateUserProfileData
+        // Redirect based on user type
+        if (userProfile?.userType === "applicant") {
+          router.push("/applicant/dashboard");
+        } else if (userProfile?.userType === "restaurant") {
+          router.push("/restaurant/dashboard");
+        } else {
+          router.push("/"); // Fallback
+        }
+      } else {
+        throw new Error("User not found.");
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred. Please try again.");
+    } finally {
+      setIsCompleting(false);
     }
   };
 
@@ -377,7 +397,7 @@ export default function UserOnboarding() {
           };
       
       // Update user profile with onboarding data
-      await updateUserProfile(onboardingData);
+      await updateUserProfileData(user.uid, onboardingData); // Changed updateUserProfile to updateUserProfileData
       
       toast({
         title: "Onboarding completed!",
@@ -401,7 +421,7 @@ export default function UserOnboarding() {
 
   const skipOnboarding = async () => {
     try {
-      await updateUserProfile({ profileComplete: true });
+      await updateUserProfileData(user.uid, { profileComplete: true });
       router.push(isApplicant ? "/applicant/dashboard" : "/restaurant/dashboard");
     } catch (error) {
       console.error("Error skipping onboarding:", error);

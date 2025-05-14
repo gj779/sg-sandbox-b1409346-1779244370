@@ -1,64 +1,69 @@
-
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useUser } from '@/contexts/UserContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: Array<'applicant' | 'restaurant' | 'admin'>;
-  redirectTo?: string;
+  allowedUserTypes: Array<'applicant' | 'restaurant' | 'admin'>;
+  redirectPath?: string; // Make redirectPath optional
 }
 
 export default function ProtectedRoute({
   children,
-  allowedRoles = [],
-  redirectTo = '/auth/login',
+  allowedUserTypes,
+  redirectPath = '/auth/login',
 }: ProtectedRouteProps) {
-  const { isAuthenticated, userProfile, isLoading } = useUser();
+  const { user, userProfile, isAuthenticated, isLoading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    // Don't do anything while loading
-    if (isLoading) return;
-
-    // If not authenticated, redirect to login
-    if (!isAuthenticated) {
-      router.push({
-        pathname: redirectTo,
-        query: { returnUrl: router.asPath },
-      });
+    if (!isLoading && !isAuthenticated) {
+      router.push(redirectPath); // Default redirect if not provided
       return;
     }
 
-    // If roles are specified and user doesn't have the required role, redirect
-    if (allowedRoles.length > 0 && userProfile && !allowedRoles.includes(userProfile.userType)) {
-      // Redirect to the appropriate dashboard based on user type
-      const dashboardPath = getDashboardPathForUserType(userProfile.userType);
-      router.push(dashboardPath);
+    if (!isLoading && isAuthenticated && userProfile) {
+      // Ensure userProfile.userType is defined before using it
+      const currentUserType = userProfile.userType;
+      if (currentUserType && !allowedUserTypes.includes(currentUserType)) {
+        // User is authenticated but not of the allowed type
+        // Redirect to a generic unauthorized page or their specific dashboard
+        let unauthorizedRedirect = "/"; // Default fallback
+        if (currentUserType === "admin") unauthorizedRedirect = "/admin/dashboard";
+        else if (currentUserType === "restaurant") unauthorizedRedirect = "/restaurant/dashboard";
+        else if (currentUserType === "applicant") unauthorizedRedirect = "/applicant/dashboard";
+        
+        router.push(redirectPath || unauthorizedRedirect);
+      }
     }
-  }, [isAuthenticated, isLoading, userProfile, router, allowedRoles, redirectTo]);
+  }, [user, userProfile, isAuthenticated, isLoading, allowedUserTypes, router, redirectPath]);
 
-  // Helper function to get dashboard path based on user type
-  const getDashboardPathForUserType = (userType: string): string => {
-    switch (userType) {
-      case 'admin':
-        return '/admin/dashboard';
-      case 'restaurant':
-        return '/restaurant/dashboard';
-      case 'applicant':
-        return '/applicant/dashboard';
-      default:
-        return '/';
-    }
-  };
-
-  // Show nothing while loading or redirecting
-  if (isLoading || !isAuthenticated || (allowedRoles.length > 0 && userProfile && !allowedRoles.includes(userProfile.userType))) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-    </div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
-  // If authenticated and authorized, render children
-  return <>{children}</>;
+  // Ensure userProfile and userProfile.userType are defined before checking allowedUserTypes
+  if (isAuthenticated && userProfile && userProfile.userType && allowedUserTypes.includes(userProfile.userType)) {
+    return <>{children}</>;
+  }
+  
+  // Fallback for scenarios where user is authenticated but profile might still be loading or type doesn't match
+  // This often gets handled by the useEffect redirect, but as a safety net:
+  if (isAuthenticated && !isLoading && userProfile && userProfile.userType && !allowedUserTypes.includes(userProfile.userType)) {
+    // This state should ideally be caught by the useEffect redirect.
+    // Showing a loading or "redirecting" state can be smoother.
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <p>Redirecting...</p>
+        </div>
+    );
+  }
+
+  // If not authenticated and not loading, null will be returned, and useEffect handles redirect.
+  // Or, you can show a "Redirecting to login..." message here too.
+  return null;
 }

@@ -33,35 +33,13 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setIsLoading(true);
-
-    try {
-      // Sign in user
-      const { userProfile, dashboardPath } = await login(email, password);
-      
-      // Verify this is an admin account
-      if (userProfile.userType !== "admin") {
-        throw new Error("This login is only for administrators. Please use the regular login page.");
-      }
-      
-      // Show success message
-      toast({
-        title: "Success",
-        description: "You have successfully signed in as an administrator.",
-        variant: "default",
-      });
-
-      console.log("Admin login successful, redirecting to dashboard");
-      
-      // Redirect to admin dashboard - force the path to be the admin dashboard
-      router.push("/admin/dashboard");
-    } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message || "Failed to sign in. Please check your credentials.");
-    } finally {
-      setIsLoading(false);
+    if (!email || !password) {
+      // Basic validation, consider more robust form validation
+      alert("Email and password are required.");
+      return;
     }
+    await signIn(email, password); // Changed login to signIn
+    // useEffect will handle redirection based on userProfile update
   };
 
   return (

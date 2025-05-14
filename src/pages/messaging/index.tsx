@@ -118,7 +118,7 @@ export default function MessagingPage() {
           {showConversationList && (
             <ConversationsList
               onSelectConversation={handleSelectConversation}
-              selectedConversationId={selectedConversationId}
+              selectedConversationId={selectedConversationId || undefined} // Ensure it's string | undefined
               onCreateConversation={() => setShowNewConversationDialog(true)}
             />
           )}

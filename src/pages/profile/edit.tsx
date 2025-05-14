@@ -42,6 +42,10 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import AvatarUpload from "@/components/profile/AvatarUpload";
 import { useProfileData } from "@/hooks/useProfileData";
+import { profilesService, userProfileSchema as profileFormSchema } from "@/services/profilesService"; // Use the schema from profilesService
+
+// Define a type for the form data based on the schema
+type ProfileFormData = z.infer<typeof profileFormSchema>;
 
 // Define form schemas for different user types
 const applicantProfileSchema = z.object({
@@ -71,8 +75,7 @@ const restaurantProfileSchema = z.object({
 type ProfileFormValues = z.infer<typeof applicantProfileSchema> & z.infer<typeof restaurantProfileSchema>;
 
 export default function EditProfilePage() {
-  const { userProfile, updateUserProfile, error: authError, refreshUserProfile, isLoading: authLoading } = useFirebaseAuth();
-  const { updateProfile } = useProfileData();
+  const { user, userProfile, updateUserProfileData, uploadProfilePicture, isLoading: authLoading, fetchUserProfile } = useFirebaseAuth(); // Changed updateUserProfile to updateUserProfileData
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,28 +85,39 @@ export default function EditProfilePage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(userProfile?.photoURL || null);
   
   // Create a form instance with a combined schema
-  const form = useForm<ProfileFormValues>({
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phoneNumber: "",
-      bio: "",
-      preferredLocation: "",
-      skills: "",
-      experience: "",
-      education: "",
-      businessName: "",
-      businessAddress: "",
-      businessDescription: "",
-      cuisineType: "",
-    },
-    resolver: zodResolver(
-      userType === "applicant" ? applicantProfileSchema : restaurantProfileSchema
-    ),
-    mode: "onBlur" // Changed from onChange to reduce validation frequency
+  const form = useForm<ProfileFormData>({
+    resolver: zodResolver(profileFormSchema.partial()), // Use partial for updates
+    defaultValues: async () => {
+      if (userProfile) {
+        // Map UserProfile to ProfileFormData, ensuring all fields are present or undefined
+        return {
+          firstName: userProfile.firstName || "",
+          lastName: userProfile.lastName || "",
+          phoneNumber: userProfile.phoneNumber || "",
+          // Applicant fields
+          bio: userProfile.bio || "",
+          skills: userProfile.skills || [],
+          experience: typeof userProfile.experience === "string" ? userProfile.experience : "", // Assuming experience is simplified to string for form
+          availability: Array.isArray(userProfile.availability) && userProfile.availability.every(item => typeof item === "string") ? userProfile.availability as string[] : [],
+          preferredLocation: userProfile.preferredLocation || "",
+          education: typeof userProfile.education === "string" ? userProfile.education : "", // Assuming education is simplified
+          jobPreferences: userProfile.jobPreferences || [],
+          location: userProfile.location || "",
+          // Restaurant fields
+          businessName: userProfile.businessName || "",
+          businessAddress: userProfile.businessAddress || "",
+          cuisineType: typeof userProfile.cuisineType === "string" ? userProfile.cuisineType : "", // Assuming cuisineType is simplified
+          hiringPositions: userProfile.hiringPositions || [],
+          jobTypes: userProfile.jobTypes || [],
+          benefits: userProfile.benefits || "",
+        };
+      }
+      return {};
+    }
   });
 
   // Handle loading state
@@ -205,7 +219,7 @@ export default function EditProfilePage() {
         cuisineType: '',
       });
       
-      const refreshedProfile = await refreshUserProfile();
+      const refreshedProfile = await fetchUserProfile(user.uid);
       
       if (refreshedProfile) {
         populateFormWithProfileData(refreshedProfile);
@@ -246,7 +260,7 @@ export default function EditProfilePage() {
     
     // Update the user profile with the new avatar URL
     if (userProfile) {
-      updateUserProfile({ photoURL: url })
+      updateUserProfileData({ photoURL: url })
         .then(() => {
           toast({
             title: "Avatar updated",
@@ -322,71 +336,45 @@ export default function EditProfilePage() {
   }, [router, isNavigating]);
 
   // Handle form submission
-  const onSubmit = async (data: ProfileFormValues) => {
-    if (isSubmitting || isNavigating) return;
-    
+  const onSubmit = async (data: ProfileFormData) => {
+    if (!user?.uid) {
+      setFormError("User not authenticated.");
+      return;
+    }
     setIsSubmitting(true);
     setFormError(null);
     
     try {
-      if (!userProfile) {
-        throw new Error("User profile not found. Please try logging in again.");
+      let uploadedPhotoURL = userProfile?.photoURL;
+      if (avatarFile) {
+        const newPhotoURL = await uploadProfilePicture(user.uid, avatarFile);
+        if (newPhotoURL) {
+          uploadedPhotoURL = newPhotoURL;
+        } else {
+          throw new Error("Failed to upload avatar.");
+        }
       }
+      
+      // Ensure userType is not part of the update data unless specifically allowed
+      const { userType, email, id, createdAt, updatedAt, profileComplete, isActive, ...updateData } = data;
 
-      if (!userType) {
-        throw new Error("User type not determined. Please refresh the page and try again.");
-      }
+      await updateUserProfileData(user.uid, { ...updateData, photoURL: uploadedPhotoURL }); // Changed updateUserProfile to updateUserProfileData
+      
+      // Optionally, refresh the profile data from context if needed, though useUser should update it
+      await fetchUserProfile(user.uid); // Re-fetch to ensure context is up-to-date
 
-      console.log("Submitting profile update", { userType });
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
       
-      // Prepare update data based on user type
-      const updateData: any = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phoneNumber: data.phoneNumber || "",
-        userType: userType,
-        isActive: userProfile.isActive !== undefined ? userProfile.isActive : true,
-        email: userProfile.email,
-        photoURL: avatarUrl || userProfile.photoURL,
-      };
+      // Redirect to dashboard
+      const dashboardPath = userType === "applicant" 
+        ? "/applicant/dashboard" 
+        : "/restaurant/dashboard";
       
-      // Add user type specific fields
-      if (userType === "applicant") {
-        updateData.bio = data.bio || "";
-        updateData.preferredLocation = data.preferredLocation || "";
-        updateData.skills = data.skills 
-          ? data.skills.split(",").map((s: string) => s.trim()).filter(Boolean) 
-          : [];
-        updateData.experience = data.experience || "";
-        updateData.education = data.education || "";
-      } else if (userType === "restaurant") {
-        updateData.businessName = data.businessName || "";
-        updateData.businessAddress = data.businessAddress || "";
-        updateData.bio = data.businessDescription || ""; // Map to bio field in the database
-        updateData.cuisineType = data.cuisineType || "";
-      }
-      
-      // Update profile
-      console.log("Sending profile update to server");
-      const updatedProfile = await updateUserProfile(updateData);
-      
-      if (updatedProfile) {
-        console.log("Profile updated successfully");
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been updated successfully.",
-        });
-        
-        // Redirect to dashboard
-        const dashboardPath = userType === "applicant" 
-          ? "/applicant/dashboard" 
-          : "/restaurant/dashboard";
-        
-        // Use safe navigation
-        safeNavigate(dashboardPath);
-      } else {
-        throw new Error("Failed to update profile. Please try again.");
-      }
+      // Use safe navigation
+      safeNavigate(dashboardPath);
     } catch (error: any) {
       console.error("Error updating profile:", error);
       setFormError(error.message || "Failed to update profile. Please try again.");
@@ -426,34 +414,6 @@ export default function EditProfilePage() {
             Update your personal information and preferences
           </p>
         </div>
-
-        {authError && (
-          <Alert variant="default" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Warning</AlertTitle>
-            <AlertDescription className="flex items-center justify-between">
-              <span>{authError}</span>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleRefreshProfile}
-                disabled={isRefreshing || isNavigating}
-              >
-                {isRefreshing ? (
-                  <>
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    Refreshing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-3 w-3" />
-                    Refresh Profile
-                  </>
-                )}
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
 
         {formError && (
           <Alert variant="destructive" className="mb-6">
@@ -495,7 +455,7 @@ export default function EditProfilePage() {
               <CardContent className="space-y-6">
                 <div className="flex flex-col items-center mb-4">
                   <AvatarUpload 
-                    currentPhotoURL={avatarUrl} 
+                    currentPhotoURL={avatarPreview} 
                     onAvatarChange={handleAvatarChange}
                     size="lg"
                   />

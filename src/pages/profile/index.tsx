@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { useRouter } from "next/router";
@@ -14,7 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function ProfilePage() {
-  const { userProfile, updateUserProfile, isLoading, error } = useUser();
+  const { user, userProfile, isLoading: authLoading, updateUserProfileData } = useUser(); // Changed updateUserProfile to updateUserProfileData
   const router = useRouter();
   
   const [formData, setFormData] = useState({
@@ -40,13 +39,13 @@ export default function ProfilePage() {
     setSuccessMessage("");
     
     try {
-      await updateUserProfile({
+      await updateUserProfileData(user.uid, {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phoneNumber: formData.phoneNumber,
         bio: formData.bio,
         preferredLocation: formData.preferredLocation,
-      });
+      }); // Changed updateUserProfile to updateUserProfileData
       
       setSuccessMessage("Profile updated successfully!");
     } catch (error) {

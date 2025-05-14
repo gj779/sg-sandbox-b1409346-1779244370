@@ -29,25 +29,39 @@ import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import Layout from "@/components/layout/Layout";
 
 export default function LoginPage() {
+  const { user, signIn, isLoading, error, clearAuthError } = useUser(); // Changed login to signIn
   const router = useRouter();
   const { type, redirect } = router.query;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const { login, isAuthenticated, isLoading: authLoading } = useUser();
-  const { toast } = useToast();
-  const returnUrl = router.query.returnUrl as string || "/";
+  const [showDemoCredentials, setShowDemoCredentials] = useState(false);
 
-  // Check if user is already authenticated
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      const redirectPath = typeof redirect === 'string' ? redirect : '/';
-      router.push(redirectPath);
+    // Clear previous errors when component mounts
+    clearAuthError();
+  }, [clearAuthError]);
+
+  useEffect(() => {
+    if (user) {
+      const redirectPath = router.query.redirect as string;
+      if (redirectPath) {
+        router.push(redirectPath);
+      } else {
+        // Default redirect based on user type after login
+        if (userProfile?.userType === "admin") {
+          router.push("/admin/dashboard");
+        } else if (userProfile?.userType === "restaurant") {
+          router.push("/restaurant/dashboard");
+        } else {
+          router.push("/applicant/dashboard");
+        }
+      }
     }
-  }, [isAuthenticated, authLoading, router, redirect]);
+  }, [user, router, userProfile]); // Added userProfile dependency
+
+  // Access userProfile from useUser hook
+  const { userProfile } = useUser();
 
   // Handle form submission
   const onSubmit = async (formData: { email: string; password: string }) => {
@@ -55,7 +69,7 @@ export default function LoginPage() {
     setError('');
     
     try {
-      const { userProfile, dashboardPath } = await login(formData.email, formData.password);
+      const { userProfile, dashboardPath } = await signIn(formData.email, formData.password); // Changed login to signIn
       
       toast({
         title: 'Sign in successful',
@@ -93,7 +107,7 @@ export default function LoginPage() {
     
     try {
       // Pass the userType to the login function so it can be used to determine the correct dashboard
-      const { userProfile, dashboardPath } = await login(email, password);
+      const { userProfile, dashboardPath } = await signIn(email, password); // Changed login to signIn
       
       console.log(`Login successful, user type: ${userProfile.userType}, dashboard path: ${dashboardPath}`);
       
@@ -126,7 +140,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await signIn(email, password); // Changed login to signIn
       router.push(result.dashboardPath || returnUrl);
     } catch (err: any) {
       setError(err.message);
@@ -141,6 +155,19 @@ export default function LoginPage() {
 
   const handleGoogleError = (err: Error) => {
     setError(err.message);
+  };
+
+  const handleDemoLogin = async (type: "applicant" | "restaurant" | "admin") => {
+    let demoEmail = "";
+    const demoPassword = "password"; // Assuming a common demo password
+
+    if (type === "applicant") demoEmail = "applicant@example.com";
+    else if (type === "restaurant") demoEmail = "restaurant@example.com";
+    else if (type === "admin") demoEmail = "admin@example.com";
+    
+    if (demoEmail) {
+      await signIn(demoEmail, demoPassword); // Changed login to signIn
+    }
   };
 
   return (

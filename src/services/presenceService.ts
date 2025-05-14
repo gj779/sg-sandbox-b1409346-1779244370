@@ -4,11 +4,11 @@ import { User } from 'firebase/auth';
 
 // Define the user presence data type
 export interface UserPresence {
-  userId: string;
-  status: 'online' | 'offline' | 'away';
-  lastActive: Date | null;
-  displayName?: string;
-  photoURL: string; // Changed from photoURL?: string
+  status: "online" | "offline" | "away";
+  lastSeen: Date; // Changed from last_seen to lastSeen for consistency
+  lastSeenTimestamp?: any; // For Firestore Server Timestamp
+  userId?: string; // Optional: if you want to include userId in the presence object itself
+  lastSeen?: Date; // Added lastSeen
 }
 
 // Collection path in the Realtime Database
@@ -37,7 +37,8 @@ export const presenceService = {
       const presenceData: UserPresence = {
         userId: user.uid,
         status: 'online',
-        lastActive: new Date(),
+        lastSeen: new Date(),
+        lastSeenTimestamp: serverTimestamp(),
         displayName: user.displayName || undefined,
         photoURL: user.photoURL || "" // Ensure default empty string
       };
@@ -58,7 +59,7 @@ export const presenceService = {
           onDisconnectRef.set({
             ...presenceData,
             status: 'offline',
-            lastActive: serverTimestamp()
+            lastSeen: serverTimestamp()
           }).then(() => {
             // Now that we've set up the disconnect handler, set the presence data
             set(presenceRef, presenceData);
@@ -83,7 +84,7 @@ export const presenceService = {
         set(presenceRef, {
           ...presenceData,
           status: 'offline',
-          lastActive: serverTimestamp()
+          lastSeen: serverTimestamp()
         }).catch(error => {
           console.error('Error updating presence on cleanup:', error);
         });
@@ -111,7 +112,7 @@ export const presenceService = {
       await set(presenceRef, {
         userId: user.uid,
         status,
-        lastActive: serverTimestamp(),
+        lastSeen: serverTimestamp(),
         displayName: user.displayName || undefined,
         photoURL: user.photoURL || "" // Ensure default empty string
       });
@@ -136,11 +137,11 @@ export const presenceService = {
           const data = snapshot.val();
           
           // Convert server timestamp to Date if needed
-          const lastActive = data.lastActive ? new Date(data.lastActive) : null;
+          const lastSeen = data.lastSeen ? new Date(data.lastSeen) : null;
           
           callback({
             ...data,
-            lastActive,
+            lastSeen,
             photoURL: data.photoURL || "" // Ensure default empty string for existing data
           });
         } else {
@@ -180,7 +181,7 @@ export const presenceService = {
             presenceMap[userId] = {
               userId,
               status: 'offline',
-              lastActive: null,
+              lastSeen: null,
               photoURL: "" // Ensure default empty string
             };
           }
@@ -219,12 +220,12 @@ export const presenceService = {
             const presence = data[userId];
             if (presence.status === 'online') {
               // Convert server timestamp to Date if needed
-              const lastActive = presence.lastActive ? new Date(presence.lastActive) : null;
+              const lastSeen = presence.lastSeen ? new Date(presence.lastSeen) : null;
               
               onlineUsers.push({
                 ...presence,
                 userId,
-                lastActive,
+                lastSeen,
                 photoURL: presence.photoURL || "" // Ensure default empty string
               });
             }

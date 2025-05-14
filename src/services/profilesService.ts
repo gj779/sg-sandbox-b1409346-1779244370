@@ -70,8 +70,14 @@ export const profilesService = {
    */
   async updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<{ id: string; data: Partial<UserProfile> }> {
     try {
+      // Ensure photoURL is undefined if null, to align with Zod schema (url or empty string, or null)
+      const dataToValidate = { ...profileData };
+      if (dataToValidate.photoURL === null) {
+        dataToValidate.photoURL = undefined;
+      }
+
       // Validate partial profile data
-      const validatedData = userProfileSchema.partial().parse(profileData);
+      const validatedData = userProfileSchema.partial().parse(dataToValidate);
       
       // Update the profile
       return await firebaseDatabaseService.update<UserProfile>(USERS_COLLECTION, userId, validatedData);

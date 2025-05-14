@@ -5,13 +5,11 @@ import { UserProfile as AppUserProfile } from "@/types"; // Use AppUserProfile f
 
 // Local UserProfile type for this context
 // This should align with AppUserProfile from src/types/index.ts
-// If AppUserProfile has email: string, name: string, photoURL?: string, this should match.
 interface UserProfile extends AppUserProfile {
-  // No need to redefine fields if AppUserProfile is accurate and sufficient.
-  // This interface is used for type casting if the hook's userProfile is slightly different,
-  // but the goal is for them to be compatible.
-  id: string;
-  userType?: "applicant" | "restaurant" | "admin";
+  // Ensure all required fields from AppUserProfile are non-optional here
+  // For example, userType is non-optional in AppUserProfile (via User base)
+  id: string; // id is part of AppUserProfile via User base
+  userType: "applicant" | "restaurant" | "admin"; // Make non-optional
 }
 
 interface UserContextType {

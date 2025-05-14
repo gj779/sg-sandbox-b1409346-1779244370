@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -65,40 +64,39 @@ export default function EditProfilePage() {
     resolver: zodResolver(userProfileSchema.partial()), // Use partial for updates
     defaultValues: async () => {
       if (currentUserProfile) {
-        // Map UserProfile to ProfileFormData
-        // Ensure skills is a string for the form if it's an array in the profile
-        const skillsString = Array.isArray(currentUserProfile.skills) 
-          ? currentUserProfile.skills.join(", ") 
-          : typeof currentUserProfile.skills === "string" ? currentUserProfile.skills : "";
-
         return {
           firstName: currentUserProfile.firstName || "",
           lastName: currentUserProfile.lastName || "",
-          email: currentUserProfile.email || "", // Email should be pre-filled and disabled
+          email: currentUserProfile.email || "", 
           phoneNumber: currentUserProfile.phoneNumber || "",
           photoURL: currentUserProfile.photoURL || "",
+          userType: currentUserProfile.userType || 'applicant',
+          isActive: currentUserProfile.isActive !== undefined ? currentUserProfile.isActive : true,
           
-          // Applicant fields
           bio: currentUserProfile.bio || "",
-          skills: skillsString, // Form expects a string
+          skills: Array.isArray(currentUserProfile.skills) 
+            ? currentUserProfile.skills 
+            : (typeof currentUserProfile.skills === 'string' ? currentUserProfile.skills.split(',').map(s => s.trim()).filter(s => s) : undefined),
           experience: typeof currentUserProfile.experience === "string" ? currentUserProfile.experience : "",
-          availability: Array.isArray(currentUserProfile.availability) && currentUserProfile.availability.every(item => typeof item === "string") ? currentUserProfile.availability as string[] : [],
+          availability: Array.isArray(currentUserProfile.availability) 
+            ? currentUserProfile.availability.map(av => typeof av === 'string' ? av : av.day) 
+            : [],
           preferredLocation: currentUserProfile.preferredLocation || "",
           education: typeof currentUserProfile.education === "string" ? currentUserProfile.education : "",
           jobPreferences: currentUserProfile.jobPreferences || [],
           location: currentUserProfile.location || "",
           
-          // Restaurant fields
           businessName: currentUserProfile.businessName || "",
           businessAddress: currentUserProfile.businessAddress || "",
-          businessDescription: currentUserProfile.businessDescription || currentUserProfile.bio || "", // Fallback to bio if businessDescription is not present
+          businessDescription: currentUserProfile.businessDescription || currentUserProfile.bio || "",
           cuisineType: typeof currentUserProfile.cuisineType === "string" ? currentUserProfile.cuisineType : "",
           hiringPositions: currentUserProfile.hiringPositions || [],
           jobTypes: currentUserProfile.jobTypes || [],
           benefits: currentUserProfile.benefits || "",
+          profileComplete: currentUserProfile.profileComplete !== undefined ? currentUserProfile.profileComplete : false,
         };
       }
-      return {}; // Return empty object if no profile
+      return {};
     }
   });
 
@@ -106,21 +104,22 @@ export default function EditProfilePage() {
     if (currentUserProfile || !authLoading) {
       setIsLoadingPage(false);
       if (currentUserProfile) {
-        // Reset form with fetched profile data when it becomes available
-        const skillsString = Array.isArray(currentUserProfile.skills) 
-          ? currentUserProfile.skills.join(", ") 
-          : typeof currentUserProfile.skills === "string" ? currentUserProfile.skills : "";
-
         form.reset({
           firstName: currentUserProfile.firstName || "",
           lastName: currentUserProfile.lastName || "",
           email: currentUserProfile.email || "",
           phoneNumber: currentUserProfile.phoneNumber || "",
           photoURL: currentUserProfile.photoURL || "",
+          userType: currentUserProfile.userType || 'applicant',
+          isActive: currentUserProfile.isActive !== undefined ? currentUserProfile.isActive : true,
           bio: currentUserProfile.bio || "",
-          skills: skillsString,
+          skills: Array.isArray(currentUserProfile.skills) 
+            ? currentUserProfile.skills 
+            : (typeof currentUserProfile.skills === 'string' ? currentUserProfile.skills.split(',').map(s => s.trim()).filter(s => s) : undefined),
           experience: typeof currentUserProfile.experience === "string" ? currentUserProfile.experience : "",
-          availability: Array.isArray(currentUserProfile.availability) && currentUserProfile.availability.every(item => typeof item === "string") ? currentUserProfile.availability as string[] : [],
+          availability: Array.isArray(currentUserProfile.availability) 
+            ? currentUserProfile.availability.map(av => typeof av === 'string' ? av : av.day) 
+            : [],
           preferredLocation: currentUserProfile.preferredLocation || "",
           education: typeof currentUserProfile.education === "string" ? currentUserProfile.education : "",
           jobPreferences: currentUserProfile.jobPreferences || [],
@@ -132,6 +131,7 @@ export default function EditProfilePage() {
           hiringPositions: currentUserProfile.hiringPositions || [],
           jobTypes: currentUserProfile.jobTypes || [],
           benefits: currentUserProfile.benefits || "",
+          profileComplete: currentUserProfile.profileComplete !== undefined ? currentUserProfile.profileComplete : false,
         });
       }
     }
@@ -169,7 +169,7 @@ export default function EditProfilePage() {
     setAvatarFile(file);
   };
 
-  const onSubmit = async ( ProfileFormData) => {
+  const onSubmit = async (formDataFromSubmit: ProfileFormData) => { // Changed parameter name
     if (!user?.uid) {
       setFormError("User not authenticated.");
       return;
@@ -190,18 +190,15 @@ export default function EditProfilePage() {
       }
       
       // Prepare data for update, converting skills string back to array if necessary
-      const { email: formEmail, ...updateData } = data; // Exclude email from update
+      const { email: formEmail, ...updateData } = formDataFromSubmit; // Use formDataFromSubmit
       
       let finalUpdateData: Partial<UserProfile> = { 
         ...updateData, 
         photoURL: uploadedPhotoURL 
       };
 
-      if (typeof data.skills === "string") {
-        finalUpdateData.skills = data.skills.split(",").map(skill => skill.trim()).filter(skill => skill);
-      } else {
-        finalUpdateData.skills = data.skills; // Keep as is if already array or undefined
-      }
+      // Skills are already string[] from the form due to schema, or should be handled by Zod transform if input is string
+      finalUpdateData.skills = formDataFromSubmit.skills; // Assuming skills is already string[] or undefined
       
       // Ensure userType is not accidentally changed by the form
       if (currentUserProfile?.userType) {
@@ -281,8 +278,8 @@ export default function EditProfilePage() {
               <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
               <CardContent className="space-y-6">
                 <AvatarUpload 
-                  currentPhotoURL={currentUserProfile.photoURL || null} 
-                  onAvatarChange={handleAvatarUpload} // This should pass the File object
+                  currentPhotoURL={currentUserProfile.photoURL || undefined} 
+                  onAvatarChange={handleAvatarUpload} 
                   size="lg"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -392,7 +389,7 @@ export default function EditProfilePage() {
                   <FormField control={form.control} name="businessDescription" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Restaurant Description</FormLabel>
-                      <FormControl><Textarea {...field} placeholder="Describe your restaurant..." /></FormControl>
+                      <FormControl><Textarea {...field} value={field.value || ""} placeholder="Describe your restaurant..." /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />

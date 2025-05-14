@@ -23,7 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ChefHat, Briefcase } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import AuthForm from "@/components/auth/AuthForm";
-import { useToast } from "@/hooks/useToast"; // Assuming useToast is imported from a hooks file
+import { useToast } from "@/hooks/use-toast"; // Corrected import path
 import { Alert, AlertDescription } from "@/components/ui/alert"; // Assuming Alert component is available
 
 export default function RegisterPage() {
@@ -104,13 +104,7 @@ export default function RegisterPage() {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-4">
-                <Button 
-                  className="w-full" 
-                  onClick={() => handleRegister("applicant")}
-                  disabled={authIsLoading}
-                >
-                  {authIsLoading ? "Creating Account..." : "Create Account"}
-                </Button>
+                {/* Button removed as AuthForm handles submission */}
                 <p className="text-sm text-center text-muted-foreground">
                   Already have an account?{" "}
                   <Link href="/auth/login?type=applicant" className="text-primary hover:underline">
@@ -141,13 +135,7 @@ export default function RegisterPage() {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-4">
-                <Button 
-                  className="w-full" 
-                  onClick={() => handleRegister("restaurant")}
-                  disabled={authIsLoading}
-                >
-                  {authIsLoading ? "Creating Account..." : "Create Account"}
-                </Button>
+                {/* Button removed as AuthForm handles submission */}
                 <p className="text-sm text-center text-muted-foreground">
                   Already have an account?{" "}
                   <Link href="/auth/login?type=restaurant" className="text-primary hover:underline">

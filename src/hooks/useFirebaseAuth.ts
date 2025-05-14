@@ -19,15 +19,18 @@ import { doc, setDoc, getDoc, serverTimestamp, updateDoc, deleteDoc } from "fire
 import { firebaseStorageService } from "@/services/firebaseStorage";
 import { UserProfile as AppUserProfile, User as AppUser } from "@/types"; // Renamed to avoid conflict
 
-// Local UserProfile type for this hook, ensuring photoURL is optional
-interface UserProfile extends Omit<AppUserProfile, "photoURL"> {
-  photoURL?: string; // Explicitly optional
-  // Ensure all required fields from AppUserProfile are here or also optional
-  id: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  userType?: "applicant" | "restaurant" | "admin";
+// Local UserProfile type for this hook
+interface UserProfile extends AppUserProfile {
+  // This interface should now directly align with AppUserProfile from src/types
+  // Ensure all properties like email, name, photoURL match the definitions in AppUserProfile
+  // AppUserProfile (via User base) should have:
+  // id: string;
+  // email: string; // non-optional
+  // name: string; // non-optional
+  // photoURL?: string; // optional
+  // userType: "applicant" | "restaurant" | "admin";
+  // firstName?: string;
+  // lastName?: string;
 }
 
 
@@ -95,26 +98,28 @@ export function useFirebaseAuth() {
     return () => unsubscribe();
   }, [fetchUserProfile]);
 
-  const signUp = async (email: string, password: string,firstName: string, lastName: string, userType: "applicant" | "restaurant"): Promise<UserProfile | null> => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, userType: "applicant" | "restaurant"): Promise<UserProfile | null> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       
-      await firebaseUpdateProfile(firebaseUser, { displayName: `${firstName} ${lastName}` });
+      const displayName = `${firstName} ${lastName}`.trim();
+      await firebaseUpdateProfile(firebaseUser, { displayName });
 
       const userProfileData: UserProfile = {
         id: firebaseUser.uid,
-        email: firebaseUser.email || email,
+        email: firebaseUser.email!, // email from FirebaseUser should be non-null
+        name: displayName || firebaseUser.displayName || firebaseUser.email! || "User",
         firstName,
         lastName,
         userType,
-        photoURL: firebaseUser.photoURL || "", // Default to empty string if null
-        // Initialize other fields as needed by your UserProfile type
-        // For example:
-        // skills: [],
-        // experience: [],
-        // businessName: "", 
+        photoURL: firebaseUser.photoURL || undefined, // Use undefined for consistency
+        // Initialize other fields as required by AppUserProfile or ensure they are optional
+        // Example:
+        // skills: [], // if skills is string[] and required
+        // isActive: true, // if isActive is boolean and required
+        // profileComplete: false, // if profileComplete is boolean and required
       };
 
       await setDoc(doc(db, "users", firebaseUser.uid), {
@@ -175,14 +180,19 @@ export function useFirebaseAuth() {
         const nameParts = firebaseUser.displayName?.split(" ") || ["", ""];
         const firstName = nameParts[0];
         const lastName = nameParts.slice(1).join(" ");
+        const displayName = `${firstName} ${lastName}`.trim();
 
         const newUserProfileData: UserProfile = {
           id: firebaseUser.uid,
-          email: firebaseUser.email || "",
+          email: firebaseUser.email!,
+          name: displayName || firebaseUser.displayName || firebaseUser.email! || "User",
           firstName,
           lastName,
           userType,
-          photoURL: firebaseUser.photoURL || "",
+          photoURL: firebaseUser.photoURL || undefined,
+          // Ensure other required fields from AppUserProfile are initialized
+          // isActive: true,
+          // profileComplete: false,
         };
         
         await setDoc(doc(db, "users", firebaseUser.uid), {

@@ -354,22 +354,19 @@ export default function CreateResumePage() {
                           <div>
                             <h3 className="font-medium">{edu.degree}</h3>
                             <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {edu.startDate?.toLocaleDateString()} - 
+                            <div className="text-sm">
+                              {edu.startDate ? (
+                                typeof edu.startDate === 'string' ? new Date(edu.startDate).toLocaleDateString() : edu.startDate.toLocaleDateString()
+                              ) : 'N/A'}
+                               - 
                               {edu.isCurrentlyStudying 
-                                ? " Present" 
+                                ? "Present" 
                                 : edu.endDate 
-                                  ? ` ${edu.endDate.toLocaleDateString()}` 
-                                  : ""}
-                            </p>
+                                  ? (typeof edu.endDate === 'string' ? new Date(edu.endDate).toLocaleDateString() : edu.endDate.toLocaleDateString())
+                                  : 'N/A'}
+                            </div>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => setEducations(educations.filter((_, i) => i !== index))}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleEditEducation(index)}>Edit</Button>
                         </div>
                       </div>
                     ))}
@@ -509,22 +506,19 @@ export default function CreateResumePage() {
                             {exp.location && (
                               <p className="text-xs text-muted-foreground">{exp.location}</p>
                             )}
-                            <p className="text-xs text-muted-foreground">
-                              {exp.startDate?.toLocaleDateString()} - 
+                            <div className="text-sm">
+                              {exp.startDate ? (
+                                typeof exp.startDate === 'string' ? new Date(exp.startDate).toLocaleDateString() : exp.startDate.toLocaleDateString()
+                              ) : 'N/A'}
+                               - 
                               {exp.isCurrentlyWorking 
-                                ? " Present" 
+                                ? "Present" 
                                 : exp.endDate 
-                                  ? ` ${exp.endDate.toLocaleDateString()}` 
-                                  : ""}
-                            </p>
+                                  ? (typeof exp.endDate === 'string' ? new Date(exp.endDate).toLocaleDateString() : exp.endDate.toLocaleDateString())
+                                  : 'N/A'}
+                            </div>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => setExperiences(experiences.filter((_, i) => i !== index))}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleEditExperience(index)}>Edit</Button>
                         </div>
                       </div>
                     ))}
@@ -704,21 +698,15 @@ export default function CreateResumePage() {
                       {certifications.map((cert, index) => (
                         <div key={index} className="border rounded-lg p-4">
                           <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-medium">{cert.name}</h3>
+                            <div className="flex-1">
+                              <h4 className="font-medium">{cert.name}</h4>
                               <p className="text-sm text-muted-foreground">{cert.issuingOrganization}</p>
-                              <p className="text-xs text-muted-foreground">
-                                Issued: {cert.issueDate?.toLocaleDateString()}
-                                {cert.expirationDate && ` · Expires: ${cert.expirationDate.toLocaleDateString()}`}
+                              <p className="text-sm text-muted-foreground">
+                                Issued: {cert.issueDate ? (typeof cert.issueDate === 'string' ? new Date(cert.issueDate).toLocaleDateString() : cert.issueDate.toLocaleDateString()) : 'N/A'}
+                                {cert.expirationDate && `, Expires: ${typeof cert.expirationDate === 'string' ? new Date(cert.expirationDate).toLocaleDateString() : cert.expirationDate.toLocaleDateString()}`}
                               </p>
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => setCertifications(certifications.filter((_, i) => i !== index))}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleEditCertification(index)}>Edit</Button>
                           </div>
                         </div>
                       ))}

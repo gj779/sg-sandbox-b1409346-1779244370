@@ -3,13 +3,14 @@ import { User as FirebaseUser } from "firebase/auth";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { UserProfile as AppUserProfile } from "@/types"; // Use AppUserProfile from global types
 
-// Local UserProfile type for this context, ensuring photoURL is optional
-interface UserProfile extends Omit<AppUserProfile, "photoURL"> {
-  photoURL?: string; // Explicitly optional
+// Local UserProfile type for this context
+// This should align with AppUserProfile from src/types/index.ts
+// If AppUserProfile has email: string, name: string, photoURL?: string, this should match.
+interface UserProfile extends AppUserProfile {
+  // No need to redefine fields if AppUserProfile is accurate and sufficient.
+  // This interface is used for type casting if the hook's userProfile is slightly different,
+  // but the goal is for them to be compatible.
   id: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
   userType?: "applicant" | "restaurant" | "admin";
 }
 

@@ -19,6 +19,7 @@ interface AuthFormProps {
 export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const router = useRouter(); // Added router
   const { signIn, signUp, error: authError, isLoading: authIsLoading, clearAuthError } = useUser();
+  const { toast } = useToast(); // Initialize toast
   
   // Form state
   const [email, setEmail] = useState("");

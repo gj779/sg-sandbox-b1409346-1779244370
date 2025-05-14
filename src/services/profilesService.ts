@@ -21,7 +21,7 @@ export const userProfileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   phoneNumber: z.string().optional(),
-  photoURL: z.string().url().optional(),
+  photoURL: z.string().url().optional().or(z.literal("")).nullable(), // Allow empty string or null
   isActive: z.boolean().default(true),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
@@ -39,6 +39,7 @@ export const userProfileSchema = z.object({
   // Restaurant specific fields
   businessName: z.string().optional(),
   businessAddress: z.string().optional(),
+  businessDescription: z.string().optional(), // Added businessDescription
   cuisineType: z.string().optional(),
   hiringPositions: z.array(z.string()).optional(),
   jobTypes: z.array(z.string()).optional(),

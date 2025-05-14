@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { presenceService, UserPresence } from '@/services/presenceService';
 import { User } from 'firebase/auth';
@@ -75,15 +74,22 @@ export function usePresence() {
    * @param userId - User ID to track
    * @returns Object with presence data and loading state
    */
-  const useUserPresence = (userId: string) => {
+  const useUserPresence = (userId: string | null | undefined) => { // Allow null or undefined
     const [presence, setPresence] = useState<UserPresence | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-      setLoading(true);
+      if (!userId) { // If no userId, set to offline/default and don't subscribe
+        setPresence({ status: "offline", lastSeen: new Date() });
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
       const unsubscribe = presenceService.subscribeToUserPresence(userId, (data) => {
         setPresence(data);
-        setLoading(false);
+        setIsLoading(false);
       });
 
       return () => {
@@ -91,7 +97,7 @@ export function usePresence() {
       };
     }, [userId]);
 
-    return { presence, loading };
+    return { presence, isLoading, error };
   };
 
   /**
@@ -99,21 +105,23 @@ export function usePresence() {
    * @param userIds - Array of user IDs to track
    * @returns Object with presence map and loading state
    */
-  const useMultipleUsersPresence = (userIds: string[]) => {
+  const useMultipleUsersPresence = (userIds: (string | null | undefined)[]) => { // Allow null or undefined userIds
     const [presenceMap, setPresenceMap] = useState<Record<string, UserPresence>>({});
-    const [loading, setLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-      if (userIds.length === 0) {
+      const validUserIds = userIds.filter(id => typeof id === 'string') as string[];
+      if (validUserIds.length === 0) {
         setPresenceMap({});
-        setLoading(false);
-        return () => {};
+        setIsLoading(false);
+        return;
       }
 
-      setLoading(true);
-      const unsubscribe = presenceService.subscribeToMultipleUsersPresence(userIds, (data) => {
+      setIsLoading(true);
+      const unsubscribe = presenceService.subscribeToMultipleUsersPresence(validUserIds, (data) => {
         setPresenceMap(data);
-        setLoading(false);
+        setIsLoading(false);
       });
 
       return () => {
@@ -121,7 +129,7 @@ export function usePresence() {
       };
     }, [userIds]);
 
-    return { presenceMap, loading };
+    return { presenceMap, isLoading, error };
   };
 
   /**

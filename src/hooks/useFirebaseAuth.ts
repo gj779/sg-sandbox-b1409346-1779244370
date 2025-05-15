@@ -354,7 +354,7 @@ export function useFirebaseAuth() {
       
       setAuthState({...initialAuthState, isLoading: false});
       return true;
-    } catch (error: any) { // Corrected: Removed .json
+    } catch (error: any) {
       console.error("Delete account error:", error);
       setAuthState(prev => ({ ...prev, isLoading: false, error: error.message || "Failed to delete account." }));
       return false;

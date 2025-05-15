@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import FileBrowser from "@/components/file-storage/FileBrowser";
-import { useAuth } from "@/hooks/useFirebaseAuth"; // Changed from @/contexts/UserContext
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth"; // Changed from useAuth
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
 import Layout from "@/components/layout/Layout"; // Assuming you have a Layout component
@@ -10,9 +10,9 @@ import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 
 export default function FileManagementPage() {
-  const { user, loading, userProfile } = useAuth();
+  const { user, isLoading: authLoading, userProfile } = useFirebaseAuth(); // Changed from useAuth, aliased loading
 
-  if (loading) {
+  if (authLoading) { // Use aliased authLoading
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-screen">

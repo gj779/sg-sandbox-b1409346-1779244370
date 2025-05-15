@@ -26,7 +26,6 @@ import {
   Conversation, 
   UserProfile, 
   MessageStatus, 
-  FileMetadata as CustomFileMetadata // Aliased FileMetadata to avoid clash if any
 } from "@/types"; 
 import { firebaseStorageService } from "./firebaseStorage";
 import { profilesService } from "./profilesService";
@@ -96,10 +95,12 @@ export const conversationsService = {
 
     if (file && (contentType === "image" || contentType === "file")) {
       const filePath = `chat_attachments/${conversationId}/${newMessageRef.id}/${file.name}`;
-      fileURL = await firebaseStorageService.uploadFile(filePath, file);
-      fileName = file.name;
-      fileSize = file.size;
-      fileType = file.type;
+      // firebaseStorageService.uploadFile returns FileMetadata, so we need its downloadURL
+      const uploadedFileMeta = await firebaseStorageService.uploadFile(filePath, file, { ownerId: senderId, accessLevel: "shared" });
+      fileURL = uploadedFileMeta.downloadURL;
+      fileName = uploadedFileMeta.name; // or file.name
+      fileSize = uploadedFileMeta.size; // or file.size
+      fileType = uploadedFileMeta.contentType; // or file.type
     }
     
     const senderProfile = await profilesService.getUserProfile(senderId);

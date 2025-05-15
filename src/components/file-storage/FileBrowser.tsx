@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, FolderOpen, Search, RefreshCw } from "lucide-react";
-import { useAuth } from "@/hooks/useFirebaseAuth"; // Changed from @/contexts/UserContext
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth"; // Changed from useAuth
 
 interface FileBrowserProps {
   userId: string; 
@@ -22,7 +22,7 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
   const [showUpload, setShowUpload] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const { user } = useAuth(); // User from context
+  const { user } = useFirebaseAuth(); // Changed from useAuth
 
   // Effect for path changes from props
   useEffect(() => {
@@ -32,9 +32,9 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
 
 
   const loadDirectoryFiles = useCallback(async (pathToList: string, isMountedChecker: () => boolean) => {
-    if (!userId || !user) {
+    if (!userId || !user) { // user from useFirebaseAuth
       if (isMountedChecker()) {
-        setError(!user ? "User not authenticated." : "User ID is missing.");
+        setError(!user ? "User not authenticated." : "User ID is missing."); // user from useFirebaseAuth
         setIsLoading(false);
         setFiles([]);
       }
@@ -78,7 +78,7 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
         setIsLoading(false);
       }
     }
-  }, [userId, user]); // user from context
+  }, [userId, user]); // user from useFirebaseAuth
 
   useEffect(() => {
     let isMounted = true;
@@ -139,7 +139,7 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
     setRefreshTrigger(prev => prev + 1);
   };
 
-  if (!user) { // Check user from context for main render block
+  if (!user) { // Check user from useFirebaseAuth for main render block
     return (
       <Alert variant="destructive">
         <AlertTitle>Authentication Error</AlertTitle>
@@ -171,7 +171,7 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
       {showUpload && (
         <FileUpload
           userId={userId} // Pass the prop userId
-          folderPath={displayPath} // Use consistent displayPath
+          directoryPath={displayPath} // Changed from folderPath to directoryPath
           onUploadSuccess={handleFileUploaded}
           onUploadError={(err) => setError(`Upload failed: ${err.message}`)}
         />

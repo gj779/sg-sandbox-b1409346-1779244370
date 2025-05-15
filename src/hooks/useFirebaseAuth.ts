@@ -266,7 +266,7 @@ export function useFirebaseAuth() {
     }
   };
 
-  const updateUserProfileData = async (userId: string,  Partial<UserProfileFromTypes>): Promise<boolean> => {
+  const updateUserProfileData = async (userId: string, data: Partial<UserProfileFromTypes>): Promise<boolean> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const userDocRef = doc(db, "users", userId);

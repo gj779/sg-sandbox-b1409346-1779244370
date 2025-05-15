@@ -85,7 +85,8 @@ export default function AdminDashboard() {
         "/admin/users",
         "/admin/jobs",
         "/admin/reports",
-        "/admin/settings"
+        "/admin/settings",
+        "/file-management" // Added file management route
       ];
       
       if (validRoutes.includes(path)) {

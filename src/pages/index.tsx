@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search, Briefcase, Clock, MapPin, ChefHat, Star, FileText } from "lucide-react"; // Added for new link
+import { Search, Briefcase, Clock, MapPin, ChefHat, Star } from "lucide-react"; // Removed FileText
 import { useState, useEffect } from "react";
 
 export default function HomePage() {
@@ -46,12 +46,7 @@ export default function HomePage() {
                     <a><ChefHat className="mr-2 h-4 w-4" /> Hire Staff</a>
                   </Button>
                 </Link>
-                {/* Added File Management Link */}
-                <Link href="/file-management" legacyBehavior>
-                  <Button size="lg" variant="secondary" className="w-full sm:w-auto" asChild>
-                    <a><FileText className="mr-2 h-4 w-4" /> File Management</a>
-                  </Button>
-                </Link>
+                {/* Removed File Management Link */}
               </div>
             </div>
             <div className="lg:pl-10 animate-slide-up">

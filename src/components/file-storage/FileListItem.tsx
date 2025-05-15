@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { FileMetadata, firebaseStorageService, FileCustomMetadata } from "@/services/firebaseStorage";
 import { Button } from "@/components/ui/button";
@@ -60,8 +61,8 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
     setIsSaving(true); // Set saving state
     setError(null);
     try {
-      const newTags = currentTags.split(",").map((t: string) => t.trim()).filter(t => t); // Typed t
-      const newSharedWith = currentSharedWith.split(",").map((t: string) => t.trim()).filter(t => t); // Typed t
+      const newTags = currentTags.split(",").map((t: string) => t.trim()).filter((tag: string) => tag.length > 0);
+      const newSharedWith = currentSharedWith.split(",").map((t: string) => t.trim()).filter((email: string) => email.length > 0);
 
       const newCustomMeta: Partial<FileCustomMetadata> = {
         description: currentDescription,

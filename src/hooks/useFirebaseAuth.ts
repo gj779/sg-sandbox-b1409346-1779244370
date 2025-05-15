@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { 
   User as FirebaseUser, 
   onAuthStateChanged, 
-  signOut as firebaseSignOut, // Ensured firebaseSignOut is imported
+  signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -242,11 +242,10 @@ export function useFirebaseAuth() {
     }
   };
 
-  // Correctly defined signOut function
   const signOut = async (): Promise<void> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      await firebaseSignOut(auth); // Using the imported firebaseSignOut
+      await firebaseSignOut(auth);
       setAuthState({ ...initialAuthState, isLoading: false });
     } catch (error: any) {
       console.error("Sign out error:", error);
@@ -267,20 +266,16 @@ export function useFirebaseAuth() {
     }
   };
 
-  // Corrected updateUserProfileData signature
   const updateUserProfileData = async (userId: string,  Partial<UserProfileFromTypes>): Promise<boolean> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const userDocRef = doc(db, "users", userId);
-      const updatePayload = { ...data, updatedAt: serverTimestamp() }; // Use a different name for the payload to avoid confusion if 'data' is used later
+      const updatePayload = { ...data, updatedAt: serverTimestamp() };
       await updateDoc(userDocRef, updatePayload);
       
-      // Ensure auth.currentUser exists and data contains updatable profile fields
       if (auth.currentUser && (data.name || data.photoURL || data.firstName || data.lastName)) {
-        // Fetch the most recent profile state or use existing from authState
         const currentProfile = authState.userProfile ? { ...authState.userProfile, ...data } : await fetchUserProfile(userId);
         
-        // Construct displayName carefully
         let displayName = data.name;
         if (!displayName && currentProfile) {
             if (data.firstName && data.lastName) {
@@ -295,7 +290,6 @@ export function useFirebaseAuth() {
                 displayName = currentProfile.name;
             }
         }
-
 
         await firebaseUpdateProfile(auth.currentUser, {
           displayName: displayName || undefined,
@@ -324,7 +318,6 @@ export function useFirebaseAuth() {
       const uploadedFileMetadata = await firebaseStorageService.uploadFile(filePath, file, { ownerId: userId }); 
       
       if (uploadedFileMetadata && uploadedFileMetadata.downloadURL) {
-        // Pass an object to updateUserProfileData
         await updateUserProfileData(userId, { photoURL: uploadedFileMetadata.downloadURL }); 
       }
       
@@ -351,7 +344,7 @@ export function useFirebaseAuth() {
     try {
       const firebaseUser = authState.user;
       
-      if (password && firebaseUser.email) { // Ensure email is not null
+      if (password && firebaseUser.email) {
         const credential = EmailAuthProvider.credential(firebaseUser.email, password);
         await reauthenticateWithCredential(firebaseUser, credential);
       }
@@ -359,9 +352,9 @@ export function useFirebaseAuth() {
       await deleteDoc(doc(db, "users", firebaseUser.uid));
       await firebaseDeleteUser(firebaseUser);
       
-      setAuthState({...initialAuthState, isLoading: false}); // Reset to initial state but keep isLoading false
+      setAuthState({...initialAuthState, isLoading: false});
       return true;
-    } catch (error: any) {
+    } catch (error: any).json
       console.error("Delete account error:", error);
       setAuthState(prev => ({ ...prev, isLoading: false, error: error.message || "Failed to delete account." }));
       return false;
@@ -373,7 +366,7 @@ export function useFirebaseAuth() {
     signUp,
     signIn,
     signInWithGoogle,
-    signOut, // Ensuring signOut is returned
+    signOut,
     resetPassword,
     fetchUserProfile,
     updateUserProfileData,

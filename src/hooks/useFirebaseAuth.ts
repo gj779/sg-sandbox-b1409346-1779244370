@@ -235,7 +235,7 @@ export function useFirebaseAuth() {
         isLoading: false,
       }));
       return userProfile;
-    } catch (error: any).tsx
+    } catch (error: any) {
       console.error("Google sign in error:", error);
       setAuthState(prev => ({ ...prev, isLoading: false, error: error.message || "Google sign in failed" }));
       return null;
@@ -266,7 +266,7 @@ export function useFirebaseAuth() {
     }
   };
 
-  const updateUserProfileData = async (userId: string, data: Partial<UserProfileFromTypes>): Promise<boolean> => {
+  const updateUserProfileData = async (userId: string,  Partial<UserProfileFromTypes>): Promise<boolean> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const userDocRef = doc(db, "users", userId);

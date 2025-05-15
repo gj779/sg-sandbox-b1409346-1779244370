@@ -28,6 +28,8 @@ const getFileIcon = (contentType?: string) => {
 export default function FileListItem({ file, currentUserId, onDelete, onMetadataUpdate }: FileListItemProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Added state for saving
+  const [isDeleting, setIsDeleting] = useState(false); // Added state for deleting
   
   const [currentDescription, setCurrentDescription] = useState(file.customMeta?.description || ""); // Changed customMetadata to customMeta
   const [currentTags, setCurrentTags] = useState((file.customMeta?.tags || []).join(", ")); // Changed customMetadata to customMeta
@@ -38,18 +40,24 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
   const isOwner = file.customMeta?.ownerId === currentUserId;
 
   const handleDelete = async () => {
-    setError(null);
-    try {
-      await firebaseStorageService.deleteFile(file.path);
-      onDelete(file.path);
-      setShowDeleteConfirm(false);
-    } catch (err: any) {
-      console.error("Failed to delete file:", err);
-      setError(`Failed to delete file: ${err.message}`);
+    if (window.confirm("Are you sure you want to delete this file? This action cannot be undone.")) {
+      setIsDeleting(true);
+      setError(null);
+      try {
+        await firebaseStorageService.deleteFile(file.path);
+        onDelete(file.path);
+        setShowDeleteConfirm(false);
+      } catch (err: any) {
+        console.error("Error deleting file:", err);
+        setError(err.message || "Failed to delete file.");
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
   const handleEditSubmit = async () => {
+    setIsSaving(true); // Set saving state
     setError(null);
     try {
       const newTags = currentTags.split(",").map((t: string) => t.trim()).filter(t => t); // Typed t
@@ -71,6 +79,8 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
     } catch (err: any) {
       console.error("Failed to update meta", err);
       setError(`Failed to update meta ${err.message}`);
+    } finally {
+      setIsSaving(false); // Reset saving state
     }
   };
 
@@ -171,7 +181,7 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
           {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -220,7 +230,7 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
             <DialogClose asChild>
                 <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
             </DialogClose>
-            <Button onClick={handleEditSubmit}>Save Changes</Button>
+            <Button onClick={handleEditSubmit} disabled={isSaving}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

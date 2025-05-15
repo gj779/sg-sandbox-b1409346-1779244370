@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { 
   User as FirebaseUser, 
@@ -241,7 +242,31 @@ export function useFirebaseAuth() {
     }
   };
 
-  const updateUserProfileData = async (userId: string, data: Partial<UserProfileFromTypes>): Promise<boolean> => {
+  const signOut = async (): Promise<void> => {
+    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+    try {
+      await firebaseSignOut(auth);
+      setAuthState({ ...initialAuthState, isLoading: false });
+    } catch (error: any) {
+      console.error("Sign out error:", error);
+      setAuthState(prev => ({ ...prev, isLoading: false, error: error.message || "Sign out failed" }));
+    }
+  };
+
+  const resetPassword = async (email: string): Promise<boolean> => {
+    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      return true;
+    } catch (error: any) {
+      console.error("Password reset error:", error);
+      setAuthState(prev => ({ ...prev, isLoading: false, error: error.message || "Password reset failed" }));
+      return false;
+    }
+  };
+
+  const updateUserProfileData = async (userId: string,  Partial<UserProfileFromTypes>): Promise<boolean> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const userDocRef = doc(db, "users", userId);

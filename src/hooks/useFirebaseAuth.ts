@@ -17,27 +17,11 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc, deleteDoc } from "firebase/firestore";
 import { firebaseStorageService } from "@/services/firebaseStorage";
-import profilesService from "@/services/profilesService";
-import { UserProfile, UserRole } from "@/types"; // Ensure UserProfile has photoURL as string | undefined
-
-// Local UserProfile type for this hook
-interface UserProfile extends AppUserProfile {
-  // This interface should now directly align with AppUserProfile from src/types
-  // Ensure all properties like email, name, photoURL match the definitions in AppUserProfile
-  // AppUserProfile (via User base) should have:
-  // id: string;
-  // email: string; // non-optional
-  // name: string; // non-optional
-  // photoURL?: string; // optional
-  // userType: "applicant" | "restaurant" | "admin";
-  // firstName?: string;
-  // lastName?: string;
-}
-
+import { UserProfile as UserProfileFromTypes, UserRole } from "@/types"; // Renamed import for clarity
 
 interface AuthState {
   user: FirebaseUser | null;
-  userProfile: UserProfile | null;
+  userProfile: UserProfileFromTypes | null; // Use UserProfileFromTypes
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -58,13 +42,12 @@ export function useFirebaseAuth() {
     setAuthState(prev => ({ ...prev, error: null }));
   };
   
-  const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
+  const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfileFromTypes | null> => {
     try {
       const userDocRef = doc(db, "users", userId);
       const userDocSnap = await getDoc(userDocRef);
       if (userDocSnap.exists()) {
-        const profileData = userDocSnap.data() as UserProfile;
-        // Ensure photoURL is handled correctly, even if undefined in Firestore
+        const profileData = userDocSnap.data() as UserProfileFromTypes;
         return { ...profileData, id: userId, photoURL: profileData.photoURL || undefined };
       }
       return null;
@@ -79,53 +62,43 @@ export function useFirebaseAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const profile = await fetchUserProfile(firebaseUser.uid);
-        if (profile) {
-          setAuthState({
-            user: firebaseUser,
-            userProfile: {
-              ...profile,
-              displayName: profile.displayName || firebaseUser.displayName,
-              photoURL: typeof profile.photoURL === "string" ? profile.photoURL : firebaseUser.photoURL,
-              role: profile.role || UserRole.APPLICANT, // Default role if not set
-              lastLogin: profile.lastLogin ? new Date(profile.lastLogin) : new Date(),
-              createdAt: profile.createdAt ? new Date(profile.createdAt) : new Date(),
-            },
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-        } else {
-          setAuthState({
-            user: firebaseUser,
-            userProfile: {
-              id: firebaseUser.uid,
-              email: firebaseUser.email!,
-              name: firebaseUser.displayName || firebaseUser.email! || "User",
-              photoURL: firebaseUser.photoURL,
-              role: UserRole.APPLICANT, // Default role for new user
-              customClaims: {},
-              lastLogin: new Date(),
-              createdAt: new Date(),
-            },
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-        }
-      } else {
+        const baseUserProfile: UserProfileFromTypes = {
+          id: firebaseUser.uid,
+          email: firebaseUser.email!,
+          name: profile?.name || firebaseUser.displayName || firebaseUser.email! || "User",
+          photoURL: profile?.photoURL || firebaseUser.photoURL || undefined,
+          userType: profile?.userType || UserRole.APPLICANT,
+          firstName: profile?.firstName || firebaseUser.displayName?.split(" ")[0] || "",
+          lastName: profile?.lastName || firebaseUser.displayName?.split(" ").slice(1).join(" ") || "",
+          createdAt: profile?.createdAt ? new Date(profile.createdAt) : new Date(),
+          updatedAt: profile?.updatedAt ? new Date(profile.updatedAt) : new Date(),
+          profileComplete: profile?.profileComplete || false,
+          isActive: profile?.isActive || true,
+        };
+
         setAuthState({
-          user: null,
-          userProfile: null,
-          isAuthenticated: false,
+          user: firebaseUser,
+          userProfile: {
+            ...baseUserProfile,
+            ...profile,
+            id: firebaseUser.uid,
+            email: firebaseUser.email!,
+            name: profile?.name || firebaseUser.displayName || firebaseUser.email! || "User",
+            photoURL: profile?.photoURL || firebaseUser.photoURL || undefined,
+            userType: profile?.userType || UserRole.APPLICANT,
+          },
+          isAuthenticated: true,
           isLoading: false,
           error: null,
         });
+      } else {
+        setAuthState({ ...initialAuthState, isLoading: false });
       }
     });
     return () => unsubscribe();
   }, [fetchUserProfile]);
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string, userType: "applicant" | "restaurant"): Promise<UserProfile | null> => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, userType: "applicant" | "restaurant"): Promise<UserProfileFromTypes | null> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -134,27 +107,24 @@ export function useFirebaseAuth() {
       const displayName = `${firstName} ${lastName}`.trim();
       await firebaseUpdateProfile(firebaseUser, { displayName });
 
-      const userProfileData: UserProfile = {
+      const userProfileData: UserProfileFromTypes = {
         id: firebaseUser.uid,
-        email: firebaseUser.email!, // email from FirebaseUser should be non-null
-        name: displayName || firebaseUser.displayName || firebaseUser.email! || "User",
+        email: firebaseUser.email!,
+        name: displayName,
         firstName,
         lastName,
         userType,
-        photoURL: firebaseUser.photoURL || undefined, // Use undefined for consistency
-        // Initialize other fields as required by AppUserProfile or ensure they are optional
-        // Example:
-        // skills: [], // if skills is string[] and required
-        // isActive: true, // if isActive is boolean and required
-        // profileComplete: false, // if profileComplete is boolean and required
+        photoURL: firebaseUser.photoURL || undefined,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        profileComplete: false,
+        isActive: true,
       };
 
       await setDoc(doc(db, "users", firebaseUser.uid), {
         ...userProfileData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        isActive: true,
-        profileComplete: false, // Or determine based on initial data
       });
       
       setAuthState(prev => ({
@@ -172,20 +142,38 @@ export function useFirebaseAuth() {
     }
   };
 
-  const signIn = async (email: string, password: string): Promise<UserProfile | null> => {
+  const signIn = async (email: string, password: string): Promise<UserProfileFromTypes | null> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       const profile = await fetchUserProfile(firebaseUser.uid);
+      
+      const userProfileToSet: UserProfileFromTypes | null = profile ? {
+        ...profile,
+        id: firebaseUser.uid,
+        email: firebaseUser.email!,
+        name: profile.name || firebaseUser.displayName || firebaseUser.email!,
+        photoURL: profile.photoURL || firebaseUser.photoURL || undefined,
+        userType: profile.userType || UserRole.APPLICANT,
+      } : null;
+
+      if (userProfileToSet && firebaseUser) {
+         await updateDoc(doc(db, "users", firebaseUser.uid), {
+            lastLogin: serverTimestamp(),
+            name: userProfileToSet.name,
+            photoURL: userProfileToSet.photoURL,
+        });
+      }
+
       setAuthState(prev => ({
         ...prev,
         user: firebaseUser,
-        userProfile: profile,
+        userProfile: userProfileToSet,
         isAuthenticated: true,
         isLoading: false,
       }));
-      return profile;
+      return userProfileToSet;
     } catch (error: any) {
       console.error("Sign in error:", error);
       setAuthState(prev => ({ ...prev, isLoading: false, error: error.message || "Sign in failed" }));
@@ -193,7 +181,7 @@ export function useFirebaseAuth() {
     }
   };
 
-  const signInWithGoogle = async (userType: "applicant" | "restaurant"): Promise<UserProfile | null> => {
+  const signInWithGoogle = async (userType: "applicant" | "restaurant"): Promise<UserProfileFromTypes | null> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const provider = new GoogleAuthProvider();
@@ -205,31 +193,37 @@ export function useFirebaseAuth() {
 
       if (additionalUserInfo?.isNewUser || !userProfile) {
         const nameParts = firebaseUser.displayName?.split(" ") || ["", ""];
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(" ");
-        const displayName = `${firstName} ${lastName}`.trim();
-
-        const newUserProfileData: UserProfile = {
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
+        
+        const newUserProfileData: UserProfileFromTypes = {
           id: firebaseUser.uid,
           email: firebaseUser.email!,
-          name: displayName || firebaseUser.displayName || firebaseUser.email! || "User",
+          name: firebaseUser.displayName || firebaseUser.email!,
           firstName,
           lastName,
           userType,
           photoURL: firebaseUser.photoURL || undefined,
-          // Ensure other required fields from AppUserProfile are initialized
-          // isActive: true,
-          // profileComplete: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          profileComplete: false,
+          isActive: true,
         };
         
         await setDoc(doc(db, "users", firebaseUser.uid), {
           ...newUserProfileData,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-          isActive: true,
-          profileComplete: false, // New users need to complete profile
-        }, { merge: true }); // Merge true to avoid overwriting if doc somehow exists
+        }, { merge: true });
         userProfile = newUserProfileData;
+      } else if (userProfile) {
+         await updateDoc(doc(db, "users", firebaseUser.uid), {
+            lastLogin: serverTimestamp(),
+            name: firebaseUser.displayName || userProfile.name,
+            photoURL: firebaseUser.photoURL || userProfile.photoURL,
+            userType: userProfile.userType || userType,
+        });
+        userProfile = await fetchUserProfile(firebaseUser.uid);
       }
       
       setAuthState(prev => ({
@@ -247,45 +241,19 @@ export function useFirebaseAuth() {
     }
   };
 
-  const signOut = async (): Promise<void> => {
-    setAuthState(prev => ({ ...prev, isLoading: true }));
-    try {
-      await firebaseSignOut(auth);
-      setAuthState(initialAuthState); // Reset to initial state, which has isLoading: true
-      // Then immediately set isLoading to false after state reset
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-    } catch (error: any) {
-      console.error("Sign out error:", error);
-      setAuthState(prev => ({ ...prev, isLoading: false, error: error.message || "Sign out failed" }));
-    }
-  };
-
-  const resetPassword = async (email: string): Promise<boolean> => {
-    setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-    try {
-      await sendPasswordResetEmail(auth, email);
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-      return true;
-    } catch (error: any) {
-      console.error("Password reset error:", error);
-      setAuthState(prev => ({ ...prev, isLoading: false, error: error.message || "Password reset failed" }));
-      return false;
-    }
-  };
-
-  const updateUserProfileData = async (userId: string, data: Partial<UserProfile>): Promise<boolean> => { // Corrected: Added ''
+  const updateUserProfileData = async (userId: string, data: Partial<UserProfileFromTypes>): Promise<boolean> => {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const userDocRef = doc(db, "users", userId);
       const updateData = { ...data, updatedAt: serverTimestamp() };
       await updateDoc(userDocRef, updateData);
       
-      // If FirebaseUser display name or photoURL is part of the update
-      if (auth.currentUser && (data.firstName || data.lastName || data.photoURL)) {
-        const currentProfile = await fetchUserProfile(userId); // Get potentially merged profile
-        const displayName = `${data.firstName || currentProfile?.firstName || ""} ${data.lastName || currentProfile?.lastName || ""}`.trim();
+      if (auth.currentUser && (data.name || data.photoURL || data.firstName || data.lastName)) {
+        const currentProfile = authState.userProfile ? { ...authState.userProfile, ...data } : await fetchUserProfile(userId);
+        const displayName = data.name || (currentProfile?.firstName && currentProfile?.lastName ? `${currentProfile.firstName} ${currentProfile.lastName}`.trim() : currentProfile?.name);
+
         await firebaseUpdateProfile(auth.currentUser, {
-          displayName: displayName || undefined, // firebaseUpdateProfile expects undefined for no change
+          displayName: displayName || undefined,
           photoURL: data.photoURL !== undefined ? data.photoURL : currentProfile?.photoURL || undefined,
         });
       }
@@ -308,14 +276,19 @@ export function useFirebaseAuth() {
     setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
       const filePath = `profiles/${userId}/${file.name}`;
-      const photoURL = await firebaseStorageService.uploadFile(filePath, file);
+      const uploadedFileMetadata = await firebaseStorageService.uploadFile(filePath, file, { ownerId: userId }); 
       
-      if (photoURL) {
-        await updateUserProfileData(userId, { photoURL }); // This will also update FirebaseUser
+      if (uploadedFileMetadata && uploadedFileMetadata.downloadURL) {
+        await updateUserProfileData(userId, { photoURL: uploadedFileMetadata.downloadURL }); 
       }
       
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-      return photoURL;
+      const updatedProfile = await fetchUserProfile(userId);
+      setAuthState(prev => ({ 
+        ...prev, 
+        userProfile: updatedProfile,
+        isLoading: false 
+      }));
+      return uploadedFileMetadata?.downloadURL || null;
     } catch (error: any) {
       console.error("Profile picture upload error:", error);
       setAuthState(prev => ({ ...prev, isLoading: false, error: error.message || "Profile picture upload failed" }));
@@ -332,19 +305,15 @@ export function useFirebaseAuth() {
     try {
       const firebaseUser = authState.user;
       
-      // Re-authentication might be needed for security-sensitive operations
       if (password) {
         const credential = EmailAuthProvider.credential(firebaseUser.email!, password);
         await reauthenticateWithCredential(firebaseUser, credential);
       }
 
-      // Delete user data from Firestore (and Storage if applicable)
       await deleteDoc(doc(db, "users", firebaseUser.uid));
-      // Add calls to delete storage files if necessary, e.g., profile picture
-
       await firebaseDeleteUser(firebaseUser);
       
-      setAuthState(initialAuthState); // Reset state
+      setAuthState(initialAuthState);
       setAuthState(prev => ({ ...prev, isLoading: false }));
       return true;
     } catch (error: any) {
@@ -353,7 +322,6 @@ export function useFirebaseAuth() {
       return false;
     }
   };
-
 
   return {
     ...authState,

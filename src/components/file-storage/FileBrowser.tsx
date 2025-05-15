@@ -173,7 +173,6 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
           userId={userId} // Pass the prop userId
           directoryPath={displayPath} // Changed from folderPath to directoryPath
           onUploadSuccess={handleFileUploaded}
-          onUploadError={(err) => setError(`Upload failed: ${err.message}`)}
         />
       )}
 

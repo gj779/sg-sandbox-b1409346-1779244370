@@ -17,7 +17,8 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc, deleteDoc } from "firebase/firestore";
 import { firebaseStorageService } from "@/services/firebaseStorage";
-import { UserProfile as AppUserProfile, User as AppUser } from "@/types"; // Renamed to avoid conflict
+import profilesService from "@/services/profilesService";
+import { UserProfile, UserRole } from "@/types"; // Ensure UserProfile has photoURL as string | undefined
 
 // Local UserProfile type for this hook
 interface UserProfile extends AppUserProfile {
@@ -78,13 +79,39 @@ export function useFirebaseAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const profile = await fetchUserProfile(firebaseUser.uid);
-        setAuthState({
-          user: firebaseUser,
-          userProfile: profile,
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        });
+        if (profile) {
+          setAuthState({
+            user: firebaseUser,
+            userProfile: {
+              ...profile,
+              displayName: profile.displayName || firebaseUser.displayName,
+              photoURL: typeof profile.photoURL === "string" ? profile.photoURL : firebaseUser.photoURL,
+              role: profile.role || UserRole.APPLICANT, // Default role if not set
+              lastLogin: profile.lastLogin ? new Date(profile.lastLogin) : new Date(),
+              createdAt: profile.createdAt ? new Date(profile.createdAt) : new Date(),
+            },
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        } else {
+          setAuthState({
+            user: firebaseUser,
+            userProfile: {
+              id: firebaseUser.uid,
+              email: firebaseUser.email!,
+              name: firebaseUser.displayName || firebaseUser.email! || "User",
+              photoURL: firebaseUser.photoURL,
+              role: UserRole.APPLICANT, // Default role for new user
+              customClaims: {},
+              lastLogin: new Date(),
+              createdAt: new Date(),
+            },
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        }
       } else {
         setAuthState({
           user: null,

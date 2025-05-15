@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FileMetadata, firebaseStorageService, FileCustomMetadata } from "@/services/firebaseStorage";
+import { FileMetadata, firebaseStorageService, FileCustomMetadata, updateFileMetadataInStorage, deleteFileFromStorage } from "@/services/firebaseStorage";
 import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge"; // Not used currently
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -29,16 +29,13 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   
-  const [editData, setEditData] = useState({
-    category: file.customMetadata?.category || "",
-    description: file.customMetadata?.description || "",
-    tags: Array.isArray(file.customMetadata?.tags) ? file.customMetadata.tags.join(", ") : "",
-    accessLevel: file.customMetadata?.accessLevel || "private",
-    sharedWith: Array.isArray(file.customMetadata?.sharedWith) ? file.customMetadata.sharedWith.join(", ") : "",
-  });
+  const [currentDescription, setCurrentDescription] = useState(file.customMeta?.description || ""); // Changed customMetadata to customMeta
+  const [currentTags, setCurrentTags] = useState((file.customMeta?.tags || []).join(", ")); // Changed customMetadata to customMeta
+  const [currentSharedWith, setCurrentSharedWith] = useState((file.customMeta?.sharedWith || []).join(", ")); // Changed customMetadata to customMeta
+  const [currentPermissions, setCurrentPermissions] = useState<Record<string, "read" | "write">> (file.customMeta?.permissions || {}); // Changed customMetadata to customMeta
   const [error, setError] = useState<string | null>(null);
 
-  const isOwner = file.customMetadata?.ownerId === currentUserId;
+  const isOwner = file.customMeta?.ownerId === currentUserId;
 
   const handleDelete = async () => {
     setError(null);
@@ -55,15 +52,20 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
   const handleEditSubmit = async () => {
     setError(null);
     try {
-      const updatedCustomMetadata: Partial<FileCustomMetadata> = {
-        category: editData.category,
-        description: editData.description,
-        tags: editData.tags.split(",").map(t => t.trim()).filter(t => t),
-        accessLevel: editData.accessLevel as FileCustomMetadata["accessLevel"],
-        sharedWith: editData.sharedWith.split(",").map(t => t.trim()).filter(t => t),
+      const newTags = currentTags.split(",").map((t: string) => t.trim()).filter(t => t); // Typed t
+      const newSharedWith = currentSharedWith.split(",").map((t: string) => t.trim()).filter(t => t); // Typed t
+
+      const newCustomMeta: Partial<FileCustomMetadata> = {
+        description: currentDescription,
+        tags: newTags,
+        sharedWith: newSharedWith,
+        permissions: currentPermissions,
+        // uploaderId and uploaderName should not be changed here by editor
+        // uploaderId: file.customMeta?.uploaderId, 
+        // uploaderName: file.customMeta?.uploaderName,
       };
       
-      const updatedFile = await firebaseStorageService.updateFileMetadata(file.path, updatedCustomMetadata);
+      const updatedFile = await firebaseStorageService.updateFileMetadata(file.path, newCustomMeta);
       onMetadataUpdate(updatedFile);
       setShowEditModal(false);
     } catch (err: any) {
@@ -74,7 +76,15 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setEditData(prev => ({ ...prev, [name]: value }));
+    if (name === "description") {
+      setCurrentDescription(value);
+    } else if (name === "tags") {
+      setCurrentTags(value);
+    } else if (name === "sharedWith") {
+      setCurrentSharedWith(value);
+    } else if (name === "permissions") {
+      setCurrentPermissions(prev => ({ ...prev, [value]: prev[value] === "read" ? "write" : "read" }));
+    }
   };
   
   const formatBytes = (bytes: number, decimals = 2) => {
@@ -88,15 +98,19 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
 
   // Reset editData when modal opens/file changes
   React.useEffect(() => {
-    setEditData({
-        category: file.customMetadata?.category || "",
-        description: file.customMetadata?.description || "",
-        tags: Array.isArray(file.customMetadata?.tags) ? file.customMetadata.tags.join(", ") : "",
-        accessLevel: file.customMetadata?.accessLevel || "private",
-        sharedWith: Array.isArray(file.customMetadata?.sharedWith) ? file.customMetadata.sharedWith.join(", ") : "",
-    });
+    setCurrentDescription(file.customMeta?.description || ""); // Changed customMetadata to customMeta
+    setCurrentTags((file.customMeta?.tags || []).join(", ")); // Changed customMetadata to customMeta
+    setCurrentSharedWith((file.customMeta?.sharedWith || []).join(", ")); // Changed customMetadata to customMeta
+    setCurrentPermissions(file.customMeta?.permissions || {}); // Changed customMetadata to customMeta
   }, [file, showEditModal]);
 
+
+  const initialDescription = file.customMeta?.description || "N/A"; // Changed customMetadata to customMeta
+  const initialTags = (file.customMeta?.tags || []).join(", ") || "N/A"; // Changed customMetadata to customMeta
+  const uploaderName = file.customMeta?.uploaderName || "Unknown"; // Changed customMetadata to customMeta
+  const uploaderId = file.customMeta?.uploaderId || "Unknown"; // Changed customMetadata to customMeta
+  const initialSharedWith = (file.customMeta?.sharedWith || []).join(", ") || "N/A"; // Changed customMetadata to customMeta
+  const initialPermissions = file.customMeta?.permissions || {}; // Changed customMetadata to customMeta
 
   return (
     <div className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -105,12 +119,24 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
         <div className="truncate">
           <p className="text-sm font-medium truncate" title={file.name}>{file.name}</p>
           <p className="text-xs text-muted-foreground">
-            {formatBytes(file.size)} | Category: {file.customMetadata?.category || "N/A"} | Access: {file.customMetadata?.accessLevel || "N/A"}
+            {formatBytes(file.size)} | Category: {file.customMeta?.category || "N/A"} | Access: {file.customMeta?.accessLevel || "N/A"}
           </p>
-          {file.customMetadata?.description && <p className="text-xs text-muted-foreground truncate" title={file.customMetadata.description}>Desc: {file.customMetadata.description}</p>}
-          {Array.isArray(file.customMetadata?.tags) && file.customMetadata.tags.length > 0 && (
-            <p className="text-xs text-muted-foreground truncate">Tags: {file.customMetadata.tags.join(", ")}</p>
+          {file.customMeta?.description && <p className="text-xs text-muted-foreground truncate" title={file.customMeta.description}>Desc: {file.customMeta.description}</p>}
+          {Array.isArray(file.customMeta?.tags) && file.customMeta.tags.length > 0 && (
+            <p className="text-xs text-muted-foreground truncate">Tags: {file.customMeta.tags.join(", ")}</p>
           )}
+          <p><strong>Description:</strong> {initialDescription}</p>
+          <p><strong>Tags:</strong> {initialTags}</p>
+          <p><strong>Uploaded by:</strong> {uploaderName} (ID: {uploaderId})</p>
+          <p>
+            <strong>Shared With:</strong> {initialSharedWith}
+          </p>
+          <p><strong>Permissions:</strong></p>
+          <ul>
+            {Object.entries(initialPermissions).map(([userId, perm]: [string, "read" | "write"]) => ( // Typed perm
+              <li key={userId}>{userId}: {perm}</li>
+            ))}
+          </ul>
         </div>
       </div>
       <div className="flex gap-2 flex-shrink-0 mt-2 sm:mt-0">
@@ -158,22 +184,22 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
           <div className="grid gap-4 py-4">
             <div>
               <Label htmlFor="edit-category">Category</Label>
-              <Input id="edit-category" name="category" value={editData.category} onChange={handleInputChange} />
+              <Input id="edit-category" name="category" value={file.customMeta?.category || ""} onChange={handleInputChange} />
             </div>
             <div>
               <Label htmlFor="edit-description">Description</Label>
-              <Input id="edit-description" name="description" value={editData.description} onChange={handleInputChange} />
+              <Input id="edit-description" name="description" value={currentDescription} onChange={handleInputChange} />
             </div>
             <div>
               <Label htmlFor="edit-tags">Tags (comma-separated)</Label>
-              <Input id="edit-tags" name="tags" value={editData.tags} onChange={handleInputChange} placeholder="tag1,tag2" />
+              <Input id="edit-tags" name="tags" value={currentTags} onChange={handleInputChange} placeholder="tag1,tag2" />
             </div>
             <div>
               <Label htmlFor="edit-accessLevel">Access Level</Label>
               <select
                 id="edit-accessLevel"
                 name="accessLevel"
-                value={editData.accessLevel}
+                value={file.customMeta?.accessLevel || "private"}
                 onChange={handleInputChange}
                 className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
@@ -182,10 +208,10 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
                 <option value="public">Public</option>
               </select>
             </div>
-            {editData.accessLevel === "shared" && (
+            {file.customMeta?.accessLevel === "shared" && (
               <div>
                 <Label htmlFor="edit-sharedWith">Share With (User IDs, comma-separated)</Label>
-                <Input id="edit-sharedWith" name="sharedWith" value={editData.sharedWith} onChange={handleInputChange} placeholder="user1_id,user2_id" />
+                <Input id="edit-sharedWith" name="sharedWith" value={currentSharedWith} onChange={handleInputChange} placeholder="user1_id,user2_id" />
               </div>
             )}
           </div>

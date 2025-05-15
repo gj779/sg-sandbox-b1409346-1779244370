@@ -1,14 +1,16 @@
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import FileBrowser from "@/components/file-storage/FileBrowser";
-import { useAuth } from "@/contexts/UserContext";
+import { useAuth } from "@/hooks/useFirebaseAuth"; // Changed from @/contexts/UserContext
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
 import Layout from "@/components/layout/Layout"; // Assuming you have a Layout component
+import { UserRole } from "@/types";
+import { useRouter } from "next/router";
+import { Button } from "@/components/ui/button";
 
 export default function FileManagementPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, userProfile } = useAuth();
 
   if (loading) {
     return (

@@ -25,7 +25,8 @@ import {
   Message, 
   Conversation, 
   UserProfile, 
-  MessageStatus 
+  MessageStatus, 
+  FileMetadata as CustomFileMetadata // Aliased FileMetadata to avoid clash if any
 } from "@/types"; 
 import { firebaseStorageService } from "./firebaseStorage";
 import { profilesService } from "./profilesService";
@@ -150,7 +151,21 @@ export const conversationsService = {
       limit(messageLimit)
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((docSnap): Message => ({ id: docSnap.id, ...docSnap.data() } as Message)).reverse();
+    return snapshot.docs.map((docSnap): Message => {
+      const doc = docSnap.data();
+      const message: Message = {
+        id: docSnap.id,
+        conversationId: doc.conversationId,
+        senderId: doc.senderId,
+        senderName: doc.senderName,
+        senderPhotoURL: typeof doc.senderPhotoURL === "string" ? doc.senderPhotoURL : undefined, // Ensure photoURL is string
+        text: doc.text,
+        imageUrl: doc.imageUrl,
+        timestamp: (doc.timestamp as Timestamp).toDate(),
+        isRead: doc.isRead || false,
+      };
+      return message;
+    }).reverse();
   },
 
   subscribeToMessages(conversationId: string, callback: (messages: Message[]) => void): () => void {
@@ -161,7 +176,21 @@ export const conversationsService = {
     );
 
     return onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map((docSnap): Message => ({ id: docSnap.id, ...docSnap.data() } as Message));
+      const messages = snapshot.docs.map((docSnap): Message => {
+        const doc = docSnap.data();
+        const message: Message = {
+          id: docSnap.id,
+          conversationId: doc.conversationId,
+          senderId: doc.senderId,
+          senderName: doc.senderName,
+          senderPhotoURL: typeof doc.senderPhotoURL === "string" ? doc.senderPhotoURL : undefined, // Ensure photoURL is string
+          text: doc.text,
+          imageUrl: doc.imageUrl,
+          timestamp: (doc.timestamp as Timestamp).toDate(),
+          isRead: doc.isRead || false,
+        };
+        return message;
+      });
       callback(messages);
     });
   },

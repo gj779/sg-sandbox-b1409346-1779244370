@@ -1,4 +1,3 @@
-
 // User Types
 export interface User {
   id: string;
@@ -253,3 +252,14 @@ export interface Conversation {
 // Job interface (if different from JobListing, or can be merged)
 // Assuming Job is similar to JobListing for now. If it's a simpler version, define separately.
 export type Job = JobListing;
+
+export interface UploadProgress {
+  progress: number;
+  status: "error" | "running" | "paused" | "success" | "canceled"; // Added "canceled"
+  error?: Error | null;
+  downloadURL?: string | null;
+  fileName: string;
+  fileSize: number;
+  uploadedBytes: number;
+  taskId: string; // To identify and manage specific uploads
+}

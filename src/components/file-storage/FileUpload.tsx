@@ -5,18 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { firebaseStorageService, UploadProgress, FileMetadata } from "@/services/firebaseStorage";
-import { useAuth } from "@/contexts/UserContext"; // Assuming you have a UserContext for auth
-import { UploadCloud, File as FileIcon, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { uploadFileToStorage, FileCustomMetadata } from "@/services/firebaseStorage";
+import { useAuth } from "@/hooks/useFirebaseAuth"; // Changed from @/contexts/UserContext
+import { UploadCloud, File as FileIcon, XCircle } from "lucide-react";
 
 interface FileUploadProps {
-  userId: string; // Or get from context
-  folderPath?: string; // e.g., "documents/project-alpha/"
-  onUploadSuccess?: (file: FileMetadata) => void;
-  onUploadError?: (error: Error) => void;
+  userId?: string; // Optional userId, if not provided, will use authenticated user
+  directoryPath?: string; // Optional directory path for uploads
+  onUploadSuccess: (file: File, meta: FileCustomMetadata) => void;
 }
 
-export default function FileUpload({ userId, folderPath = `documents/${userId}/general`, onUploadSuccess, onUploadError }: FileUploadProps) {
+export default function FileUpload({ userId, directoryPath = `documents/${userId}/general`, onUploadSuccess }: FileUploadProps) {
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, UploadProgress>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -59,9 +59,9 @@ export default function FileUpload({ userId, folderPath = `documents/${userId}/g
     setUploadError(null);
 
     for (const file of filesToUpload) {
-      const fullPath = `${folderPath}/${file.name}`;
+      const fullPath = `${directoryPath}/${file.name}`;
       try {
-        const fileMetadata: FileMetadata = await firebaseStorageService.uploadFile(
+        const fileMetadata: FileCustomMetadata = await uploadFileToStorage(
           fullPath,
           file,
           {
@@ -77,7 +77,7 @@ export default function FileUpload({ userId, folderPath = `documents/${userId}/g
           }
         );
         if (onUploadSuccess) {
-          onUploadSuccess(fileMetadata);
+          onUploadSuccess(file, fileMetadata);
         }
       } catch (error: any) {
         console.error("Upload failed for", file.name, error);
@@ -85,9 +85,6 @@ export default function FileUpload({ userId, folderPath = `documents/${userId}/g
           ...prev,
           [file.name]: { progress: 0, state: "error", bytesTransferred: 0, totalBytes: file.size, error },
         }));
-        if (onUploadError) {
-          onUploadError(error);
-        }
         setUploadError(`Failed to upload ${file.name}: ${error.message}`);
       }
     }
@@ -123,7 +120,7 @@ export default function FileUpload({ userId, folderPath = `documents/${userId}/g
                   <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(2)} KB)</span>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => handleRemoveFile(file.name)}>
-                  <X className="h-4 w-4" />
+                  <XCircle className="h-4 w-4" />
                 </Button>
               </div>
               {uploadProgress[file.name] && (

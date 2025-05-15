@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { FileMetadata, firebaseStorageService } from "@/services/firebaseStorage";
 import FileListItem from "./FileListItem";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, FolderOpen, Search, RefreshCw } from "lucide-react";
-import { useAuth } from "@/contexts/UserContext";
+import { useAuth } from "@/hooks/useFirebaseAuth"; // Changed from @/contexts/UserContext
 
 interface FileBrowserProps {
   userId: string; 
@@ -23,7 +22,7 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
   const [showUpload, setShowUpload] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const { user: authUser } = useAuth(); // User from context
+  const { user } = useAuth(); // User from context
 
   // Effect for path changes from props
   useEffect(() => {
@@ -33,9 +32,9 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
 
 
   const loadDirectoryFiles = useCallback(async (pathToList: string, isMountedChecker: () => boolean) => {
-    if (!userId || !authUser) {
+    if (!userId || !user) {
       if (isMountedChecker()) {
-        setError(!authUser ? "User not authenticated." : "User ID is missing.");
+        setError(!user ? "User not authenticated." : "User ID is missing.");
         setIsLoading(false);
         setFiles([]);
       }
@@ -79,7 +78,7 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
         setIsLoading(false);
       }
     }
-  }, [userId, authUser]); // authUser from context
+  }, [userId, user]); // user from context
 
   useEffect(() => {
     let isMounted = true;
@@ -115,13 +114,10 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
   };
 
   const filteredFiles = files.filter(file => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-        file.name.toLowerCase().includes(searchLower) ||
-        (file.customMetadata?.category && file.customMetadata.category.toLowerCase().includes(searchLower)) ||
-        (Array.isArray(file.customMetadata?.tags) && file.customMetadata.tags.some(tag => tag.toLowerCase().includes(searchLower))) ||
-        (file.customMetadata?.description && file.customMetadata.description.toLowerCase().includes(searchLower))
-    );
+    const matchesSearchTerm = file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                              (file.customMeta?.description || "").toLowerCase().includes(searchTerm.toLowerCase()) || // Changed customMetadata to customMeta
+                              (file.customMeta?.tags || []).some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase())); // Changed customMetadata to customMeta and typed tag
+    return matchesSearchTerm;
   });
 
   const navigateUp = () => {
@@ -143,7 +139,7 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
     setRefreshTrigger(prev => prev + 1);
   };
 
-  if (!authUser) { // Check authUser from context for main render block
+  if (!user) { // Check user from context for main render block
     return (
       <Alert variant="destructive">
         <AlertTitle>Authentication Error</AlertTitle>
@@ -234,4 +230,3 @@ export default function FileBrowser({ userId, initialFolderPath }: FileBrowserPr
     </div>
   );
 }
-

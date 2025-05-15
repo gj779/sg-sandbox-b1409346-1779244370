@@ -10,6 +10,7 @@ import {
   FullMetadata,
 } from "firebase/storage";
 import { app } from "@/lib/firebase"; // Your Firebase app initialization
+import { UploadProgress, FileMetadata, FileCustomMetadata } from "@/types"; // Ensure FileMetadata and FileCustomMetadata are from your types
 
 export interface UploadProgress {
   progress: number;
@@ -71,13 +72,15 @@ class FirebaseStorageService {
         "state_changed",
         (snapshot) => {
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          const currentProgress: UploadProgress = {
+            progress,
+            state: snapshot.state as "error" | "running" | "paused" | "success" | "canceled", // Cast to ensure compatibility
+            bytesTransferred: snapshot.bytesTransferred,
+            totalBytes: snapshot.totalBytes,
+            error: undefined,
+          };
           if (onProgress) {
-            onProgress({
-              progress,
-              bytesTransferred: snapshot.bytesTransferred,
-              totalBytes: snapshot.totalBytes,
-              state: snapshot.state,
-            });
+            onProgress(currentProgress);
           }
         },
         (error) => {

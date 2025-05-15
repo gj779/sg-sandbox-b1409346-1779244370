@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FileMetadata, firebaseStorageService, FileCustomMetadata, updateFileMetadataInStorage, deleteFileFromStorage } from "@/services/firebaseStorage";
+import { FileMetadata, firebaseStorageService, FileCustomMetadata } from "@/services/firebaseStorage";
 import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge"; // Not used currently
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

@@ -1,7 +1,8 @@
+
 import React, { useState } from "react";
-import { FileMetadata, firebaseStorageService, FileCustomMetadata } from "@/services/firebaseStorage";
+import { FileMetadata, FileCustomMetadata } from "@/types";
+import { firebaseStorageService } from "@/services/firebaseStorage";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge"; // Not used currently
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,16 +29,18 @@ const getFileIcon = (contentType?: string) => {
 export default function FileListItem({ file, currentUserId, onDelete, onMetadataUpdate }: FileListItemProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [isSaving, setIsSaving] = useState(false); // Added state for saving
-  const [isDeleting, setIsDeleting] = useState(false); // Added state for deleting
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
-  const [currentDescription, setCurrentDescription] = useState(file.customMeta?.description || ""); // Changed customMetadata to customMeta
-  const [currentTags, setCurrentTags] = useState((file.customMeta?.tags || []).join(", ")); // Changed customMetadata to customMeta
-  const [currentSharedWith, setCurrentSharedWith] = useState((file.customMeta?.sharedWith || []).join(", ")); // Changed customMetadata to customMeta
-  const [currentPermissions, setCurrentPermissions] = useState<Record<string, "read" | "write">> (file.customMeta?.permissions || {}); // Changed customMetadata to customMeta
+  const [currentDescription, setCurrentDescription] = useState(file.customMetadata?.description || "");
+  const [currentTags, setCurrentTags] = useState((file.customMetadata?.tags || []).join(", "));
+  const [currentSharedWith, setCurrentSharedWith] = useState(
+    Object.keys(file.customMetadata?.sharedWith || {}).join(", ")
+  );
+  const [currentPermissions, setCurrentPermissions] = useState(file.customMetadata?.permissions || {});
   const [error, setError] = useState<string | null>(null);
 
-  const isOwner = file.customMeta?.ownerId === currentUserId;
+  const isOwner = file.customMetadata?.uploadedBy === currentUserId;
 
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this file? This action cannot be undone.")) {
@@ -57,43 +60,56 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
   };
 
   const handleEditSubmit = async () => {
-    setIsSaving(true); // Set saving state
+    setIsSaving(true);
     setError(null);
     try {
-      const newTags = currentTags.split(",").map((t: string) => t.trim()).filter((tag: string) => tag.length > 0);
-      const newSharedWith = currentSharedWith.split(",").map((t: string) => t.trim()).filter((email: string) => email.length > 0);
+      const newTags = currentTags.split(",").map(t => t.trim()).filter(tag => tag.length > 0);
+      const newSharedWithIds = currentSharedWith.split(",").map(id => id.trim()).filter(id => id.length > 0);
+      
+      // Convert array of IDs to shared permissions object
+      const sharedWithObj: { [key: string]: "read" } = {};
+      newSharedWithIds.forEach(id => {
+        sharedWithObj[id] = "read";
+      });
 
-      const newCustomMeta: Partial<FileCustomMetadata> = {
+      const newCustomMetadata: Partial<FileCustomMetadata> = {
         description: currentDescription,
         tags: newTags,
-        sharedWith: newSharedWith,
+        sharedWith: sharedWithObj,
         permissions: currentPermissions,
-        // uploaderId and uploaderName should not be changed here by editor
-        // uploaderId: file.customMeta?.uploaderId, 
-        // uploaderName: file.customMeta?.uploaderName,
+        uploadedBy: file.customMetadata.uploadedBy,
+        uploaderName: file.customMetadata.uploaderName
       };
       
-      const updatedFile = await firebaseStorageService.updateFileMetadata(file.path, newCustomMeta);
+      const updatedFile = await firebaseStorageService.updateFileMetadata(file.path, newCustomMetadata);
       onMetadataUpdate(updatedFile);
       setShowEditModal(false);
     } catch (err: any) {
-      console.error("Failed to update meta", err);
-      setError(`Failed to update meta ${err.message}`);
+      console.error("Failed to update metadata", err);
+      setError(`Failed to update metadata: ${err.message}`);
     } finally {
-      setIsSaving(false); // Reset saving state
+      setIsSaving(false);
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (name === "description") {
-      setCurrentDescription(value);
-    } else if (name === "tags") {
-      setCurrentTags(value);
-    } else if (name === "sharedWith") {
-      setCurrentSharedWith(value);
-    } else if (name === "permissions") {
-      setCurrentPermissions(prev => ({ ...prev, [value]: prev[value] === "read" ? "write" : "read" }));
+    switch (name) {
+      case "description":
+        setCurrentDescription(value);
+        break;
+      case "tags":
+        setCurrentTags(value);
+        break;
+      case "sharedWith":
+        setCurrentSharedWith(value);
+        break;
+      case "permissions":
+        setCurrentPermissions(prev => ({
+          ...prev,
+          [value]: prev[value] === "read" ? "write" : "read"
+        }));
+        break;
     }
   };
   
@@ -106,135 +122,133 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
   };
 
-  // Reset editData when modal opens/file changes
+  // Reset edit data when modal opens/file changes
   React.useEffect(() => {
-    setCurrentDescription(file.customMeta?.description || ""); // Changed customMetadata to customMeta
-    setCurrentTags((file.customMeta?.tags || []).join(", ")); // Changed customMetadata to customMeta
-    setCurrentSharedWith((file.customMeta?.sharedWith || []).join(", ")); // Changed customMetadata to customMeta
-    setCurrentPermissions(file.customMeta?.permissions || {}); // Changed customMetadata to customMeta
+    if (showEditModal) {
+      setCurrentDescription(file.customMetadata?.description || "");
+      setCurrentTags((file.customMetadata?.tags || []).join(", "));
+      setCurrentSharedWith(Object.keys(file.customMetadata?.sharedWith || {}).join(", "));
+      setCurrentPermissions(file.customMetadata?.permissions || {});
+    }
   }, [file, showEditModal]);
 
-
-  const initialDescription = file.customMeta?.description || "N/A"; // Changed customMetadata to customMeta
-  const initialTags = (file.customMeta?.tags || []).join(", ") || "N/A"; // Changed customMetadata to customMeta
-  const uploaderName = file.customMeta?.uploaderName || "Unknown"; // Changed customMetadata to customMeta
-  const uploaderId = file.customMeta?.uploaderId || "Unknown"; // Changed customMetadata to customMeta
-  const initialSharedWith = (file.customMeta?.sharedWith || []).join(", ") || "N/A"; // Changed customMetadata to customMeta
-  const initialPermissions = file.customMeta?.permissions || {}; // Changed customMetadata to customMeta
-
   return (
-    <div className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div className="flex items-center gap-3 flex-grow min-w-0">
+    <div className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-3">
         {getFileIcon(file.contentType)}
-        <div className="truncate">
-          <p className="text-sm font-medium truncate" title={file.name}>{file.name}</p>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-medium truncate">{file.name}</h3>
           <p className="text-xs text-muted-foreground">
-            {formatBytes(file.size)} | Category: {file.customMeta?.category || "N/A"} | Access: {file.customMeta?.accessLevel || "N/A"}
+            {formatBytes(file.size)} • Uploaded {file.createdAt.toLocaleDateString()}
           </p>
-          {file.customMeta?.description && <p className="text-xs text-muted-foreground truncate" title={file.customMeta.description}>Desc: {file.customMeta.description}</p>}
-          {Array.isArray(file.customMeta?.tags) && file.customMeta.tags.length > 0 && (
-            <p className="text-xs text-muted-foreground truncate">Tags: {file.customMeta.tags.join(", ")}</p>
+          {file.customMetadata?.description && (
+            <p className="text-xs text-muted-foreground truncate mt-1">
+              {file.customMetadata.description}
+            </p>
           )}
-          <p><strong>Description:</strong> {initialDescription}</p>
-          <p><strong>Tags:</strong> {initialTags}</p>
-          <p><strong>Uploaded by:</strong> {uploaderName} (ID: {uploaderId})</p>
-          <p>
-            <strong>Shared With:</strong> {initialSharedWith}
-          </p>
-          <p><strong>Permissions:</strong></p>
-          <ul>
-            {Object.entries(initialPermissions).map(([userId, perm]: [string, "read" | "write"]) => ( // Typed perm
-              <li key={userId}>{userId}: {perm}</li>
-            ))}
-          </ul>
+          {file.customMetadata?.tags && file.customMetadata.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {file.customMetadata.tags.map(tag => (
+                <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-      <div className="flex gap-2 flex-shrink-0 mt-2 sm:mt-0">
+
+      <div className="flex gap-2 mt-4">
         <Button variant="outline" size="sm" asChild>
           <a href={file.downloadURL} target="_blank" rel="noopener noreferrer" download={file.name}>
-            <Download className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Download</span>
+            <Download className="h-4 w-4 mr-2" />
+            Download
           </a>
         </Button>
+        
         {isOwner && (
           <>
-            <Button variant="outline" size="sm" onClick={() => { setError(null); setShowEditModal(true); }}>
-              <Edit2 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
+            <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)}>
+              <Edit2 className="h-4 w-4 mr-2" />
+              Edit
             </Button>
-            <Dialog>
+            
+            <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
               <DialogTrigger asChild>
-                <Button variant="destructive" size="sm" onClick={() => { setError(null); setShowDeleteConfirm(true); }}>
-                  <Trash2 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Delete</span>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Confirm Deletion</DialogTitle>
+                  <DialogTitle>Delete File</DialogTitle>
                 </DialogHeader>
                 <Alert variant="destructive">
                   <AlertTitle>Are you sure?</AlertTitle>
                   <AlertDescription>
-                    This action will permanently delete the file "{file.name}". This cannot be undone.
+                    This will permanently delete "{file.name}". This action cannot be undone.
                   </AlertDescription>
                 </Alert>
-                {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+                {error && <p className="text-sm text-destructive mt-2">{error}</p>}
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-                  <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>Delete</Button>
+                  <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit File Details</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Input
+                      id="description"
+                      name="description"
+                      value={currentDescription}
+                      onChange={handleInputChange}
+                      placeholder="Add a description"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tags">Tags (comma-separated)</Label>
+                    <Input
+                      id="tags"
+                      name="tags"
+                      value={currentTags}
+                      onChange={handleInputChange}
+                      placeholder="tag1, tag2, tag3"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="sharedWith">Share with (user IDs)</Label>
+                    <Input
+                      id="sharedWith"
+                      name="sharedWith"
+                      value={currentSharedWith}
+                      onChange={handleInputChange}
+                      placeholder="user1, user2"
+                    />
+                  </div>
+                </div>
+                {error && <p className="text-sm text-destructive mt-2">{error}</p>}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
+                  <Button onClick={handleEditSubmit} disabled={isSaving}>
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </>
         )}
       </div>
-
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit File: {file.name}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div>
-              <Label htmlFor="edit-category">Category</Label>
-              <Input id="edit-category" name="category" value={file.customMeta?.category || ""} onChange={handleInputChange} />
-            </div>
-            <div>
-              <Label htmlFor="edit-description">Description</Label>
-              <Input id="edit-description" name="description" value={currentDescription} onChange={handleInputChange} />
-            </div>
-            <div>
-              <Label htmlFor="edit-tags">Tags (comma-separated)</Label>
-              <Input id="edit-tags" name="tags" value={currentTags} onChange={handleInputChange} placeholder="tag1,tag2" />
-            </div>
-            <div>
-              <Label htmlFor="edit-accessLevel">Access Level</Label>
-              <select
-                id="edit-accessLevel"
-                name="accessLevel"
-                value={file.customMeta?.accessLevel || "private"}
-                onChange={handleInputChange}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="private">Private</option>
-                <option value="shared">Shared</option>
-                <option value="public">Public</option>
-              </select>
-            </div>
-            {file.customMeta?.accessLevel === "shared" && (
-              <div>
-                <Label htmlFor="edit-sharedWith">Share With (User IDs, comma-separated)</Label>
-                <Input id="edit-sharedWith" name="sharedWith" value={currentSharedWith} onChange={handleInputChange} placeholder="user1_id,user2_id" />
-              </div>
-            )}
-          </div>
-          {error && <p className="text-sm text-red-500 mb-2">{error}</p>}
-          <DialogFooter>
-            <DialogClose asChild>
-                <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancel</Button>
-            </DialogClose>
-            <Button onClick={handleEditSubmit} disabled={isSaving}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

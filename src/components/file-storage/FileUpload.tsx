@@ -64,7 +64,6 @@ export default function FileUpload({ currentUserId, onUploadSuccess, onUploadErr
     setUploadError(null);
 
     for (const file of filesToUpload) {
-      // Convert shared users to permissions object
       const sharedWithObj: { [key: string]: FilePermission } = {};
       if (sharedWith.trim()) {
         sharedWith.split(",").forEach(userId => {
@@ -75,7 +74,7 @@ export default function FileUpload({ currentUserId, onUploadSuccess, onUploadErr
         });
       }
 
-      const metadata: Partial<FileCustomMetadata> = {
+      const meta Partial<FileCustomMetadata> = {
         uploadedBy: currentUserId,
         uploaderName: authUser?.displayName || authUser?.email || "Unknown",
         description: description || undefined,
@@ -134,31 +133,34 @@ export default function FileUpload({ currentUserId, onUploadSuccess, onUploadErr
       {filesToUpload.length > 0 && (
         <div className="space-y-4">
           <h4 className="text-md font-medium">Files to Upload:</h4>
-          {filesToUpload.map(file => (
-            <div key={file.name} className="p-3 border rounded-md space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <FileIcon className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm font-medium">{file.name}</span>
-                  <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(2)} KB)</span>
+          {filesToUpload.map(file => {
+            const progressData = uploadProgressMap[file.name];
+            return (
+              <div key={file.name} className="p-3 border rounded-md space-y-2">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <FileIcon className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">{file.name}</span>
+                    <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(2)} KB)</span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => handleRemoveFile(file.name)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => handleRemoveFile(file.name)}>
-                  <XCircle className="h-4 w-4" />
-                </Button>
+                {progressData && (
+                  <div className="space-y-1">
+                    <Progress value={progressData.progress} className="w-full h-2" />
+                    <p className="text-xs text-muted-foreground">
+                      {progressData.status} - {progressData.uploadedBytes} / {progressData.fileSize} bytes
+                    </p>
+                    {progressData.error && (
+                      <p className="text-xs text-red-500">Error: {progressData.error.message}</p>
+                    )}
+                  </div>
+                )}
               </div>
-              {uploadProgressMap[file.name] && (
-                <div className="space-y-1">
-                  <Progress value={uploadProgressMap[file.name].progress} className="w-full h-2" />
-                  <p className="text-xs text-muted-foreground">
-                    {uploadProgressMap[file.name].status} - {uploadProgressMap[file.name].uploadedBytes} / {uploadProgressMap[file.name].fileSize} bytes
-                  </p>
-                  {uploadProgressMap[file.name].error && (
-                    <p className="text-xs text-red-500">Error: {uploadProgressMap[file.name].error.message}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -262,8 +262,6 @@ export interface UploadProgress {
   fileSize: number;
   uploadedBytes: number;
   taskId: string; // To identify and manage specific uploads
-  state?: string;
-  bytesTransferred?: number;
 }
 
 // Add after UploadProgress interface
@@ -272,9 +270,9 @@ export interface FileMetadata {
   size: number;
   contentType: string;
   fullPath: string;
-  path: string; // Add path property
-  downloadURL?: string;
-  customMetadata?: FileCustomMetadata;
+  path: string;
+  downloadURL: string;
+  customMetadata: FileCustomMetadata;
   createdAt: Date;
   updatedAt: Date;
 }

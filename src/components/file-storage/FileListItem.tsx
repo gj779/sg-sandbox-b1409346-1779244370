@@ -1,13 +1,12 @@
-
 import React, { useState } from "react";
 import { FileMetadata, firebaseStorageService, FileCustomMetadata } from "@/services/firebaseStorage";
 import { Button } from "@/components/ui/button";
-// import { Badge } from "@/components/ui/badge"; // Not used currently
+import { Badge } from "@/components/ui/badge"; // Not used currently
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Download, Edit3, Trash2, FileText, Image as ImageIcon, Video, AudioLines, Archive, FileQuestion } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
+import { Download, Edit2, Trash2, FileText, Image as ImageIcon, Video, AudioLines, Archive, FileQuestion } from "lucide-react";
 
 interface FileListItemProps {
   file: FileMetadata;
@@ -159,33 +158,34 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
         {isOwner && (
           <>
             <Button variant="outline" size="sm" onClick={() => { setError(null); setShowEditModal(true); }}>
-              <Edit3 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
+              <Edit2 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Edit</span>
             </Button>
-            <Button variant="destructive" size="sm" onClick={() => { setError(null); setShowDeleteConfirm(true); }}>
-              <Trash2 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Delete</span>
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm" onClick={() => { setError(null); setShowDeleteConfirm(true); }}>
+                  <Trash2 className="h-4 w-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Delete</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Confirm Deletion</DialogTitle>
+                </DialogHeader>
+                <Alert variant="destructive">
+                  <AlertTitle>Are you sure?</AlertTitle>
+                  <AlertDescription>
+                    This action will permanently delete the file "{file.name}". This cannot be undone.
+                  </AlertDescription>
+                </Alert>
+                {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+                  <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>Delete</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>
-
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-          </DialogHeader>
-          <Alert variant="destructive">
-            <AlertTitle>Are you sure?</AlertTitle>
-            <AlertDescription>
-              This action will permanently delete the file "{file.name}". This cannot be undone.
-            </AlertDescription>
-          </Alert>
-          {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="sm:max-w-[425px]">

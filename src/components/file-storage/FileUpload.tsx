@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
@@ -6,32 +7,28 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { firebaseStorageService, FileCustomMetadata } from "@/services/firebaseStorage"; // Corrected import: uploadFileToStorage is not a direct export, use firebaseStorageService.uploadFile
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth"; // Changed from useAuth
+import { firebaseStorageService } from "@/services/firebaseStorage";
+import type { FileMetadata, FileCustomMetadata, FilePermission, UploadProgress } from "@/types";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { UploadCloud, File as FileIcon, XCircle } from "lucide-react";
 
 interface FileUploadProps {
-  userId?: string; // Optional userId, if not provided, will use authenticated user
-  directoryPath?: string; // Optional directory path for uploads
-  onUploadSuccess: (uploadedFile: FileMetadata) => void; // Changed to expect FileMetadata
+  currentUserId: string;
+  onUploadSuccess: (uploadedFile: FileMetadata) => void;
+  onUploadError?: (error: Error) => void;
 }
 
-export default function FileUpload({ userId: propUserId, directoryPath, onUploadSuccess }: FileUploadProps) {
+export default function FileUpload({ currentUserId, onUploadSuccess, onUploadError }: FileUploadProps) {
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
-  const [uploadProgressMap, setUploadProgressMap] = useState<Record<string, any>>({}); // Using 'any' for progress state for now
+  const [uploadProgressMap, setUploadProgressMap] = useState<Record<string, UploadProgress>>({});
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [category, setCategory] = useState("general");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
-  const [accessLevel, setAccessLevel] = useState<"private" | "shared" | "public">("private");
+  const [isPublic, setIsPublic] = useState(false);
   const [sharedWith, setSharedWith] = useState(""); // Comma-separated user IDs
 
-  const { user: authUser } = useFirebaseAuth(); // Changed from useAuth
+  const { user: authUser } = useFirebaseAuth();
   const { toast } = useToast();
-
-  const effectiveUserId = propUserId || authUser?.uid;
-  const currentDirectoryPath = directoryPath || (effectiveUserId ? `documents/${effectiveUserId}/general/` : `documents/public/general/`);
-
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFilesToUpload(prevFiles => [...prevFiles, ...acceptedFiles]);
@@ -52,11 +49,12 @@ export default function FileUpload({ userId: propUserId, directoryPath, onUpload
   };
 
   const handleUpload = async () => {
-    if (!effectiveUserId) {
-      setUploadError("User not authenticated or user ID not provided.");
+    if (!currentUserId) {
+      setUploadError("User not authenticated.");
       toast({ title: "Upload Error", description: "User not authenticated.", variant: "destructive" });
       return;
     }
+
     if (filesToUpload.length === 0) {
       setUploadError("No files selected to upload.");
       toast({ title: "Upload Error", description: "No files selected.", variant: "destructive" });
@@ -66,43 +64,55 @@ export default function FileUpload({ userId: propUserId, directoryPath, onUpload
     setUploadError(null);
 
     for (const file of filesToUpload) {
-      const fullPath = `${currentDirectoryPath}${file.name}`.replace(/\/\//g, "/"); // Ensure no double slashes
-      
-      const metadataPayload: FileCustomMetadata = {
-        ownerId: effectiveUserId,
-        accessLevel,
-        category,
-        description,
-        tags: tags.split(",").map(tag => tag.trim()).filter(tag => tag),
-        sharedWith: sharedWith.split(",").map(id => id.trim()).filter(id => id),
-        uploaderId: authUser?.uid,
-        uploaderName: authUser?.displayName || authUser?.email || "Unknown Uploader",
+      // Convert shared users to permissions object
+      const sharedWithObj: { [key: string]: FilePermission } = {};
+      if (sharedWith.trim()) {
+        sharedWith.split(",").forEach(userId => {
+          const trimmedId = userId.trim();
+          if (trimmedId) {
+            sharedWithObj[trimmedId] = "read";
+          }
+        });
+      }
+
+      const metadata: Partial<FileCustomMetadata> = {
+        uploadedBy: currentUserId,
+        uploaderName: authUser?.displayName || authUser?.email || "Unknown",
+        description: description || undefined,
+        tags: tags ? tags.split(",").map(tag => tag.trim()).filter(Boolean) : undefined,
+        isPublic,
+        sharedWith: Object.keys(sharedWithObj).length > 0 ? sharedWithObj : undefined,
+        permissions: Object.keys(sharedWithObj).length > 0 ? sharedWithObj : undefined
       };
 
       try {
-        const uploadedFileMetadata = await firebaseStorageService.uploadFile(
-          fullPath,
+        const uploadedFile = await firebaseStorageService.uploadFile(
           file,
-          metadataPayload,
+          `users/${currentUserId}/files`,
+          metadata,
           (progress) => {
             setUploadProgressMap(prev => ({ ...prev, [file.name]: progress }));
           }
         );
-        if (onUploadSuccess) {
-          onUploadSuccess(uploadedFileMetadata); // Pass the full FileMetadata object
-        }
+
+        onUploadSuccess(uploadedFile);
         toast({ title: "Upload Success", description: `${file.name} uploaded successfully.` });
       } catch (error: any) {
         console.error("Upload failed for", file.name, error);
-        setUploadProgressMap(prev => ({
-          ...prev,
-          [file.name]: { progress: 0, state: "error", bytesTransferred: 0, totalBytes: file.size, error },
-        }));
-        setUploadError(`Failed to upload ${file.name}: ${error.message}`);
-        toast({ title: "Upload Failed", description: `Could not upload ${file.name}: ${error.message}`, variant: "destructive" });
+        const errorMessage = error.message || "Upload failed";
+        setUploadError(`Failed to upload ${file.name}: ${errorMessage}`);
+        if (onUploadError) {
+          onUploadError(error);
+        }
+        toast({ 
+          title: "Upload Failed", 
+          description: `Could not upload ${file.name}: ${errorMessage}`, 
+          variant: "destructive" 
+        });
       }
     }
-    setFilesToUpload([]); // Clear files after attempting upload
+
+    setFilesToUpload([]);
   };
 
   return (
@@ -140,10 +150,10 @@ export default function FileUpload({ userId: propUserId, directoryPath, onUpload
                 <div className="space-y-1">
                   <Progress value={uploadProgressMap[file.name].progress} className="w-full h-2" />
                   <p className="text-xs text-muted-foreground">
-                    State: {uploadProgressMap[file.name].state} - {uploadProgressMap[file.name].bytesTransferred} / {uploadProgressMap[file.name].totalBytes} bytes
+                    {uploadProgressMap[file.name].status} - {uploadProgressMap[file.name].uploadedBytes} / {uploadProgressMap[file.name].fileSize} bytes
                   </p>
-                  {uploadProgressMap[file.name].state === "error" && uploadProgressMap[file.name].error && (
-                     <p className="text-xs text-red-500">Error: {uploadProgressMap[file.name].error?.message}</p>
+                  {uploadProgressMap[file.name].error && (
+                    <p className="text-xs text-red-500">Error: {uploadProgressMap[file.name].error.message}</p>
                   )}
                 </div>
               )}
@@ -152,41 +162,50 @@ export default function FileUpload({ userId: propUserId, directoryPath, onUpload
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="category">Category</Label>
-          <Input id="category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g., Invoices, Reports" />
-        </div>
-        <div>
-          <Label htmlFor="accessLevel">Access Level</Label>
-          <select
-            id="accessLevel"
-            value={accessLevel}
-            onChange={(e) => setAccessLevel(e.target.value as "private" | "shared" | "public")}
-            className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="private">Private</option>
-            <option value="shared">Shared</option>
-            <option value="public">Public</option>
-          </select>
-        </div>
-      </div>
-      
-      {accessLevel === "shared" && (
-        <div>
-          <Label htmlFor="sharedWith">Share With (User IDs, comma-separated)</Label>
-          <Input id="sharedWith" value={sharedWith} onChange={(e) => setSharedWith(e.target.value)} placeholder="user1_id,user2_id" />
-        </div>
-      )}
-
       <div>
         <Label htmlFor="description">Description</Label>
-        <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the file(s)" />
+        <Input
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Brief description of the file(s)"
+        />
       </div>
+
       <div>
         <Label htmlFor="tags">Tags (comma-separated)</Label>
-        <Input id="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="tag1, tag2, project-x" />
+        <Input
+          id="tags"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="tag1, tag2, project-x"
+        />
       </div>
+
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="isPublic"
+            checked={isPublic}
+            onChange={(e) => setIsPublic(e.target.checked)}
+            className="h-4 w-4"
+          />
+          <Label htmlFor="isPublic">Make public</Label>
+        </div>
+      </div>
+
+      {!isPublic && (
+        <div>
+          <Label htmlFor="sharedWith">Share with (User IDs, comma-separated)</Label>
+          <Input
+            id="sharedWith"
+            value={sharedWith}
+            onChange={(e) => setSharedWith(e.target.value)}
+            placeholder="user1,user2,user3"
+          />
+        </div>
+      )}
 
       {uploadError && (
         <Alert variant="destructive">
@@ -195,7 +214,10 @@ export default function FileUpload({ userId: propUserId, directoryPath, onUpload
         </Alert>
       )}
 
-      <Button onClick={handleUpload} disabled={filesToUpload.length === 0 || Object.values(uploadProgressMap).some((p: any) => p.state === "running")}>
+      <Button
+        onClick={handleUpload}
+        disabled={filesToUpload.length === 0 || Object.values(uploadProgressMap).some(p => p.status === "running")}
+      >
         Upload Selected Files
       </Button>
     </div>

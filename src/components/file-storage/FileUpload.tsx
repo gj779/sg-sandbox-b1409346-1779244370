@@ -74,7 +74,7 @@ export default function FileUpload({ currentUserId, onUploadSuccess, onUploadErr
         });
       }
 
-      const meta Partial<FileCustomMetadata> = {
+      const metadata: Partial<FileCustomMetadata> = {
         uploadedBy: currentUserId,
         uploaderName: authUser?.displayName || authUser?.email || "Unknown",
         description: description || undefined,

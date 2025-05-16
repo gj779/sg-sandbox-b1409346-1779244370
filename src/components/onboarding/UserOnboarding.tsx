@@ -61,16 +61,22 @@ export default function UserOnboarding() {
   const [availability, setAvailability] = useState<string[]>([]);
   const [preferredLocation, setPreferredLocation] = useState("");
   const [bio, setBio] = useState("");
-  const [education, setEducation] = useState("");
+  const [education, setEducation] = useState<string[]>([]);
   const [preferences, setPreferences] = useState<string[]>([]);
 
   const isApplicant = userProfile?.userType === "applicant";
 
   const handleExperienceChange = (value: string) => {
-    setExperience([value]); // Store single selection as array
+    setExperience([value]);
   };
-  
+
+  const handleEducationChange = (value: string) => {
+    setEducation([value]);
+  };
+
+  // Rest of the component remains the same until the education input
   const applicantSteps: OnboardingStep[] = [
+    // First two steps remain the same
     {
       title: "Tell us about your skills",
       description: "Select skills that best describe your expertise in the restaurant industry",
@@ -182,13 +188,23 @@ export default function UserOnboarding() {
             />
           </div>
           <div>
-            <label htmlFor="education">Education (Optional)</label>
-            <Input
-              id="education"
-              placeholder="e.g., Culinary Institute of America"
-              value={education}
-              onChange={(e) => setEducation(e.target.value)}
-            />
+            <label htmlFor="education">Education</label>
+            <Select
+              value={education[0] || ""}
+              onValueChange={handleEducationChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select highest education level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high-school">High School</SelectItem>
+                <SelectItem value="culinary-school">Culinary School</SelectItem>
+                <SelectItem value="associates">Associate's Degree</SelectItem>
+                <SelectItem value="bachelors">Bachelor's Degree</SelectItem>
+                <SelectItem value="masters">Master's Degree</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label htmlFor="bio">Short Bio</label>
@@ -205,6 +221,7 @@ export default function UserOnboarding() {
     }
   ];
 
+  // Restaurant steps remain mostly the same, just update the benefits field
   const restaurantSteps: OnboardingStep[] = [
     {
       title: "Tell us about your restaurant",
@@ -309,14 +326,22 @@ export default function UserOnboarding() {
       component: (
         <div className="space-y-4">
           <div>
-            <label htmlFor="benefits">Benefits Offered (Optional)</label>
-            <Textarea
-              id="benefits"
-              placeholder="e.g., Health insurance, paid time off, flexible scheduling..."
-              value={education}
-              onChange={(e) => setEducation(e.target.value)}
-              className="min-h-[100px]"
-            />
+            <label htmlFor="benefits">Benefits Offered</label>
+            <Select
+              value={education[0] || ""}
+              onValueChange={handleEducationChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select benefits offered" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="health">Health Insurance</SelectItem>
+                <SelectItem value="dental">Dental Insurance</SelectItem>
+                <SelectItem value="pto">Paid Time Off</SelectItem>
+                <SelectItem value="401k">401(k)</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label htmlFor="companyValues">Company Values</label>

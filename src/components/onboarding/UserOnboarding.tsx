@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { UserProfile } from "@/types";
+import { UserProfile, UserRole } from "@/types";
 import { 
   CheckCircle2, 
   ChefHat, 
@@ -64,6 +64,8 @@ export default function UserOnboarding() {
   const [education, setEducation] = useState<string[]>([]);
   const [jobTypes, setJobTypes] = useState<string[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
+  const [businessName, setBusinessName] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
   const [salary, setSalary] = useState<{
     min?: number;
     max?: number;
@@ -72,7 +74,7 @@ export default function UserOnboarding() {
     currency: "USD"
   });
 
-  const isApplicant = userProfile?.userType === "applicant";
+  const isApplicant = userProfile?.userType === UserRole.APPLICANT;
 
   const handleExperienceChange = (value: string) => {
     setExperience([value]);
@@ -101,8 +103,6 @@ export default function UserOnboarding() {
     }));
   };
 
-  // Rest of the component implementation remains the same until the completeOnboarding function
-
   const completeOnboarding = async () => {
     setIsCompleting(true);
     
@@ -125,16 +125,19 @@ export default function UserOnboarding() {
               locations,
               salary
             },
-            profileComplete: true
+            profileComplete: true,
+            userType: UserRole.APPLICANT
           }
         : {
+            businessName,
+            businessAddress,
             location: preferredLocation,
             cuisineType: experience[0] || "",
-            businessDescription: bio,
-            hiringPositions: skills,
-            jobTypes,
-            benefits: education,
-            profileComplete: true
+            bio,
+            skills,
+            education,
+            profileComplete: true,
+            userType: UserRole.RESTAURANT
           };
       
       await updateUserProfileData(user.uid, onboardingData);

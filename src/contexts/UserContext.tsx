@@ -29,106 +29,26 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const contextValue: UserContextType = {
     user: auth.user,
-    userProfile: auth.userProfile as UserProfile | null,
+    userProfile: auth.userProfile,
     isAuthenticated: !!auth.user,
-    isLoading: auth.loading || false,
-    error: null,
+    isLoading: auth.loading,
+    error: auth.error,
     signUp: async (email, password, firstName, lastName, userType) => {
-      try {
-        const result = await auth.signUp(email, password);
-        if (!result) return null;
-        
-        // Create user profile
-        const profile: UserProfile = {
-          id: result.user.uid,
-          userId: result.user.uid,
-          displayName: `${firstName} ${lastName}`,
-          email: email,
-          firstName,
-          lastName,
-          userType,
-          profileComplete: false
-        };
-        
-        return profile;
-      } catch (error) {
-        console.error("Error in signUp:", error);
-        return null;
-      }
+      return auth.signUp(email, password, firstName, lastName, userType);
     },
     signIn: async (email, password) => {
-      try {
-        const result = await auth.signIn(email, password);
-        if (!result) return null;
-        
-        // Fetch user profile
-        return null; // Replace with actual profile fetch
-      } catch (error) {
-        console.error("Error in signIn:", error);
-        return null;
-      }
+      return auth.signIn(email, password);
     },
     signInWithGoogle: async (userType) => {
-      try {
-        const result = await auth.signInWithGoogle();
-        if (!result) return null;
-        
-        // Create or fetch user profile
-        return null; // Replace with actual profile handling
-      } catch (error) {
-        console.error("Error in signInWithGoogle:", error);
-        return null;
-      }
+      return auth.signInWithGoogle(userType);
     },
     signOut: auth.signOut,
-    resetPassword: async (email) => {
-      try {
-        // Implement reset password logic
-        return true;
-      } catch (error) {
-        console.error("Error in resetPassword:", error);
-        return false;
-      }
-    },
-    fetchUserProfile: async (userId) => {
-      try {
-        // Implement fetch profile logic
-        return null;
-      } catch (error) {
-        console.error("Error in fetchUserProfile:", error);
-        return null;
-      }
-    },
-    updateUserProfileData: async (userId, data) => {
-      try {
-        // Implement update profile logic
-        return true;
-      } catch (error) {
-        console.error("Error in updateUserProfileData:", error);
-        return false;
-      }
-    },
-    uploadProfilePicture: async (userId, file) => {
-      try {
-        // Implement upload logic
-        return null;
-      } catch (error) {
-        console.error("Error in uploadProfilePicture:", error);
-        return null;
-      }
-    },
-    deleteAccount: async (password) => {
-      try {
-        // Implement delete account logic
-        return true;
-      } catch (error) {
-        console.error("Error in deleteAccount:", error);
-        return false;
-      }
-    },
-    clearAuthError: () => {
-      // Implement clear error logic
-    }
+    resetPassword: auth.resetPassword,
+    fetchUserProfile: auth.fetchUserProfile,
+    updateUserProfileData: auth.updateUserProfileData,
+    uploadProfilePicture: auth.uploadProfilePicture,
+    deleteAccount: auth.deleteAccount,
+    clearAuthError: auth.clearAuthError
   };
 
   return (

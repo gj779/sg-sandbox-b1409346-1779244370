@@ -2,13 +2,7 @@
 import React, { createContext, useContext, ReactNode } from "react";
 import { User as FirebaseUser } from "firebase/auth";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { UserProfile as AppUserProfile, UserRole } from "@/types";
-
-// Local UserProfile type for this context
-interface UserProfile extends Omit<AppUserProfile, 'userType'> {
-  id: string;
-  userType: UserRole;
-}
+import { UserProfile, UserRole } from "@/types";
 
 interface UserContextType {
   user: FirebaseUser | null;
@@ -37,43 +31,100 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     user: auth.user,
     userProfile: auth.userProfile as UserProfile | null,
     isAuthenticated: !!auth.user,
-    isLoading: auth.loading,
+    isLoading: auth.loading || false,
     error: null,
     signUp: async (email, password, firstName, lastName, userType) => {
-      const result = await auth.signUp(email, password);
-      // Additional logic to create user profile
-      return null; // Replace with actual implementation
+      try {
+        const result = await auth.signUp(email, password);
+        if (!result) return null;
+        
+        // Create user profile
+        const profile: UserProfile = {
+          id: result.user.uid,
+          userId: result.user.uid,
+          displayName: `${firstName} ${lastName}`,
+          email: email,
+          firstName,
+          lastName,
+          userType,
+          profileComplete: false
+        };
+        
+        return profile;
+      } catch (error) {
+        console.error("Error in signUp:", error);
+        return null;
+      }
     },
     signIn: async (email, password) => {
-      const result = await auth.signIn(email, password);
-      // Additional logic to fetch user profile
-      return null; // Replace with actual implementation
+      try {
+        const result = await auth.signIn(email, password);
+        if (!result) return null;
+        
+        // Fetch user profile
+        return null; // Replace with actual profile fetch
+      } catch (error) {
+        console.error("Error in signIn:", error);
+        return null;
+      }
     },
     signInWithGoogle: async (userType) => {
-      const result = await auth.signInWithGoogle();
-      // Additional logic to handle Google sign-in
-      return null; // Replace with actual implementation
+      try {
+        const result = await auth.signInWithGoogle();
+        if (!result) return null;
+        
+        // Create or fetch user profile
+        return null; // Replace with actual profile handling
+      } catch (error) {
+        console.error("Error in signInWithGoogle:", error);
+        return null;
+      }
     },
     signOut: auth.signOut,
     resetPassword: async (email) => {
-      // Implement reset password logic
-      return true;
+      try {
+        // Implement reset password logic
+        return true;
+      } catch (error) {
+        console.error("Error in resetPassword:", error);
+        return false;
+      }
     },
     fetchUserProfile: async (userId) => {
-      // Implement fetch profile logic
-      return null;
+      try {
+        // Implement fetch profile logic
+        return null;
+      } catch (error) {
+        console.error("Error in fetchUserProfile:", error);
+        return null;
+      }
     },
     updateUserProfileData: async (userId, data) => {
-      // Implement update profile logic
-      return true;
+      try {
+        // Implement update profile logic
+        return true;
+      } catch (error) {
+        console.error("Error in updateUserProfileData:", error);
+        return false;
+      }
     },
     uploadProfilePicture: async (userId, file) => {
-      // Implement upload logic
-      return null;
+      try {
+        // Implement upload logic
+        return null;
+      } catch (error) {
+        console.error("Error in uploadProfilePicture:", error);
+        return null;
+      }
     },
     deleteAccount: async (password) => {
-      // Implement delete account logic
-      return true;
+      try {
+        // Implement delete account logic
+        return true;
+      } catch (error) {
+        console.error("Error in deleteAccount:", error);
+        return false;
+      }
     },
     clearAuthError: () => {
       // Implement clear error logic

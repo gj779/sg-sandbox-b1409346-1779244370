@@ -262,4 +262,30 @@ export interface UploadProgress {
   fileSize: number;
   uploadedBytes: number;
   taskId: string; // To identify and manage specific uploads
+  state?: string;
+  bytesTransferred?: number;
 }
+
+// Add after UploadProgress interface
+export interface FileMetadata {
+  name: string;
+  size: number;
+  contentType: string;
+  fullPath: string;
+  downloadURL?: string;
+  customMetadata?: FileCustomMetadata;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FileCustomMetadata {
+  uploadedBy: string;
+  uploaderName: string;
+  description?: string;
+  tags?: string[];
+  sharedWith?: { [userId: string]: FilePermission };
+  permissions?: { [userId: string]: FilePermission };
+  isPublic?: boolean;
+}
+
+export type FilePermission = "read" | "write";

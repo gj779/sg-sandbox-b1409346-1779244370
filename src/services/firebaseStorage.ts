@@ -82,6 +82,29 @@ function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: stri
 }
 
 const firebaseStorageService = {
+  async uploadProfilePicture(userId: string, file: File): Promise<string> {
+    const extension = getFileExtension(file.name);
+    const path = `profile-pictures/${userId}/profile.${extension}`;
+    const storageRef = ref(storage, path);
+
+    const metadata = {
+      customMetadata: serializeCustomMetadata({
+        userId,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        uploadDate: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+        isPublic: true,
+        category: "profile-picture"
+      })
+    };
+
+    const uploadTask = await uploadBytesResumable(storageRef, file, metadata);
+    const downloadURL = await getDownloadURL(uploadTask.ref);
+    return downloadURL;
+  },
+
   async uploadFile(
     file: File,
     path: string,

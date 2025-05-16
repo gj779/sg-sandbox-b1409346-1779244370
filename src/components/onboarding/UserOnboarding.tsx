@@ -50,7 +50,7 @@ export default function UserOnboarding() {
   const { user, userProfile, updateUserProfileData, isLoading: authLoading } = useFirebaseAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [isCompleting, setIsCompleting] = useState(false);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(true);
@@ -101,6 +101,172 @@ export default function UserOnboarding() {
       ...prev,
       [field]: value ? Number(value) : undefined
     }));
+  };
+
+  const applicantSteps: OnboardingStep[] = [
+    {
+      title: "Basic Information",
+      description: "Tell us about yourself",
+      component: (
+        <div className="space-y-4">
+          <Input
+            placeholder="Your preferred location"
+            value={preferredLocation}
+            onChange={(e) => setPreferredLocation(e.target.value)}
+          />
+          <Textarea
+            placeholder="Tell us about yourself..."
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
+        </div>
+      )
+    },
+    {
+      title: "Skills & Experience",
+      description: "What are your skills and experience?",
+      component: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            {["Cooking", "Serving", "Bartending", "Management"].map((skill) => (
+              <div key={skill} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={skill}
+                  checked={skills.includes(skill)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSkills([...skills, skill]);
+                    } else {
+                      setSkills(skills.filter(s => s !== skill));
+                    }
+                  }}
+                />
+                <label htmlFor={skill}>{skill}</label>
+              </div>
+            ))}
+          </div>
+          <Select onValueChange={handleExperienceChange} value={experience[0]}>
+            <SelectTrigger>
+              <SelectValue placeholder="Years of experience" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0-1">Less than 1 year</SelectItem>
+              <SelectItem value="1-3">1-3 years</SelectItem>
+              <SelectItem value="3-5">3-5 years</SelectItem>
+              <SelectItem value="5+">5+ years</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )
+    },
+    {
+      title: "Preferences",
+      description: "What type of work are you looking for?",
+      component: (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            {["Full-time", "Part-time", "Temporary"].map((type) => (
+              <div key={type} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={type}
+                  checked={jobTypes.includes(type)}
+                  onChange={(e) => handleJobTypeChange(type, e.target.checked)}
+                />
+                <label htmlFor={type}>{type}</label>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              type="number"
+              placeholder="Min salary"
+              value={salary.min || ""}
+              onChange={(e) => handleSalaryChange("min", e.target.value)}
+            />
+            <Input
+              type="number"
+              placeholder="Max salary"
+              value={salary.max || ""}
+              onChange={(e) => handleSalaryChange("max", e.target.value)}
+            />
+          </div>
+        </div>
+      )
+    }
+  ];
+
+  const restaurantSteps: OnboardingStep[] = [
+    {
+      title: "Restaurant Information",
+      description: "Tell us about your restaurant",
+      component: (
+        <div className="space-y-4">
+          <Input
+            placeholder="Restaurant name"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+          />
+          <Input
+            placeholder="Restaurant address"
+            value={businessAddress}
+            onChange={(e) => setBusinessAddress(e.target.value)}
+          />
+          <Input
+            placeholder="Location"
+            value={preferredLocation}
+            onChange={(e) => setPreferredLocation(e.target.value)}
+          />
+          <Select onValueChange={handleExperienceChange} value={experience[0]}>
+            <SelectTrigger>
+              <SelectValue placeholder="Cuisine type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="italian">Italian</SelectItem>
+              <SelectItem value="japanese">Japanese</SelectItem>
+              <SelectItem value="mexican">Mexican</SelectItem>
+              <SelectItem value="american">American</SelectItem>
+            </SelectContent>
+          </Select>
+          <Textarea
+            placeholder="Tell us about your restaurant..."
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
+        </div>
+      )
+    }
+  ];
+
+  const steps = isApplicant ? applicantSteps : restaurantSteps;
+
+  const handleNext = async () => {
+    if (currentStep === steps.length - 1) {
+      await completeOnboarding();
+    } else {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const skipOnboarding = async () => {
+    try {
+      if (!user?.uid) {
+        setError("User not authenticated. Cannot skip onboarding.");
+        throw new Error("User not authenticated.");
+      }
+      await updateUserProfileData(user.uid, { profileComplete: true });
+      router.push(isApplicant ? "/applicant/dashboard" : "/restaurant/dashboard");
+    } catch (error) {
+      console.error("Error skipping onboarding:", error);
+      setError("Failed to skip onboarding. Please try again.");
+    }
   };
 
   const completeOnboarding = async () => {
@@ -160,8 +326,6 @@ export default function UserOnboarding() {
       setIsCompleting(false);
     }
   };
-
-  // Rest of the component implementation remains the same
 
   return (
     <>

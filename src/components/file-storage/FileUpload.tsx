@@ -1,227 +1,122 @@
 
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
+import { Alert } from "@/components/ui/alert";
+import { Upload } from "lucide-react";
 import { firebaseStorageService } from "@/services/firebaseStorage";
-import type { FileMetadata, FileCustomMetadata, FilePermission, UploadProgress } from "@/types";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { UploadCloud, File as FileIcon, XCircle } from "lucide-react";
+import type { FileMetadata, UploadProgress } from "@/types";
 
 interface FileUploadProps {
   currentUserId: string;
-  onUploadSuccess: (uploadedFile: FileMetadata) => void;
+  onUploadSuccess?: (file: FileMetadata) => void;
   onUploadError?: (error: Error) => void;
 }
 
 export default function FileUpload({ currentUserId, onUploadSuccess, onUploadError }: FileUploadProps) {
-  const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
-  const [uploadProgressMap, setUploadProgressMap] = useState<Record<string, UploadProgress>>({});
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
-  const [sharedWith, setSharedWith] = useState(""); // Comma-separated user IDs
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const { user: authUser } = useFirebaseAuth();
-  const { toast } = useToast();
-
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFilesToUpload(prevFiles => [...prevFiles, ...acceptedFiles]);
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    multiple: true,
-  });
-
-  const handleRemoveFile = (fileName: string) => {
-    setFilesToUpload(prevFiles => prevFiles.filter(file => file.name !== fileName));
-    setUploadProgressMap(prevProgress => {
-      const newProgress = { ...prevProgress };
-      delete newProgress[fileName];
-      return newProgress;
-    });
+  const handleUploadProgress = (progress: UploadProgress) => {
+    setUploadProgress(progress);
+    if (progress.state === "error" && progress.error) {
+      setError(progress.error.message || "Upload failed");
+      onUploadError?.(progress.error);
+    }
   };
 
-  const handleUpload = async () => {
-    if (!currentUserId) {
-      setUploadError("User not authenticated.");
-      toast({ title: "Upload Error", description: "User not authenticated.", variant: "destructive" });
-      return;
-    }
+  const handleFileDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
 
-    if (filesToUpload.length === 0) {
-      setUploadError("No files selected to upload.");
-      toast({ title: "Upload Error", description: "No files selected.", variant: "destructive" });
-      return;
-    }
+    const file = acceptedFiles[0];
+    setError(null);
+    setUploadProgress({ progress: 0, state: "running" });
 
-    setUploadError(null);
-
-    for (const file of filesToUpload) {
-      const sharedWithObj: { [key: string]: FilePermission } = {};
-      if (sharedWith.trim()) {
-        sharedWith.split(",").forEach(userId => {
-          const trimmedId = userId.trim();
-          if (trimmedId) {
-            sharedWithObj[trimmedId] = "read";
-          }
-        });
-      }
-
-      const metadata: Partial<FileCustomMetadata> = {
+    try {
+      const metadata = {
+        userId: currentUserId,
         uploadedBy: currentUserId,
-        uploaderName: authUser?.displayName || authUser?.email || "Unknown",
-        description: description || undefined,
-        tags: tags ? tags.split(",").map(tag => tag.trim()).filter(Boolean) : undefined,
-        isPublic,
-        sharedWith: Object.keys(sharedWithObj).length > 0 ? sharedWithObj : undefined,
-        permissions: Object.keys(sharedWithObj).length > 0 ? sharedWithObj : undefined
+        isPublic: false,
+        tags: [],
+        permissions: []
       };
 
-      try {
-        const uploadedFile = await firebaseStorageService.uploadFile(
-          file,
-          `users/${currentUserId}/files`,
-          metadata,
-          (progress) => {
-            setUploadProgressMap(prev => ({ ...prev, [file.name]: progress }));
-          }
-        );
+      const uploadedFile = await firebaseStorageService.uploadFile(
+        file,
+        "uploads",
+        metadata,
+        handleUploadProgress
+      );
 
-        onUploadSuccess(uploadedFile);
-        toast({ title: "Upload Success", description: `${file.name} uploaded successfully.` });
-      } catch (error: any) {
-        console.error("Upload failed for", file.name, error);
-        const errorMessage = error.message || "Upload failed";
-        setUploadError(`Failed to upload ${file.name}: ${errorMessage}`);
-        if (onUploadError) {
-          onUploadError(error);
-        }
-        toast({ 
-          title: "Upload Failed", 
-          description: `Could not upload ${file.name}: ${errorMessage}`, 
-          variant: "destructive" 
-        });
-      }
+      onUploadSuccess?.(uploadedFile);
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setError(err.message || "Failed to upload file");
+      onUploadError?.(err);
     }
+  }, [currentUserId, onUploadSuccess, onUploadError]);
 
-    setFilesToUpload([]);
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleFileDrop,
+    multiple: false
+  });
+
+  const renderProgress = () => {
+    if (!uploadProgress) return null;
+
+    const progressValue = uploadProgress.progress;
+    const isUploading = uploadProgress.state === "running";
+    const isComplete = uploadProgress.state === "success";
+    const isFailed = uploadProgress.state === "error";
+
+    return (
+      <div className="mt-4">
+        <Progress value={progressValue} className="h-2" />
+        <p className="text-sm text-muted-foreground mt-2">
+          {isUploading && "Uploading..."}
+          {isComplete && "Upload complete"}
+          {isFailed && "Upload failed"}
+          {isUploading && ` ${Math.round(progressValue)}%`}
+        </p>
+      </div>
+    );
   };
 
   return (
-    <div className="space-y-6 p-4 border rounded-lg shadow-sm">
+    <div>
       <div
         {...getRootProps()}
-        className={`p-6 border-2 border-dashed rounded-lg text-center cursor-pointer hover:border-primary transition-colors
-                    ${isDragActive ? "border-primary bg-primary/10" : "border-muted-foreground/50"}`}
+        className={`
+          border-2 border-dashed rounded-lg p-4 text-center cursor-pointer
+          transition-colors duration-200
+          ${isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25"}
+          hover:border-primary hover:bg-primary/5
+        `}
       >
         <input {...getInputProps()} />
-        <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
-        {isDragActive ? (
-          <p className="mt-2 text-sm text-primary">Drop the files here ...</p>
-        ) : (
-          <p className="mt-2 text-sm text-muted-foreground">Drag & drop some files here, or click to select files</p>
-        )}
-      </div>
-
-      {filesToUpload.length > 0 && (
-        <div className="space-y-4">
-          <h4 className="text-md font-medium">Files to Upload:</h4>
-          {filesToUpload.map(file => {
-            const progressData = uploadProgressMap[file.name];
-            return (
-              <div key={file.name} className="p-3 border rounded-md space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <FileIcon className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">{file.name}</span>
-                    <span className="text-xs text-muted-foreground">({(file.size / 1024).toFixed(2)} KB)</span>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => handleRemoveFile(file.name)}>
-                    <XCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-                {progressData && (
-                  <div className="space-y-1">
-                    <Progress value={progressData.progress} className="w-full h-2" />
-                    <p className="text-xs text-muted-foreground">
-                      {progressData.status} - {progressData.uploadedBytes} / {progressData.fileSize} bytes
-                    </p>
-                    {progressData.error && (
-                      <p className="text-xs text-red-500">Error: {progressData.error.message}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Input
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Brief description of the file(s)"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="tags">Tags (comma-separated)</Label>
-        <Input
-          id="tags"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          placeholder="tag1, tag2, project-x"
-        />
-      </div>
-
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="isPublic"
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.target.checked)}
-            className="h-4 w-4"
-          />
-          <Label htmlFor="isPublic">Make public</Label>
+        <div className="flex flex-col items-center gap-2">
+          <Upload className="h-8 w-8 text-muted-foreground" />
+          {isDragActive ? (
+            <p className="text-sm">Drop the file here</p>
+          ) : (
+            <>
+              <p className="text-sm">Drag & drop a file here, or click to select</p>
+              <Button variant="outline" size="sm" type="button">
+                Select File
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {!isPublic && (
-        <div>
-          <Label htmlFor="sharedWith">Share with (User IDs, comma-separated)</Label>
-          <Input
-            id="sharedWith"
-            value={sharedWith}
-            onChange={(e) => setSharedWith(e.target.value)}
-            placeholder="user1,user2,user3"
-          />
-        </div>
-      )}
+      {renderProgress()}
 
-      {uploadError && (
-        <Alert variant="destructive">
-          <AlertTitle>Upload Error</AlertTitle>
-          <AlertDescription>{uploadError}</AlertDescription>
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          {error}
         </Alert>
       )}
-
-      <Button
-        onClick={handleUpload}
-        disabled={filesToUpload.length === 0 || Object.values(uploadProgressMap).some(p => p.status === "running")}
-      >
-        Upload Selected Files
-      </Button>
     </div>
   );
 }

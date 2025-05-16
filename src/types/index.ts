@@ -272,6 +272,7 @@ export interface FileMetadata {
   size: number;
   contentType: string;
   fullPath: string;
+  path: string; // Add path property
   downloadURL?: string;
   customMetadata?: FileCustomMetadata;
   createdAt: Date;

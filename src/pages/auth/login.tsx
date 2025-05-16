@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -24,7 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import Layout from "@/components/layout/Layout";
-import AuthForm from "@/components/auth/AuthForm"; // Import AuthForm
+import AuthForm from "@/components/auth/AuthForm";
+import { UserRole } from "@/types";
 
 export default function LoginPage() {
   const { user, userProfile, isLoading: authIsLoading, error: authError, clearAuthError } = useUser();
@@ -43,8 +45,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && userProfile) {
-      const defaultRedirectPath = userProfile.userType === "admin" ? "/admin/dashboard"
-                                : userProfile.userType === "restaurant" ? "/restaurant/dashboard"
+      const defaultRedirectPath = userProfile.userType === UserRole.ADMIN ? "/admin/dashboard"
+                                : userProfile.userType === UserRole.RESTAURANT ? "/restaurant/dashboard"
                                 : "/applicant/dashboard";
       const redirectPath = (queryRedirect as string) || defaultRedirectPath;
       router.push(redirectPath);
@@ -59,10 +61,10 @@ export default function LoginPage() {
     // Redirection is handled by the useEffect above
   };
   
-  const handleGoogleError = (error: Error) => { // Changed parameter type to Error
+  const handleGoogleError = (error: Error) => {
     toast({
       title: "Google Sign-In Failed",
-      description: error.message, // Use error.message
+      description: error.message,
       variant: "destructive",
     });
   };
@@ -114,8 +116,8 @@ export default function LoginPage() {
                 </div>
                 <div className="mt-4">
                   <GoogleSignInButton 
-                    userType="applicant"
-                    onError={handleGoogleError} // This now matches the expected prop type
+                    userType={UserRole.APPLICANT}
+                    onError={handleGoogleError}
                   />
                 </div>
               </CardContent>
@@ -152,8 +154,8 @@ export default function LoginPage() {
                 </div>
                 <div className="mt-4">
                   <GoogleSignInButton 
-                    userType="restaurant"
-                    onError={handleGoogleError} // This now matches the expected prop type
+                    userType={UserRole.RESTAURANT}
+                    onError={handleGoogleError}
                   />
                 </div>
               </CardContent>

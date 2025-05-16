@@ -49,6 +49,7 @@ export default function ChatInterface({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isEmojiMessage, setIsEmojiMessage] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,6 +109,7 @@ export default function ChatInterface({
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     setNewMessage(prevMessage => prevMessage + emojiData.emoji);
+    setIsEmojiMessage(true);
     setShowEmojiPicker(false);
   };
 
@@ -131,8 +133,6 @@ export default function ChatInterface({
       let contentType: Message["contentType"] = "text";
       if (fileToSend) {
         contentType = fileToSend.type.startsWith("image/") ? "image" : "file";
-      } else if (isEmojiOnly(contentToSend)) {
-        contentType = "emoji";
       }
 
       await conversationsService.sendMessage(
@@ -145,6 +145,7 @@ export default function ChatInterface({
       
       setNewMessage("");
       setSelectedFile(null);
+      setIsEmojiMessage(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (user?.uid) conversationsService.setTypingStatus(conversationId, user.uid, false);
 
@@ -238,6 +239,7 @@ export default function ChatInterface({
             <div className="space-y-4">
               {messages.map((message) => {
                 const isOwnMessage = message.senderId === user?.uid;
+                const isMessageEmoji = isEmojiOnly(message.content);
                 return (
                   <div 
                     key={message.id} 
@@ -281,7 +283,11 @@ export default function ChatInterface({
                             <Download className="h-4 w-4" />
                           </a>
                         )}
-                        {message.content && <p className={`text-sm ${message.contentType === "emoji" && "text-3xl"}`}>{message.content}</p>}
+                        {message.content && (
+                          <p className={`text-sm ${isMessageEmoji ? "text-3xl" : ""}`}>
+                            {message.content}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <p className={`text-xs mt-1 ${isOwnMessage ? "text-right" : "text-left ml-8"} text-muted-foreground flex items-center gap-1`}>

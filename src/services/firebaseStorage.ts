@@ -8,29 +8,20 @@ const generateFileId = () => `${Date.now()}-${Math.random().toString(36).substri
 const getFileExtension = (filename: string) => filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2);
 
 function serializeCustomMetadata(metadata: Partial<FileCustomMetadata>): { [key: string]: string } {
-  const serialized: { [key: string]: string } = {
-    uploadedBy: metadata.uploadedBy || "",
-    uploaderName: metadata.uploaderName || ""
-  };
+  const serialized: { [key: string]: string } = {};
 
-  if (typeof metadata.description === "string") {
-    serialized.description = metadata.description;
-  }
-
+  if (metadata.userId) serialized.userId = metadata.userId;
+  if (metadata.fileName) serialized.fileName = metadata.fileName;
+  if (metadata.fileType) serialized.fileType = metadata.fileType;
+  if (metadata.fileSize) serialized.fileSize = String(metadata.fileSize);
+  if (metadata.uploadDate) serialized.uploadDate = metadata.uploadDate;
+  if (metadata.lastModified) serialized.lastModified = metadata.lastModified;
+  if (metadata.description) serialized.description = metadata.description;
+  if (metadata.category) serialized.category = metadata.category;
+  if (typeof metadata.isPublic === "boolean") serialized.isPublic = String(metadata.isPublic);
+  
   if (Array.isArray(metadata.tags)) {
     serialized.tags = JSON.stringify(metadata.tags);
-  }
-
-  if (metadata.sharedWith && Object.keys(metadata.sharedWith).length > 0) {
-    serialized.sharedWith = JSON.stringify(metadata.sharedWith);
-  }
-
-  if (metadata.permissions && Object.keys(metadata.permissions).length > 0) {
-    serialized.permissions = JSON.stringify(metadata.permissions);
-  }
-
-  if (typeof metadata.isPublic === "boolean") {
-    serialized.isPublic = String(metadata.isPublic);
   }
 
   return serialized;
@@ -38,13 +29,16 @@ function serializeCustomMetadata(metadata: Partial<FileCustomMetadata>): { [key:
 
 function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: string } | undefined): FileCustomMetadata {
   const defaultMetadata: FileCustomMetadata = {
-    uploadedBy: "",
-    uploaderName: "",
-    description: undefined,
+    userId: "",
+    fileName: "",
+    fileType: "",
+    fileSize: 0,
+    uploadDate: new Date().toISOString(),
+    lastModified: new Date().toISOString(),
+    isPublic: false,
     tags: [],
-    sharedWith: {} as { [userId: string]: FilePermission },
-    permissions: {} as { [userId: string]: FilePermission },
-    isPublic: undefined
+    description: "",
+    category: ""
   };
 
   if (!firebaseCustomMetadata) {
@@ -53,21 +47,17 @@ function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: stri
 
   try {
     const metadata: FileCustomMetadata = {
-      uploadedBy: firebaseCustomMetadata.uploadedBy || defaultMetadata.uploadedBy,
-      uploaderName: firebaseCustomMetadata.uploaderName || defaultMetadata.uploaderName,
-      description: firebaseCustomMetadata.description,
-      tags: firebaseCustomMetadata.tags ? JSON.parse(firebaseCustomMetadata.tags) : defaultMetadata.tags,
-      sharedWith: firebaseCustomMetadata.sharedWith ? 
-        JSON.parse(firebaseCustomMetadata.sharedWith) as { [userId: string]: FilePermission } : 
-        defaultMetadata.sharedWith,
-      permissions: firebaseCustomMetadata.permissions ? 
-        JSON.parse(firebaseCustomMetadata.permissions) as { [userId: string]: FilePermission } : 
-        defaultMetadata.permissions
+      userId: firebaseCustomMetadata.userId || defaultMetadata.userId,
+      fileName: firebaseCustomMetadata.fileName || defaultMetadata.fileName,
+      fileType: firebaseCustomMetadata.fileType || defaultMetadata.fileType,
+      fileSize: parseInt(firebaseCustomMetadata.fileSize) || defaultMetadata.fileSize,
+      uploadDate: firebaseCustomMetadata.uploadDate || defaultMetadata.uploadDate,
+      lastModified: firebaseCustomMetadata.lastModified || defaultMetadata.lastModified,
+      description: firebaseCustomMetadata.description || defaultMetadata.description,
+      category: firebaseCustomMetadata.category || defaultMetadata.category,
+      isPublic: firebaseCustomMetadata.isPublic === "true",
+      tags: firebaseCustomMetadata.tags ? JSON.parse(firebaseCustomMetadata.tags) : defaultMetadata.tags
     };
-
-    if (firebaseCustomMetadata.isPublic !== undefined) {
-      metadata.isPublic = firebaseCustomMetadata.isPublic === "true";
-    }
 
     return metadata;
   } catch (error) {
@@ -88,7 +78,15 @@ const firebaseStorageService = {
     const fullPath = `${path.endsWith("/") ? path : path + "/"}${fileId}.${extension}`;
     const storageRef = ref(storage, fullPath);
 
-    const serializedMetadata = serializeCustomMetadata(metadata);
+    const serializedMetadata = serializeCustomMetadata({
+      ...metadata,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      uploadDate: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    });
+
     const uploadTask = uploadBytesResumable(storageRef, file, {
       customMetadata: serializedMetadata
     });
@@ -100,11 +98,7 @@ const firebaseStorageService = {
           if (onProgress) {
             onProgress({
               progress: (snapshot.bytesTransferred / snapshot.totalBytes) * 100,
-              status: snapshot.state.toLowerCase() as UploadProgress["status"],
-              fileName: file.name,
-              fileSize: snapshot.totalBytes,
-              uploadedBytes: snapshot.bytesTransferred,
-              taskId: fileId
+              state: snapshot.state.toLowerCase() as UploadProgress["state"]
             });
           }
         },
@@ -112,12 +106,8 @@ const firebaseStorageService = {
           if (onProgress) {
             onProgress({
               progress: 0,
-              status: "error",
-              error,
-              fileName: file.name,
-              fileSize: file.size,
-              uploadedBytes: 0,
-              taskId: fileId
+              state: "error",
+              error
             });
           }
           reject(error);
@@ -128,26 +118,15 @@ const firebaseStorageService = {
             const fbMetadata = await getMetadata(uploadTask.snapshot.ref);
             
             const fileMetadata: FileMetadata = {
-              name: fbMetadata.name || file.name,
-              size: fbMetadata.size,
-              contentType: fbMetadata.contentType || file.type,
-              fullPath: fbMetadata.fullPath,
+              ...deserializeCustomMetadata(fbMetadata.customMetadata),
               path: fbMetadata.fullPath,
-              downloadURL,
-              customMetadata: deserializeCustomMetadata(fbMetadata.customMetadata),
-              createdAt: new Date(fbMetadata.timeCreated),
-              updatedAt: new Date(fbMetadata.updated)
+              url: downloadURL
             };
 
             if (onProgress) {
               onProgress({
                 progress: 100,
-                status: "success",
-                downloadURL,
-                fileName: file.name,
-                fileSize: file.size,
-                uploadedBytes: file.size,
-                taskId: fileId
+                state: "success"
               });
             }
             resolve(fileMetadata);
@@ -178,15 +157,9 @@ const firebaseStorageService = {
     const downloadURL = await getDownloadURL(storageRef);
 
     return {
-      name: fbMetadata.name || "",
-      size: fbMetadata.size,
-      contentType: fbMetadata.contentType || "",
-      fullPath: fbMetadata.fullPath,
+      ...deserializeCustomMetadata(fbMetadata.customMetadata),
       path: fbMetadata.fullPath,
-      downloadURL,
-      customMetadata: deserializeCustomMetadata(fbMetadata.customMetadata),
-      createdAt: new Date(fbMetadata.timeCreated),
-      updatedAt: new Date(fbMetadata.updated)
+      url: downloadURL
     };
   },
 
@@ -210,15 +183,9 @@ const firebaseStorageService = {
         const downloadURL = await getDownloadURL(fileRef);
 
         const fileMetadata: FileMetadata = {
-          name: fbMetadata.name || "",
-          size: fbMetadata.size,
-          contentType: fbMetadata.contentType || "",
-          fullPath: fbMetadata.fullPath,
+          ...deserializeCustomMetadata(fbMetadata.customMetadata),
           path: fbMetadata.fullPath,
-          downloadURL,
-          customMetadata: deserializeCustomMetadata(fbMetadata.customMetadata),
-          createdAt: new Date(fbMetadata.timeCreated),
-          updatedAt: new Date(fbMetadata.updated)
+          url: downloadURL
         };
         files.push(fileMetadata);
       } catch (error) {
@@ -244,10 +211,7 @@ const firebaseStorageService = {
       const customMetadata = deserializeCustomMetadata(fbMetadata.customMetadata);
 
       if (customMetadata.isPublic === true) return true;
-      if (customMetadata.uploadedBy === userId) return true;
-      
-      const userPermission = customMetadata.permissions?.[userId] || customMetadata.sharedWith?.[userId];
-      if (userPermission) return true;
+      if (customMetadata.userId === userId) return true;
 
       return false;
     } catch (error) {

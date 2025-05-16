@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   UserPlus,
   Building,
-  CalendarClock
+  CalendarClock,
+  FolderOpen // Add FolderOpen icon
 } from "lucide-react";
 
 // Define proper types for dashboard data
@@ -479,6 +480,15 @@ export default function AdminDashboard() {
                 >
                   <Building className="h-6 w-6" />
                   <span className="text-sm">Platform Settings</span>
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex flex-col items-center justify-center p-4 gap-2"
+                  onClick={() => safeNavigate("/file-management")}
+                >
+                  <FolderOpen className="h-6 w-6" />
+                  <span className="text-sm">File Management</span>
                 </Button>
               </div>
             </CardContent>

@@ -57,7 +57,7 @@ export default function UserOnboarding() {
   const [error, setError] = useState<string | null>(null);
   
   const [skills, setSkills] = useState<string[]>([]);
-  const [experience, setExperience] = useState("");
+  const [experience, setExperience] = useState<string[]>([]);
   const [availability, setAvailability] = useState<string[]>([]);
   const [preferredLocation, setPreferredLocation] = useState("");
   const [bio, setBio] = useState("");
@@ -65,6 +65,10 @@ export default function UserOnboarding() {
   const [preferences, setPreferences] = useState<string[]>([]);
 
   const isApplicant = userProfile?.userType === "applicant";
+
+  const handleExperienceChange = (value: string) => {
+    setExperience([value]); // Store single selection as array
+  };
   
   const applicantSteps: OnboardingStep[] = [
     {
@@ -94,7 +98,10 @@ export default function UserOnboarding() {
           </div>
           <div>
             <label htmlFor="experience">Years of Experience</label>
-            <Select value={experience} onValueChange={setExperience}>
+            <Select 
+              value={experience[0] || ""} 
+              onValueChange={handleExperienceChange}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select experience level" />
               </SelectTrigger>
@@ -215,7 +222,10 @@ export default function UserOnboarding() {
           </div>
           <div>
             <label htmlFor="cuisineType">Cuisine Type</label>
-            <Select value={experience} onValueChange={setExperience}>
+            <Select 
+              value={experience[0] || ""} 
+              onValueChange={handleExperienceChange}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select cuisine type" />
               </SelectTrigger>
@@ -346,7 +356,7 @@ export default function UserOnboarding() {
           }
         : {
             location: preferredLocation,
-            cuisineType: experience,
+            cuisineType: experience[0] || "",
             businessDescription: bio,
             hiringPositions: skills,
             jobTypes: preferences,

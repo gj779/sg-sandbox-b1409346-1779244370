@@ -1,12 +1,13 @@
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { usePresence } from "@/hooks/usePresence";
 import { conversationsService } from "@/services/conversationsService";
 import { 
   Message,
-  Conversation, // Added import from @/types
+  Conversation,
   MessageStatus,
-  UserProfile // Added import from @/types
+  UserProfile
 } from "@/types"; 
 import { 
   Card, 
@@ -24,11 +25,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatDistanceToNow } from "date-fns";
 import { Send, Phone, Video, MoreHorizontal, ArrowLeft, Smile, Paperclip, Check, CheckCheck, Download } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
-import Image from "next/image"; // Import Next.js Image component
+import Image from "next/image";
 
 interface ChatInterfaceProps {
   conversationId: string;
-  otherParticipant: UserProfile | null; // Updated to UserProfile
+  otherParticipant: UserProfile | null;
   onBack?: () => void;
 }
 
@@ -56,7 +57,6 @@ export default function ChatInterface({
   const otherUserName = otherParticipant ? `${otherParticipant.firstName || ""} ${otherParticipant.lastName || ""}`.trim() || otherParticipant.email || "User" : "User";
   const otherUserPhotoURL = otherParticipant?.photoURL;
 
-
   useEffect(() => {
     if (!user || !conversationId) return;
 
@@ -66,8 +66,8 @@ export default function ChatInterface({
         setMessages(newMessages);
         // Mark messages as read
         newMessages.forEach(msg => {
-          if (msg.senderId !== user.uid && msg.status !== "read") {
-            conversationsService.updateMessageStatus(msg.id, "read");
+          if (msg.senderId !== user.uid && msg.status !== MessageStatus.READ) {
+            conversationsService.updateMessageStatus(msg.id, MessageStatus.READ);
           }
         });
       }
@@ -114,8 +114,6 @@ export default function ChatInterface({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setSelectedFile(event.target.files[0]);
-      // Optionally, send message immediately or show preview
-      // For now, we'll assume send on submit
     }
   };
 
@@ -147,7 +145,7 @@ export default function ChatInterface({
       
       setNewMessage("");
       setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = "";
       if (user?.uid) conversationsService.setTypingStatus(conversationId, user.uid, false);
 
     } catch (error: any) {
@@ -188,10 +186,16 @@ export default function ChatInterface({
   };
 
   const renderMessageStatus = (status: MessageStatus) => {
-    if (status === "read") return <CheckCheck className="h-4 w-4 text-blue-500" />;
-    if (status === "delivered") return <CheckCheck className="h-4 w-4 text-muted-foreground" />;
-    if (status === "sent") return <Check className="h-4 w-4 text-muted-foreground" />;
-    return null;
+    switch (status) {
+      case MessageStatus.READ:
+        return <CheckCheck className="h-4 w-4 text-blue-500" />;
+      case MessageStatus.DELIVERED:
+        return <CheckCheck className="h-4 w-4 text-muted-foreground" />;
+      case MessageStatus.SENT:
+        return <Check className="h-4 w-4 text-muted-foreground" />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -258,10 +262,10 @@ export default function ChatInterface({
                             <Image 
                               src={message.fileURL} 
                               alt={message.fileName || "Shared image"} 
-                              width={300} // Provide appropriate width
-                              height={200} // Provide appropriate height
+                              width={300}
+                              height={200}
                               className="object-contain"
-                              unoptimized={message.fileURL.startsWith("")} // Add this if using data URLs for previews
+                              unoptimized={message.fileURL.startsWith("")}
                             />
                           </div>
                         )}

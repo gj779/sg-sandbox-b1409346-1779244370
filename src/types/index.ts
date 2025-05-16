@@ -1,4 +1,6 @@
 
+import { Timestamp } from "firebase/firestore";
+
 // User Types
 export enum UserRole {
   APPLICANT = "applicant",
@@ -59,14 +61,14 @@ export interface FileCustomMetadata {
   fileSize: number;
   uploadDate: string;
   lastModified: string;
-  isPublic?: boolean;
-  tags?: string[];
-  description?: string;
-  category?: string;
-  uploadedBy?: string;
+  isPublic: boolean;
+  tags: string[];
+  description: string;
+  category: string;
+  uploadedBy: string;
   uploaderName?: string;
-  sharedWith?: string[];
-  permissions?: FilePermission[];
+  sharedWith: string[];
+  permissions: FilePermission[];
 }
 
 export interface FileMetadata extends FileCustomMetadata {
@@ -92,6 +94,12 @@ export interface Message {
   content: string;
   timestamp: Date;
   status: MessageStatus;
+  contentType?: "text" | "image" | "file" | "video";
+  fileURL?: string;
+  fileName?: string;
+  fileSize?: number;
+  senderName?: string;
+  senderPhotoURL?: string;
   attachments?: {
     url: string;
     type: string;
@@ -111,6 +119,9 @@ export interface Conversation {
   lastMessage?: Message;
   updatedAt: Date;
   createdAt: Date;
+  participantProfiles?: Record<string, UserProfile>;
+  unreadCounts?: Record<string, number>;
+  typingUserIds?: string[];
 }
 
 export interface JobListing {
@@ -131,10 +142,12 @@ export interface JobListing {
   availability: Availability[];
   createdAt: Date;
   updatedAt: Date;
+  cuisineType?: string;
 }
 
 export interface Availability {
   dayOfWeek: string;
+  day: string;
   startTime: string;
   endTime: string;
 }
@@ -142,6 +155,12 @@ export interface Availability {
 export interface Resume {
   id: string;
   userId: string;
+  personalInfo?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
   education: Education[];
   experience: Experience[];
   certifications: Certification[];
@@ -156,9 +175,11 @@ export interface Education {
   institution: string;
   degree: string;
   field: string;
+  fieldOfStudy: string;
   startDate: Date;
   endDate?: Date;
   current: boolean;
+  isCurrentlyStudying: boolean;
   description?: string;
 }
 
@@ -169,19 +190,22 @@ export interface Experience {
   startDate: Date;
   endDate?: Date;
   current: boolean;
+  isCurrentlyWorking: boolean;
   description: string;
 }
 
 export interface Certification {
   name: string;
   issuer: string;
+  issuingOrganization: string;
   issueDate: Date;
-  expiryDate?: Date;
+  expirationDate?: Date;
   credentialId?: string;
 }
 
 export interface Language {
   name: string;
+  language: string;
   proficiency: "basic" | "intermediate" | "fluent" | "native";
 }
 

@@ -19,9 +19,17 @@ function serializeCustomMetadata(metadata: Partial<FileCustomMetadata>): { [key:
   if (metadata.description) serialized.description = metadata.description;
   if (metadata.category) serialized.category = metadata.category;
   if (typeof metadata.isPublic === "boolean") serialized.isPublic = String(metadata.isPublic);
+  if (metadata.uploadedBy) serialized.uploadedBy = metadata.uploadedBy;
+  if (metadata.uploaderName) serialized.uploaderName = metadata.uploaderName;
   
   if (Array.isArray(metadata.tags)) {
     serialized.tags = JSON.stringify(metadata.tags);
+  }
+  if (Array.isArray(metadata.sharedWith)) {
+    serialized.sharedWith = JSON.stringify(metadata.sharedWith);
+  }
+  if (Array.isArray(metadata.permissions)) {
+    serialized.permissions = JSON.stringify(metadata.permissions);
   }
 
   return serialized;
@@ -38,7 +46,10 @@ function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: stri
     isPublic: false,
     tags: [],
     description: "",
-    category: ""
+    category: "",
+    uploadedBy: "",
+    sharedWith: [],
+    permissions: []
   };
 
   if (!firebaseCustomMetadata) {
@@ -56,7 +67,11 @@ function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: stri
       description: firebaseCustomMetadata.description || defaultMetadata.description,
       category: firebaseCustomMetadata.category || defaultMetadata.category,
       isPublic: firebaseCustomMetadata.isPublic === "true",
-      tags: firebaseCustomMetadata.tags ? JSON.parse(firebaseCustomMetadata.tags) : defaultMetadata.tags
+      uploadedBy: firebaseCustomMetadata.uploadedBy || defaultMetadata.uploadedBy,
+      uploaderName: firebaseCustomMetadata.uploaderName,
+      tags: firebaseCustomMetadata.tags ? JSON.parse(firebaseCustomMetadata.tags) : defaultMetadata.tags,
+      sharedWith: firebaseCustomMetadata.sharedWith ? JSON.parse(firebaseCustomMetadata.sharedWith) : defaultMetadata.sharedWith,
+      permissions: firebaseCustomMetadata.permissions ? JSON.parse(firebaseCustomMetadata.permissions) : defaultMetadata.permissions
     };
 
     return metadata;
@@ -84,7 +99,9 @@ const firebaseStorageService = {
       fileType: file.type,
       fileSize: file.size,
       uploadDate: new Date().toISOString(),
-      lastModified: new Date().toISOString()
+      lastModified: new Date().toISOString(),
+      sharedWith: metadata.sharedWith || [],
+      permissions: metadata.permissions || []
     });
 
     const uploadTask = uploadBytesResumable(storageRef, file, {
@@ -212,6 +229,10 @@ const firebaseStorageService = {
 
       if (customMetadata.isPublic === true) return true;
       if (customMetadata.userId === userId) return true;
+      if (customMetadata.sharedWith.includes(userId)) return true;
+
+      const userPermission = customMetadata.permissions.find(p => p.userId === userId);
+      if (userPermission) return true;
 
       return false;
     } catch (error) {

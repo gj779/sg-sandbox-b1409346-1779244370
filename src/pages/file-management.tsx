@@ -1,7 +1,7 @@
 
 import { useAuth } from "@/hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
-import { FileBrowser } from "@/components/file-storage/FileBrowser";
+import FileBrowser from "@/components/file-storage/FileBrowser";
 import { FileMetadata } from "@/types";
 
 export default function FileManagementPage() {

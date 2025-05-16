@@ -129,3 +129,6 @@ export default function FileBrowser({
     </div>
   );
 }
+
+export { FileBrowser };
+export type { FileBrowserProps };

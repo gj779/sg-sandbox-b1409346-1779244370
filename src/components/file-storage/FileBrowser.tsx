@@ -73,9 +73,9 @@ export default function FileBrowser({
   };
 
   const filteredFiles = files.filter(file => {
-    const matchesSearchTerm = file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             (file.customMetadata?.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             (file.customMetadata?.tags || []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearchTerm = file.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             (file.description || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             (file.tags || []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesSearchTerm;
   });
 

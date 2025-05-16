@@ -16,13 +16,13 @@ interface FileListItemProps {
   onMetadataUpdate: (file: FileMetadata) => void;
 }
 
-const getFileIcon = (contentType?: string) => {
-  if (!contentType) return <FileQuestion className="h-5 w-5 text-gray-500" />;
-  if (contentType.startsWith("image/")) return <ImageIcon className="h-5 w-5 text-blue-500" />;
-  if (contentType.startsWith("video/")) return <Video className="h-5 w-5 text-purple-500" />;
-  if (contentType.startsWith("audio/")) return <AudioLines className="h-5 w-5 text-orange-500" />;
-  if (contentType === "application/pdf") return <FileText className="h-5 w-5 text-red-500" />;
-  if (contentType.includes("zip") || contentType.includes("archive")) return <Archive className="h-5 w-5 text-yellow-500" />;
+const getFileIcon = (fileType?: string) => {
+  if (!fileType) return <FileQuestion className="h-5 w-5 text-gray-500" />;
+  if (fileType.startsWith("image/")) return <ImageIcon className="h-5 w-5 text-blue-500" />;
+  if (fileType.startsWith("video/")) return <Video className="h-5 w-5 text-purple-500" />;
+  if (fileType.startsWith("audio/")) return <AudioLines className="h-5 w-5 text-orange-500" />;
+  if (fileType === "application/pdf") return <FileText className="h-5 w-5 text-red-500" />;
+  if (fileType.includes("zip") || fileType.includes("archive")) return <Archive className="h-5 w-5 text-yellow-500" />;
   return <FileQuestion className="h-5 w-5 text-gray-500" />;
 };
 
@@ -32,15 +32,15 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
-  const [currentDescription, setCurrentDescription] = useState(file.customMetadata?.description || "");
-  const [currentTags, setCurrentTags] = useState((file.customMetadata?.tags || []).join(", "));
+  const [currentDescription, setCurrentDescription] = useState(file.description || "");
+  const [currentTags, setCurrentTags] = useState((file.tags || []).join(", "));
   const [currentSharedWith, setCurrentSharedWith] = useState(
-    Object.keys(file.customMetadata?.sharedWith || {}).join(", ")
+    (file.sharedWith || []).join(", ")
   );
-  const [currentPermissions, setCurrentPermissions] = useState(file.customMetadata?.permissions || {});
+  const [currentPermissions, setCurrentPermissions] = useState(file.permissions || []);
   const [error, setError] = useState<string | null>(null);
 
-  const isOwner = file.customMetadata?.uploadedBy === currentUserId;
+  const isOwner = file.uploadedBy === currentUserId;
 
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this file? This action cannot be undone.")) {
@@ -64,21 +64,15 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
     setError(null);
     try {
       const newTags = currentTags.split(",").map(t => t.trim()).filter(tag => tag.length > 0);
-      const newSharedWithIds = currentSharedWith.split(",").map(id => id.trim()).filter(id => id.length > 0);
-      
-      // Convert array of IDs to shared permissions object
-      const sharedWithObj: { [key: string]: "read" } = {};
-      newSharedWithIds.forEach(id => {
-        sharedWithObj[id] = "read";
-      });
+      const newSharedWith = currentSharedWith.split(",").map(id => id.trim()).filter(id => id.length > 0);
 
       const newCustomMetadata: Partial<FileCustomMetadata> = {
         description: currentDescription,
         tags: newTags,
-        sharedWith: sharedWithObj,
+        sharedWith: newSharedWith,
         permissions: currentPermissions,
-        uploadedBy: file.customMetadata.uploadedBy,
-        uploaderName: file.customMetadata.uploaderName
+        uploadedBy: file.uploadedBy,
+        uploaderName: file.uploaderName
       };
       
       const updatedFile = await firebaseStorageService.updateFileMetadata(file.path, newCustomMetadata);
@@ -104,12 +98,6 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
       case "sharedWith":
         setCurrentSharedWith(value);
         break;
-      case "permissions":
-        setCurrentPermissions(prev => ({
-          ...prev,
-          [value]: prev[value] === "read" ? "write" : "read"
-        }));
-        break;
     }
   };
   
@@ -125,30 +113,30 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
   // Reset edit data when modal opens/file changes
   React.useEffect(() => {
     if (showEditModal) {
-      setCurrentDescription(file.customMetadata?.description || "");
-      setCurrentTags((file.customMetadata?.tags || []).join(", "));
-      setCurrentSharedWith(Object.keys(file.customMetadata?.sharedWith || {}).join(", "));
-      setCurrentPermissions(file.customMetadata?.permissions || {});
+      setCurrentDescription(file.description || "");
+      setCurrentTags((file.tags || []).join(", "));
+      setCurrentSharedWith((file.sharedWith || []).join(", "));
+      setCurrentPermissions(file.permissions || []);
     }
   }, [file, showEditModal]);
 
   return (
     <div className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center gap-3">
-        {getFileIcon(file.contentType)}
+        {getFileIcon(file.fileType)}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium truncate">{file.name}</h3>
+          <h3 className="text-sm font-medium truncate">{file.fileName}</h3>
           <p className="text-xs text-muted-foreground">
-            {formatBytes(file.size)} • Uploaded {file.createdAt.toLocaleDateString()}
+            {formatBytes(file.fileSize)} • Uploaded {new Date(file.uploadDate).toLocaleDateString()}
           </p>
-          {file.customMetadata?.description && (
+          {file.description && (
             <p className="text-xs text-muted-foreground truncate mt-1">
-              {file.customMetadata.description}
+              {file.description}
             </p>
           )}
-          {file.customMetadata?.tags && file.customMetadata.tags.length > 0 && (
+          {file.tags && file.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
-              {file.customMetadata.tags.map(tag => (
+              {file.tags.map(tag => (
                 <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full">
                   {tag}
                 </span>
@@ -160,7 +148,7 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
 
       <div className="flex gap-2 mt-4">
         <Button variant="outline" size="sm" asChild>
-          <a href={file.downloadURL} target="_blank" rel="noopener noreferrer" download={file.name}>
+          <a href={file.url} target="_blank" rel="noopener noreferrer" download={file.fileName}>
             <Download className="h-4 w-4 mr-2" />
             Download
           </a>
@@ -187,7 +175,7 @@ export default function FileListItem({ file, currentUserId, onDelete, onMetadata
                 <Alert variant="destructive">
                   <AlertTitle>Are you sure?</AlertTitle>
                   <AlertDescription>
-                    This will permanently delete "{file.name}". This action cannot be undone.
+                    This will permanently delete "{file.fileName}". This action cannot be undone.
                   </AlertDescription>
                 </Alert>
                 {error && <p className="text-sm text-destructive mt-2">{error}</p>}

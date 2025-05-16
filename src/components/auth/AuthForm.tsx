@@ -1,39 +1,39 @@
+
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useUser } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { UserRole } from "@/types";
 
 interface AuthFormProps {
   mode: "login" | "register";
-  onSuccess?: () => void; // Add onSuccess prop
+  onSuccess?: () => void;
 }
 
 export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
-  const router = useRouter(); // Added router
+  const router = useRouter();
   const { signIn, signUp, error: authError, isLoading: authIsLoading, clearAuthError } = useUser();
-  const { toast } = useToast(); // Initialize toast
+  const { toast } = useToast();
   
-  // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const [confirmPassword, setConfirmPassword] = useState(""); // Added confirm password state
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearAuthError(); // Clear previous errors
-    setFormError(null); // Clear local errors
+    clearAuthError();
+    setFormError(null);
 
     if (mode === "register") {
       if (password !== confirmPassword) {
@@ -51,8 +51,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
       if (mode === "login") {
         profile = await signIn(email, password);
       } else {
-        // Ensure userType is passed for registration
-        const userType = router.query.type === "restaurant" ? "restaurant" : "applicant";
+        const userType = router.query.type === "restaurant" ? UserRole.RESTAURANT : UserRole.APPLICANT;
         profile = await signUp(email, password, firstName, lastName, userType);
       }
 
@@ -62,19 +61,17 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
           description: `Welcome, ${profile.firstName || profile.email}!`,
         });
         if (onSuccess) {
-          onSuccess(); // Call onSuccess callback
+          onSuccess();
         } else {
-          // Default redirection logic if onSuccess is not provided
-          const redirectPath = profile.userType === "admin" ? "/admin/dashboard"
-                             : profile.userType === "restaurant" ? (profile.profileComplete ? "/restaurant/dashboard" : "/onboarding")
+          const redirectPath = profile.userType === UserRole.ADMIN ? "/admin/dashboard"
+                             : profile.userType === UserRole.RESTAURANT ? (profile.profileComplete ? "/restaurant/dashboard" : "/onboarding")
                              : (profile.profileComplete ? "/applicant/dashboard" : "/onboarding");
           router.push(redirectPath);
         }
-      } else if (!authError) { // If profile is null but no global authError, set local error
+      } else if (!authError) {
         setFormError(`Failed to ${mode}. Please try again.`);
       }
     } catch (err: any) {
-      // This catch block might be redundant if useUser hook handles and sets authError
       console.error(`${mode} error:`, err);
       setFormError(err.message || `An unexpected error occurred during ${mode}.`);
     }

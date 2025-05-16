@@ -1,13 +1,15 @@
+
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { Loader2 } from "lucide-react"; // For loading state
+import { Loader2 } from "lucide-react";
+import { UserRole } from "@/types";
 
 interface GoogleSignInButtonProps {
-  userType: "applicant" | "restaurant";
-  onSuccess?: () => void; // Optional: Callback on successful sign-in
-  onError?: (error: Error) => void; // Optional: Callback on error
+  userType: UserRole.APPLICANT | UserRole.RESTAURANT;
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
 }
 
 export default function GoogleSignInButton({
@@ -15,20 +17,17 @@ export default function GoogleSignInButton({
   onSuccess,
   onError
 }: GoogleSignInButtonProps) {
-  const { signInWithGoogle } = useUser(); // Corrected: Changed from loginWithGoogle
+  const { signInWithGoogle } = useUser();
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const profile = await signInWithGoogle(userType); // Corrected: Changed from loginWithGoogle
+      const profile = await signInWithGoogle(userType);
       if (profile) {
         if (onSuccess) onSuccess();
-        // Navigation or further actions can be handled by the calling page or context
       } else {
-        // This case might indicate an issue not caught by the try-catch,
-        // or signInWithGoogle resolved with null without an error.
         if (onError) onError(new Error("Google Sign-In returned no profile."));
       }
     } catch (error: any) {

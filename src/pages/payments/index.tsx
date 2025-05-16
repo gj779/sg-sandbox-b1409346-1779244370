@@ -9,6 +9,9 @@ export default function PaymentPage() {
   const router = useRouter();
   const { user, isLoading } = useUser();
 
+  // Default payment amount (e.g., $10.00)
+  const defaultAmount = 1000; // Amount in cents
+
   if (isLoading) {
     return (
       <div className="container flex items-center justify-center min-h-screen">
@@ -21,6 +24,16 @@ export default function PaymentPage() {
     router.push("/auth/login");
     return null;
   }
+
+  const handlePaymentSuccess = (paymentIntent: any) => {
+    // Handle successful payment
+    router.push("/payments/history");
+  };
+
+  const handlePaymentError = (error: Error) => {
+    // Error is handled by the PaymentForm component
+    console.error("Payment error:", error);
+  };
 
   return (
     <>
@@ -49,7 +62,14 @@ export default function PaymentPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PaymentForm />
+              <PaymentForm 
+                amount={defaultAmount}
+                currency="usd"
+                description="StaffSpace Payment"
+                onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
+                buttonText="Process Payment"
+              />
             </CardContent>
           </Card>
         </div>

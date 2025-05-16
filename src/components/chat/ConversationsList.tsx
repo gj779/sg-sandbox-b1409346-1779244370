@@ -69,7 +69,8 @@ export default function ConversationsList({
     const otherParticipantId = conversation.participants.find(id => id !== user.uid);
     if (!otherParticipantId || !conversation.participantProfiles) return null;
     
-    return (conversation.participantProfiles as UserProfile[]).find(p => p.id === otherParticipantId) || null;
+    // Handle participantProfiles as a Record<string, UserProfile>
+    return conversation.participantProfiles[otherParticipantId] || null;
   };
 
   const filteredConversations = conversations.filter(conversation => {

@@ -18,9 +18,13 @@ function serializeCustomMetadata(metadata: Partial<FileCustomMetadata>): { [key:
   if (metadata.uploaderName) serialized.uploaderName = metadata.uploaderName;
   if (metadata.description) serialized.description = metadata.description;
   if (metadata.isPublic !== undefined) serialized.isPublic = String(metadata.isPublic);
-  if (metadata.tags) serialized.tags = JSON.stringify(metadata.tags);
-  if (metadata.sharedWith) serialized.sharedWith = JSON.stringify(metadata.sharedWith);
-  if (metadata.permissions) serialized.permissions = JSON.stringify(metadata.permissions);
+  if (metadata.tags && metadata.tags.length > 0) serialized.tags = JSON.stringify(metadata.tags);
+  if (metadata.sharedWith && Object.keys(metadata.sharedWith).length > 0) {
+    serialized.sharedWith = JSON.stringify(metadata.sharedWith);
+  }
+  if (metadata.permissions && Object.keys(metadata.permissions).length > 0) {
+    serialized.permissions = JSON.stringify(metadata.permissions);
+  }
   
   return serialized;
 }
@@ -32,7 +36,8 @@ function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: stri
     isPublic: false,
     tags: [],
     sharedWith: {},
-    permissions: {}
+    permissions: {},
+    description: undefined
   };
   
   if (!firebaseCustomMetadata) {
@@ -41,6 +46,7 @@ function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: stri
 
   try {
     const parsedMetadata: FileCustomMetadata = {
+      ...defaultMetadata,
       uploadedBy: firebaseCustomMetadata.uploadedBy || defaultMetadata.uploadedBy,
       uploaderName: firebaseCustomMetadata.uploaderName || defaultMetadata.uploaderName,
       description: firebaseCustomMetadata.description,

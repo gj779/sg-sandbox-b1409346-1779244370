@@ -27,16 +27,16 @@ export default function StripeKeyVerifier() {
     // Check client-side key
     const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     
-    // Update statuses
-    setKeyStatuses(prev => [
+    // Update statuses with proper typing
+    setKeyStatuses([
       { 
         key: "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", 
-        isSet: !!publishableKey && publishableKey.length > 0,
+        isSet: Boolean(publishableKey && publishableKey.length > 0),
         isValid: undefined
       },
       { 
         key: "STRIPE_SECRET_KEY", 
-        isSet: undefined, // We can't check server-side key directly from client
+        isSet: false, // Default to false for server-side key until verified
         isValid: undefined
       }
     ]);
@@ -72,7 +72,7 @@ export default function StripeKeyVerifier() {
         } else if (status.key === "STRIPE_SECRET_KEY") {
           return {
             ...status,
-            isSet: data.secretKeySet,
+            isSet: Boolean(data.secretKeySet),
             isValid: data.secretKeyValid,
             error: data.secretKeyError
           };
@@ -158,13 +158,9 @@ export default function StripeKeyVerifier() {
                           <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
                             <CheckCircle className="h-3 w-3 mr-1" /> Set
                           </Badge>
-                        ) : status.isSet === false ? (
+                        ) : (
                           <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
                             <XCircle className="h-3 w-3 mr-1" /> Not Set
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-300">
-                            Unknown
                           </Badge>
                         )}
                       </td>

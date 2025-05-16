@@ -14,14 +14,27 @@ const getFileExtension = (filename: string) => {
 function serializeCustomMetadata(metadata: Partial<FileCustomMetadata>): { [key: string]: string } {
   const serialized: { [key: string]: string } = {};
   
-  if (metadata.uploadedBy) serialized.uploadedBy = metadata.uploadedBy;
-  if (metadata.uploaderName) serialized.uploaderName = metadata.uploaderName;
-  if (metadata.description) serialized.description = metadata.description;
-  if (metadata.isPublic !== undefined) serialized.isPublic = String(metadata.isPublic);
-  if (metadata.tags && metadata.tags.length > 0) serialized.tags = JSON.stringify(metadata.tags);
+  // Required fields must always be serialized
+  serialized.uploadedBy = metadata.uploadedBy || "";
+  serialized.uploaderName = metadata.uploaderName || "";
+  
+  // Optional fields are only serialized if present
+  if (metadata.description !== undefined) {
+    serialized.description = metadata.description;
+  }
+  
+  if (metadata.isPublic !== undefined) {
+    serialized.isPublic = String(metadata.isPublic);
+  }
+  
+  if (metadata.tags && metadata.tags.length > 0) {
+    serialized.tags = JSON.stringify(metadata.tags);
+  }
+  
   if (metadata.sharedWith && Object.keys(metadata.sharedWith).length > 0) {
     serialized.sharedWith = JSON.stringify(metadata.sharedWith);
   }
+  
   if (metadata.permissions && Object.keys(metadata.permissions).length > 0) {
     serialized.permissions = JSON.stringify(metadata.permissions);
   }
@@ -33,11 +46,11 @@ function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: stri
   const defaultMetadata: FileCustomMetadata = {
     uploadedBy: "",
     uploaderName: "",
-    isPublic: false,
+    description: undefined,
     tags: [],
     sharedWith: {},
     permissions: {},
-    description: undefined
+    isPublic: false
   };
   
   if (!firebaseCustomMetadata) {
@@ -46,14 +59,20 @@ function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: stri
 
   try {
     const parsedMetadata: FileCustomMetadata = {
-      ...defaultMetadata,
+      // Required fields with defaults
       uploadedBy: firebaseCustomMetadata.uploadedBy || defaultMetadata.uploadedBy,
       uploaderName: firebaseCustomMetadata.uploaderName || defaultMetadata.uploaderName,
+      
+      // Optional fields
       description: firebaseCustomMetadata.description,
       isPublic: firebaseCustomMetadata.isPublic === "true",
       tags: firebaseCustomMetadata.tags ? JSON.parse(firebaseCustomMetadata.tags) : defaultMetadata.tags,
-      sharedWith: firebaseCustomMetadata.sharedWith ? JSON.parse(firebaseCustomMetadata.sharedWith) : defaultMetadata.sharedWith,
-      permissions: firebaseCustomMetadata.permissions ? JSON.parse(firebaseCustomMetadata.permissions) : defaultMetadata.permissions
+      sharedWith: firebaseCustomMetadata.sharedWith ? 
+        JSON.parse(firebaseCustomMetadata.sharedWith) as { [userId: string]: FilePermission } : 
+        defaultMetadata.sharedWith,
+      permissions: firebaseCustomMetadata.permissions ? 
+        JSON.parse(firebaseCustomMetadata.permissions) as { [userId: string]: FilePermission } : 
+        defaultMetadata.permissions
     };
     return parsedMetadata;
   } catch (error) {

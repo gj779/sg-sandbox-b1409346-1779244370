@@ -26,52 +26,34 @@ function serializeCustomMetadata(metadata: Partial<FileCustomMetadata>): { [key:
 }
 
 function deserializeCustomMetadata(firebaseCustomMetadata: { [key: string]: string } | undefined): FileCustomMetadata {
-  const deserialized: Partial<FileCustomMetadata> = {};
+  const defaultMetadata: FileCustomMetadata = {
+    uploadedBy: "",
+    uploaderName: "",
+    isPublic: false,
+    tags: [],
+    sharedWith: {},
+    permissions: {}
+  };
   
   if (!firebaseCustomMetadata) {
-    return {
-      uploadedBy: "",
-      uploaderName: "",
-      isPublic: false,
-      tags: [],
-      sharedWith: {},
-      permissions: {}
+    return defaultMetadata;
+  }
+
+  try {
+    const parsedMetadata: FileCustomMetadata = {
+      uploadedBy: firebaseCustomMetadata.uploadedBy || defaultMetadata.uploadedBy,
+      uploaderName: firebaseCustomMetadata.uploaderName || defaultMetadata.uploaderName,
+      description: firebaseCustomMetadata.description,
+      isPublic: firebaseCustomMetadata.isPublic === "true",
+      tags: firebaseCustomMetadata.tags ? JSON.parse(firebaseCustomMetadata.tags) : defaultMetadata.tags,
+      sharedWith: firebaseCustomMetadata.sharedWith ? JSON.parse(firebaseCustomMetadata.sharedWith) : defaultMetadata.sharedWith,
+      permissions: firebaseCustomMetadata.permissions ? JSON.parse(firebaseCustomMetadata.permissions) : defaultMetadata.permissions
     };
+    return parsedMetadata;
+  } catch (error) {
+    console.error("Error parsing metadata:", error);
+    return defaultMetadata;
   }
-
-  deserialized.uploadedBy = firebaseCustomMetadata.uploadedBy || "";
-  deserialized.uploaderName = firebaseCustomMetadata.uploaderName || "";
-  deserialized.description = firebaseCustomMetadata.description;
-  deserialized.isPublic = firebaseCustomMetadata.isPublic === "true";
-
-  try {
-    if (firebaseCustomMetadata.tags) {
-      deserialized.tags = JSON.parse(firebaseCustomMetadata.tags);
-    }
-  } catch (e) {
-    console.error("Error parsing tags metadata:", e);
-    deserialized.tags = [];
-  }
-
-  try {
-    if (firebaseCustomMetadata.sharedWith) {
-      deserialized.sharedWith = JSON.parse(firebaseCustomMetadata.sharedWith);
-    }
-  } catch (e) {
-    console.error("Error parsing sharedWith metadata:", e);
-    deserialized.sharedWith = {};
-  }
-
-  try {
-    if (firebaseCustomMetadata.permissions) {
-      deserialized.permissions = JSON.parse(firebaseCustomMetadata.permissions);
-    }
-  } catch (e) {
-    console.error("Error parsing permissions metadata:", e);
-    deserialized.permissions = {};
-  }
-
-  return deserialized as FileCustomMetadata;
 }
 
 const firebaseStorageService = {

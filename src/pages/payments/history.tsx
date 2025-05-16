@@ -1,6 +1,5 @@
-
 import Head from "next/head";
-import { PaymentHistory } from "@/components/payments/PaymentHistory";
+import PaymentHistory from "@/components/payments/PaymentHistory";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from "@/contexts/UserContext";
 import { useRouter } from "next/router";

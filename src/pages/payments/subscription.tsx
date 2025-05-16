@@ -1,6 +1,5 @@
-
 import Head from "next/head";
-import { SubscriptionManagement } from "@/components/payments/SubscriptionManagement";
+import SubscriptionManagement from "@/components/payments/SubscriptionManagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from "@/contexts/UserContext";
 import { useRouter } from "next/router";

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { usePresence } from "@/hooks/usePresence";
@@ -5,7 +6,7 @@ import { conversationsService } from "@/services/conversationsService";
 import { 
   Conversation,
   Message,
-  UserProfile // Added import from @/types
+  UserProfile
 } from "@/types"; 
 import { 
   Card, 
@@ -24,7 +25,7 @@ import { Search, Plus, MessageSquare, UserPlus } from "lucide-react";
 interface ConversationsListProps {
   onSelectConversation: (conversationId: string, otherParticipant: UserProfile | null) => void;
   selectedConversationId?: string;
-  onCreateConversation: () => void; // Callback to handle new conversation creation
+  onCreateConversation: () => void;
 }
 
 export default function ConversationsList({
@@ -65,9 +66,10 @@ export default function ConversationsList({
 
   const getOtherParticipant = (conversation: Conversation): UserProfile | null => {
     if (!user) return null;
-    const otherParticipantId = conversation.participants.find((id: string) => id !== user.uid);
-    if (!otherParticipantId) return null;
-    return conversation.participantProfiles?.find((p: UserProfile) => p.id === otherParticipantId) || null;
+    const otherParticipantId = conversation.participants.find(id => id !== user.uid);
+    if (!otherParticipantId || !conversation.participantProfiles) return null;
+    
+    return (conversation.participantProfiles as UserProfile[]).find(p => p.id === otherParticipantId) || null;
   };
 
   const filteredConversations = conversations.filter(conversation => {

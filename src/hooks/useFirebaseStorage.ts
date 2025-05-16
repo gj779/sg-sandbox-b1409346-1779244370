@@ -17,6 +17,7 @@ export function useFirebaseStorage(userId: string) {
     ) => {
       setIsLoading(true);
       setError(null);
+      const fileId = `${Date.now()}-${file.name}`;
 
       try {
         const fileMetadata = await firebaseStorageService.uploadFile(
@@ -29,12 +30,16 @@ export function useFirebaseStorage(userId: string) {
             isPublic: metadata.isPublic || false
           },
           (progress) => {
+            const progressWithId = {
+              ...progress,
+              taskId: fileId
+            };
             setUploadProgress((prev) => ({
               ...prev,
-              [progress.taskId]: progress
+              [fileId]: progressWithId
             }));
             if (onProgress) {
-              onProgress(progress);
+              onProgress(progressWithId);
             }
           }
         );

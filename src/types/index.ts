@@ -82,6 +82,7 @@ export interface FilePermission {
 }
 
 export interface UploadProgress {
+  taskId?: string;
   progress: number;
   state: "running" | "paused" | "success" | "error";
   error?: Error;

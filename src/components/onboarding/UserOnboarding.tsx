@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { 
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { UserProfile } from "@/types"; // Import UserProfile
+import { UserProfile } from "@/types";
 import { 
   CheckCircle2, 
   ChefHat, 
@@ -55,18 +56,16 @@ export default function UserOnboarding() {
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Form state
   const [skills, setSkills] = useState<string[]>([]);
   const [experience, setExperience] = useState("");
   const [availability, setAvailability] = useState<string[]>([]);
   const [preferredLocation, setPreferredLocation] = useState("");
   const [bio, setBio] = useState("");
   const [education, setEducation] = useState("");
-  const [jobPreferences, setJobPreferences] = useState<string[]>([]);
+  const [preferences, setPreferences] = useState<string[]>([]);
 
   const isApplicant = userProfile?.userType === "applicant";
   
-  // Define onboarding steps based on user type
   const applicantSteps: OnboardingStep[] = [
     {
       title: "Tell us about your skills",
@@ -89,14 +88,12 @@ export default function UserOnboarding() {
                   }}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                <label htmlFor={skill} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  {skill}
-                </label>
+                <label htmlFor={skill}>{skill}</label>
               </div>
             ))}
           </div>
           <div>
-            <label htmlFor="experience" className="block text-sm font-medium mb-1">Years of Experience</label>
+            <label htmlFor="experience">Years of Experience</label>
             <Select value={experience} onValueChange={setExperience}>
               <SelectTrigger>
                 <SelectValue placeholder="Select experience level" />
@@ -133,33 +130,29 @@ export default function UserOnboarding() {
                   }}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                <label htmlFor={day} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  {day}
-                </label>
+                <label htmlFor={day}>{day}</label>
               </div>
             ))}
           </div>
           <div>
-            <label htmlFor="jobPreferences" className="block text-sm font-medium mb-1">Job Preferences</label>
+            <label htmlFor="preferences">Job Preferences</label>
             <div className="grid grid-cols-2 gap-2">
               {["Full-time", "Part-time", "Temporary", "Seasonal", "Event"].map((type) => (
                 <div key={type} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id={type}
-                    checked={jobPreferences.includes(type)}
+                    checked={preferences.includes(type)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setJobPreferences([...jobPreferences, type]);
+                        setPreferences([...preferences, type]);
                       } else {
-                        setJobPreferences(jobPreferences.filter(t => t !== type));
+                        setPreferences(preferences.filter(t => t !== type));
                       }
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
-                  <label htmlFor={type} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    {type}
-                  </label>
+                  <label htmlFor={type}>{type}</label>
                 </div>
               ))}
             </div>
@@ -173,7 +166,7 @@ export default function UserOnboarding() {
       component: (
         <div className="space-y-4">
           <div>
-            <label htmlFor="location" className="block text-sm font-medium mb-1">Preferred Location</label>
+            <label htmlFor="location">Preferred Location</label>
             <Input
               id="location"
               placeholder="e.g., New York, NY"
@@ -182,7 +175,7 @@ export default function UserOnboarding() {
             />
           </div>
           <div>
-            <label htmlFor="education" className="block text-sm font-medium mb-1">Education (Optional)</label>
+            <label htmlFor="education">Education (Optional)</label>
             <Input
               id="education"
               placeholder="e.g., Culinary Institute of America"
@@ -191,7 +184,7 @@ export default function UserOnboarding() {
             />
           </div>
           <div>
-            <label htmlFor="bio" className="block text-sm font-medium mb-1">Short Bio</label>
+            <label htmlFor="bio">Short Bio</label>
             <Textarea
               id="bio"
               placeholder="Tell restaurants a bit about yourself..."
@@ -205,7 +198,6 @@ export default function UserOnboarding() {
     }
   ];
 
-  // Restaurant onboarding steps
   const restaurantSteps: OnboardingStep[] = [
     {
       title: "Tell us about your restaurant",
@@ -213,7 +205,7 @@ export default function UserOnboarding() {
       component: (
         <div className="space-y-4">
           <div>
-            <label htmlFor="location" className="block text-sm font-medium mb-1">Restaurant Location</label>
+            <label htmlFor="location">Restaurant Location</label>
             <Input
               id="location"
               placeholder="e.g., 123 Main St, New York, NY"
@@ -222,7 +214,7 @@ export default function UserOnboarding() {
             />
           </div>
           <div>
-            <label htmlFor="cuisineType" className="block text-sm font-medium mb-1">Cuisine Type</label>
+            <label htmlFor="cuisineType">Cuisine Type</label>
             <Select value={experience} onValueChange={setExperience}>
               <SelectTrigger>
                 <SelectValue placeholder="Select cuisine type" />
@@ -238,7 +230,7 @@ export default function UserOnboarding() {
             </Select>
           </div>
           <div>
-            <label htmlFor="bio" className="block text-sm font-medium mb-1">Restaurant Description</label>
+            <label htmlFor="bio">Restaurant Description</label>
             <Textarea
               id="bio"
               placeholder="Tell job seekers about your restaurant..."
@@ -271,33 +263,29 @@ export default function UserOnboarding() {
                   }}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                <label htmlFor={position} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  {position}
-                </label>
+                <label htmlFor={position}>{position}</label>
               </div>
             ))}
           </div>
           <div>
-            <label htmlFor="jobTypes" className="block text-sm font-medium mb-1">Job Types You Offer</label>
+            <label htmlFor="jobTypes">Job Types You Offer</label>
             <div className="grid grid-cols-2 gap-2">
               {["Full-time", "Part-time", "Temporary", "Seasonal", "Event"].map((type) => (
                 <div key={type} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id={type}
-                    checked={jobPreferences.includes(type)}
+                    checked={preferences.includes(type)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setJobPreferences([...jobPreferences, type]);
+                        setPreferences([...preferences, type]);
                       } else {
-                        setJobPreferences(jobPreferences.filter(t => t !== type));
+                        setPreferences(preferences.filter(t => t !== type));
                       }
                     }}
                     className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
-                  <label htmlFor={type} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    {type}
-                  </label>
+                  <label htmlFor={type}>{type}</label>
                 </div>
               ))}
             </div>
@@ -311,7 +299,7 @@ export default function UserOnboarding() {
       component: (
         <div className="space-y-4">
           <div>
-            <label htmlFor="benefits" className="block text-sm font-medium mb-1">Benefits Offered (Optional)</label>
+            <label htmlFor="benefits">Benefits Offered (Optional)</label>
             <Textarea
               id="benefits"
               placeholder="e.g., Health insurance, paid time off, flexible scheduling..."
@@ -321,7 +309,7 @@ export default function UserOnboarding() {
             />
           </div>
           <div>
-            <label htmlFor="companyValues" className="block text-sm font-medium mb-1">Company Values</label>
+            <label htmlFor="companyValues">Company Values</label>
             <Textarea
               id="companyValues"
               placeholder="Tell job seekers what your restaurant values..."
@@ -336,37 +324,6 @@ export default function UserOnboarding() {
   ];
 
   const steps = isApplicant ? applicantSteps : restaurantSteps;
-
-  const handleNext = async () => {
-    setIsCompleting(true);
-    setError(null);
-    try {
-      if (user?.uid) {
-        const finalData = { ...formData, profileComplete: true };
-        await updateUserProfileData(user.uid, finalData); 
-        if (userProfile?.userType === "applicant") {
-          router.push("/applicant/dashboard");
-        } else if (userProfile?.userType === "restaurant") {
-          router.push("/restaurant/dashboard");
-        } else {
-          router.push("/"); 
-        }
-      } else {
-        setError("User not authenticated. Cannot proceed.");
-        throw new Error("User not found.");
-      }
-    } catch (err: any) {
-      setError(err.message || "An error occurred. Please try again.");
-    } finally {
-      setIsCompleting(false);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
 
   const completeOnboarding = async () => {
     setIsCompleting(true);
@@ -384,7 +341,7 @@ export default function UserOnboarding() {
             preferredLocation,
             bio,
             education,
-            jobPreferences,
+            preferences,
             profileComplete: true
           }
         : {
@@ -392,7 +349,7 @@ export default function UserOnboarding() {
             cuisineType: experience,
             businessDescription: bio,
             hiringPositions: skills,
-            jobTypes: jobPreferences,
+            jobTypes: preferences,
             benefits: education,
             profileComplete: true
           };
@@ -415,6 +372,20 @@ export default function UserOnboarding() {
       });
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  const handleNext = async () => {
+    if (currentStep === steps.length - 1) {
+      await completeOnboarding();
+    } else {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
     }
   };
 
@@ -481,7 +452,6 @@ export default function UserOnboarding() {
         </Card>
       </div>
 
-      {/* Welcome dialog */}
       <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
         <DialogContent>
           <DialogHeader>

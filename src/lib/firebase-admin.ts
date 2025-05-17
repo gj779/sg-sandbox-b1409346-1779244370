@@ -1,48 +1,81 @@
 
-import * as admin from 'firebase-admin';
-import serviceAccount from '../../firebase-service-account.json';
+import * as admin from "firebase-admin";
+import { getApps, initializeApp, cert } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
+// Initialize Firebase Admin if it hasn't been initialized yet
+if (!getApps().length) {
+  let serviceAccount;
   try {
-    console.log('Initializing Firebase Admin SDK...');
-    
-    // Check if service account has the required fields
-    if (!serviceAccount || !serviceAccount.project_id || !serviceAccount.private_key) {
-      console.error('Service account file is missing required fields. Please check firebase-service-account.json');
-    }
-    
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount as admin.ServiceAccount)
-    });
-    
-    console.log('Firebase Admin SDK initialized successfully');
-    
-    // Test the connection to Firestore
-    const testDb = admin.firestore();
-    testDb.collection('_test_connection').doc('_test').set({
-      timestamp: admin.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      console.log('Successfully connected to Firestore with Admin SDK');
-      // Clean up test document
-      testDb.collection('_test_connection').doc('_test').delete();
-    }).catch(error => {
-      console.error('Failed to write to Firestore with Admin SDK:', error);
-    });
-    
-  } catch (error) {
-    console.error('Failed to initialize Firebase Admin SDK:', error);
-    
-    // Log more details about the service account (without sensitive info)
-    if (serviceAccount) {
-      console.log('Service account project_id:', serviceAccount.project_id);
-      console.log('Service account client_email:', serviceAccount.client_email);
-      console.log('Service account private_key exists:', !!serviceAccount.private_key);
-    } else {
-      console.error('Service account is undefined or null');
-    }
+    // Try to parse the service account from environment variable
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || "");
+  } catch {
+    // If parsing fails, try to load from local file
+    serviceAccount = require("../../firebase-service-account.json");
   }
+
+  initializeApp({
+    credential: cert(serviceAccount),
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+  });
 }
 
-export const firestore = admin.firestore();
-export default admin;
+// Export the admin instance and commonly used services
+export const firebaseAdmin = admin;
+export const adminAuth = getAuth();
+export const adminDb = getFirestore();
+export const adminStorage = getStorage();
+
+// Helper functions for common admin operations
+export const verifyIdToken = async (token: string) => {
+  try {
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    return decodedToken;
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    throw error;
+  }
+};
+
+export const getUserByEmail = async (email: string) => {
+  try {
+    const userRecord = await adminAuth.getUserByEmail(email);
+    return userRecord;
+  } catch (error) {
+    console.error("Error getting user by email:", error);
+    throw error;
+  }
+};
+
+export const setCustomUserClaims = async (uid: string, claims: object) => {
+  try {
+    await adminAuth.setCustomUserClaims(uid, claims);
+  } catch (error) {
+    console.error("Error setting custom claims:", error);
+    throw error;
+  }
+};
+
+export const createUser = async (userData: admin.auth.CreateRequest) => {
+  try {
+    const userRecord = await adminAuth.createUser(userData);
+    return userRecord;
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw error;
+  }
+};
+
+export default {
+  firebaseAdmin,
+  adminAuth,
+  adminDb,
+  adminStorage,
+  verifyIdToken,
+  getUserByEmail,
+  setCustomUserClaims,
+  createUser,
+};

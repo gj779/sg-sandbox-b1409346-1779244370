@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (results.secretKeySet) {
     try {
       const stripe = new Stripe(secretKey as string, {
-        apiVersion: "2023-10-16",
+        apiVersion: "2025-02-24.acacia",
       });
       
       // Make a simple API call to verify the key works

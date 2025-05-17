@@ -46,11 +46,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       expand: ["payment_intent", "subscription", "customer"],
     });
 
-    // Generate a PDF if requested
+    // If PDF format is requested, return the invoice PDF URL
     const format = req.query.format;
     if (format === "pdf") {
-      const pdfUrl = await stripe.invoices.retrievePdf(invoiceData.stripeInvoiceId);
-      return res.status(200).json({ pdfUrl });
+      return res.status(200).json({ 
+        pdfUrl: invoice.invoice_pdf 
+      });
     }
 
     // Return the invoice data

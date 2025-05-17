@@ -1,276 +1,127 @@
-import { useState, useEffect } from "react";
-import { useUser } from "@/contexts/UserContext";
-import { useRouter } from "next/router";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Layout from "@/components/layout/Layout";
+
+import { useState } from "react";
+import Head from "next/head";
+import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Textarea } from "@/components/ui/textarea";
-import { UserProfile as AppUserProfile } from "@/types"; // Import UserProfile type
+import { Pencil, Loader2 } from "lucide-react";
+import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { Timestamp } from "firebase/firestore";
 
 export default function ProfilePage() {
-  const { user, userProfile, isLoading: authLoading, updateUserProfileData, error: authError } = useUser(); // Changed updateUserProfile to updateUserProfileData, added authError
-  const router = useRouter();
-  
-  const [formData, setFormData] = useState({
-    firstName: userProfile?.firstName || "",
-    lastName: userProfile?.lastName || "",
-    email: userProfile?.email || "",
-    phoneNumber: userProfile?.phoneNumber || "",
-    bio: userProfile?.bio || "",
-    preferredLocation: userProfile?.preferredLocation || "",
-  });
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [formError, setFormError] = useState<string | null>(null); // Local error state for the form
+  const { userProfile, isLoading } = useFirebaseAuth();
 
-  // Update formData when userProfile changes
-  useEffect(() => {
-    if (userProfile) {
-      setFormData({
-        firstName: userProfile.firstName || "",
-        lastName: userProfile.lastName || "",
-        email: userProfile.email || "",
-        phoneNumber: userProfile.phoneNumber || "",
-        bio: userProfile.bio || "",
-        preferredLocation: userProfile.preferredLocation || "",
-      });
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  const formatDate = (date: Date | Timestamp | undefined) => {
+    if (!date) return "N/A";
+    if (date instanceof Timestamp) {
+      return date.toDate().toLocaleDateString();
     }
-  }, [userProfile]);
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.uid) {
-      setFormError("User not authenticated. Please log in again.");
-      return;
-    }
-    setIsSubmitting(true);
-    setSuccessMessage("");
-    setFormError(null);
-    
-    try {
-      const updatePayload: Partial<AppUserProfile> = { // Use AppUserProfile for payload
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phoneNumber: formData.phoneNumber,
-        bio: formData.bio,
-        preferredLocation: formData.preferredLocation,
-      };
-      await updateUserProfileData(user.uid, updatePayload);
-      
-      setSuccessMessage("Profile updated successfully!");
-    } catch (error: any) {
-      console.error("Failed to update profile:", error);
-      setFormError(error.message || "Failed to update profile. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  // Get initials for avatar fallback
-  const getInitials = () => {
-    const first = formData.firstName.charAt(0);
-    const last = formData.lastName.charAt(0);
-    return (first + last).toUpperCase();
+    return date.toLocaleDateString();
   };
 
   return (
-    <ProtectedRoute allowedUserTypes={["applicant", "restaurant", "admin"]}>
-      <Layout>
-        <div className="container py-10">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
-            
-            {authError && ( // Display global auth errors
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{authError}</AlertDescription>
-              </Alert>
-            )}
-            {formError && ( // Display local form errors
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{formError}</AlertDescription>
-              </Alert>
-            )}
-            
-            {successMessage && (
-              <Alert className="mb-6 bg-green-50 border-green-200">
-                <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
-              </Alert>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Profile Picture</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col items-center">
-                    <Avatar className="h-24 w-24 mb-4">
-                      <AvatarImage src={userProfile?.photoURL || ""} alt={`${formData.firstName} ${formData.lastName}`} />
-                      <AvatarFallback className="text-lg">{getInitials()}</AvatarFallback>
-                    </Avatar>
-                    <div className="text-center">
-                      <p className="font-medium text-lg">{`${formData.firstName} ${formData.lastName}`}</p>
-                      <p className="text-sm text-muted-foreground">{userProfile?.userType}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="mt-6">
-                  <CardHeader>
-                    <CardTitle>Account Information</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div>
-                        <span className="text-sm font-medium">Account Type:</span>
-                        <p className="capitalize">{userProfile?.userType}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium">Member Since:</span>
-                        <p>{userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : "N/A"}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <div className="md:col-span-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Personal Information</CardTitle>
-                    <CardDescription>Update your personal details</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleSubmit}>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="firstName">First Name</Label>
-                          <Input
-                            id="firstName"
-                            name="firstName"
-                            value={formData.firstName}
-                            onChange={handleChange}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName">Last Name</Label>
-                          <Input
-                            id="lastName"
-                            name="lastName"
-                            value={formData.lastName}
-                            onChange={handleChange}
-                            required
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2 mb-4">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          value={formData.email}
-                          disabled
-                          className="bg-muted"
-                        />
-                        <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-                      </div>
-                      
-                      <div className="space-y-2 mb-4">
-                        <Label htmlFor="phoneNumber">Phone Number</Label>
-                        <Input
-                          id="phoneNumber"
-                          name="phoneNumber"
-                          value={formData.phoneNumber}
-                          onChange={handleChange}
-                          placeholder="Your phone number"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2 mb-4">
-                        <Label htmlFor="preferredLocation">Preferred Location</Label>
-                        <Input
-                          id="preferredLocation"
-                          name="preferredLocation"
-                          value={formData.preferredLocation}
-                          onChange={handleChange}
-                          placeholder="City, State"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2 mb-4">
-                        <Label htmlFor="bio">Bio</Label>
-                        <Textarea
-                          id="bio"
-                          name="bio"
-                          value={formData.bio}
-                          onChange={handleChange}
-                          placeholder="Tell us about yourself"
-                          rows={4}
-                        />
-                      </div>
-                      
-                      <div className="flex justify-end">
-                        <Button type="submit" disabled={isSubmitting}>
-                          {isSubmitting ? (
-                            <>
-                              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                              Saving...
-                            </>
-                          ) : (
-                            "Save Changes"
-                          )}
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
-                
-                {userProfile?.userType === "applicant" && (
-                  <Card className="mt-6">
-                    <CardHeader>
-                      <CardTitle>Job Preferences</CardTitle>
-                      <CardDescription>Manage your job search preferences</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button variant="outline" onClick={() => router.push("/profile/edit")}>
-                        Edit Job Preferences
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-                
-                {userProfile?.userType === "restaurant" && (
-                  <Card className="mt-6">
-                    <CardHeader>
-                      <CardTitle>Restaurant Details</CardTitle>
-                      <CardDescription>Manage your restaurant information</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button variant="outline" onClick={() => router.push("/restaurant/setup-profile")}>
-                        Edit Restaurant Details
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
-          </div>
+    <>
+      <Head>
+        <title>Profile | StaffSpace</title>
+      </Head>
+      <div className="container max-w-3xl py-8 md:py-12">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+          <Link href="/profile/edit" passHref>
+            <Button>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Profile
+            </Button>
+          </Link>
         </div>
-      </Layout>
-    </ProtectedRoute>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4">
+                <div className="flex items-center gap-4">
+                  {userProfile?.photoURL && (
+                    <img
+                      src={userProfile.photoURL}
+                      alt={userProfile.displayName}
+                      className="h-20 w-20 rounded-full object-cover"
+                    />
+                  )}
+                  <div>
+                    <h2 className="text-xl font-semibold">
+                      {userProfile?.displayName || "No Name Set"}
+                    </h2>
+                    <p className="text-muted-foreground">
+                      {userProfile?.email}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <div>
+                    <span className="text-sm font-medium">Account Type:</span>
+                    <p className="capitalize">{userProfile?.userType || "Not Set"}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium">Member Since:</span>
+                    <p>{formatDate(userProfile?.createdAt)}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium">Phone:</span>
+                    <p>{userProfile?.phoneNumber || "Not Set"}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium">Location:</span>
+                    <p>{userProfile?.location || "Not Set"}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {userProfile?.bio && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Bio</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>{userProfile.bio}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {userProfile?.skills && userProfile.skills.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Skills</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {userProfile.skills.map((skill, index) => (
+                    <span
+                      key={index}
+                      className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

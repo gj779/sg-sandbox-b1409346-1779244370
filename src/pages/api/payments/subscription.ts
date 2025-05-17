@@ -2,103 +2,87 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getAuth } from "firebase-admin/auth";
 import stripeService from "@/services/stripeService";
-import { firestore } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebase-admin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Only allow GET and POST methods
-  if (req.method !== "GET" && req.method !== "POST") {
+  if (!["GET", "POST"].includes(req.method || "")) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    let customerId: string | undefined;
-    
-    // Check if customerId is provided in query params (for admin use)
-    if (req.query.customerId && typeof req.query.customerId === "string") {
-      customerId = req.query.customerId;
-    } else {
-      // Get user from Firebase Auth
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      const token = authHeader.split("Bearer ")[1];
-      try {
-        const decodedToken = await getAuth().verifyIdToken(token);
-        const userId = decodedToken.uid;
-        
-        // Get customer ID from user record
-        const userDoc = await firestore.collection("users").doc(userId).get();
-        const userData = userDoc.data();
-        
-        if (!userData || !userData.stripeCustomerId) {
-          return res.status(404).json({ error: "No Stripe customer found for this user" });
-        }
-        
-        customerId = userData.stripeCustomerId;
-      } catch (error) {
-        return res.status(401).json({ error: "Invalid authentication token" });
-      }
+    // Get the user's ID from the auth token
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: "No authorization token provided" });
     }
 
-    if (!customerId) {
-      return res.status(400).json({ error: "Customer ID is required" });
-    }
+    const token = authHeader.split("Bearer ")[1];
+    const auth = getAuth();
+    const decodedToken = await auth.verifyIdToken(token);
+    const userId = decodedToken.uid;
 
-    // GET: Fetch subscription details
+    // Handle GET request - Fetch subscription details
     if (req.method === "GET") {
-      // Get customer's subscriptions from Stripe
+      // Get the user's Stripe customer ID
+      const userDoc = await adminDb.collection("users").doc(userId).get();
+      const userData = userDoc.data();
+      const customerId = userData?.stripeCustomerId;
+
+      if (!customerId) {
+        return res.status(404).json({ error: "No subscription found" });
+      }
+
+      // Get all subscriptions for the customer
       const subscriptions = await stripeService.getSubscriptionsForCustomer(customerId);
-      
-      // Return the active subscription if any
-      const activeSubscription = subscriptions.find(sub => 
-        sub.status === "active" || sub.status === "trialing"
-      );
-      
-      return res.status(200).json({ 
-        subscription: activeSubscription || null,
-        allSubscriptions: subscriptions 
-      });
+      return res.status(200).json(subscriptions);
     }
-    
-    // POST: Create or update subscription
+
+    // Handle POST request - Create or update subscription
     if (req.method === "POST") {
-      const { priceId } = req.body;
-      
+      const { priceId, subscriptionId } = req.body;
+
       if (!priceId) {
         return res.status(400).json({ error: "Price ID is required" });
       }
-      
-      // Check if customer already has an active subscription
-      const subscriptions = await stripeService.getSubscriptionsForCustomer(customerId);
-      const activeSubscription = subscriptions.find(sub => 
-        sub.status === "active" || sub.status === "trialing"
-      );
-      
+
+      // Get or create customer
+      const userDoc = await adminDb.collection("users").doc(userId).get();
+      const userData = userDoc.data();
+      let customerId = userData?.stripeCustomerId;
+
+      if (!customerId) {
+        // Create a new customer in Stripe
+        const customer = await stripeService.createCustomer(userData?.email || "", userData?.name);
+        customerId = customer.id;
+
+        // Link the customer to the user
+        await stripeService.linkUserToCustomer(userId, customerId);
+      }
+
       let subscription;
-      
-      if (activeSubscription) {
+      if (subscriptionId) {
         // Update existing subscription
-        subscription = await stripeService.updateSubscription(
-          activeSubscription.id,
-          priceId
-        );
+        subscription = await stripeService.updateSubscription(subscriptionId, priceId);
       } else {
         // Create new subscription
-        subscription = await stripeService.createSubscription(
+        subscription = await stripeService.createSubscription(customerId, priceId);
+
+        // Store subscription details in Firestore
+        await adminDb.collection("subscriptions").doc(subscription.id).set({
+          userId,
           customerId,
-          priceId
-        );
+          status: subscription.status,
+          priceId,
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          createdAt: new Date(),
+        });
       }
-      
-      return res.status(200).json({ subscription });
+
+      return res.status(200).json(subscription);
     }
-  } catch (error: any) {
-    console.error("Subscription API error:", error);
-    return res.status(500).json({ 
-      error: "An error occurred while processing your request",
-      message: error.message
-    });
+  } catch (error) {
+    console.error("Error handling subscription:", error);
+    return res.status(500).json({ error: "Failed to process subscription request" });
   }
 }

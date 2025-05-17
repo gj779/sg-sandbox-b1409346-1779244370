@@ -1,192 +1,54 @@
-import admin from "@/lib/firebase-admin";
-import type { NextApiRequest, NextApiResponse } from "next";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  // Only allow POST requests
+import { NextApiRequest, NextApiResponse } from "next";
+import { adminDb, adminAuth } from "@/lib/firebase-admin";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    return res.status(405).json({ 
-      success: false,
-      message: "Method not allowed" 
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Verify the request contains the required data
+  const { ownerEmail } = req.body;
+
+  if (!ownerEmail) {
+    return res.status(400).json({
+      error: "Missing required fields",
+      requiredFields: ["ownerEmail"],
     });
   }
 
   try {
-    const { secretKey } = req.body;
-    // Use the correct email for the owner admin account
-    const ownerEmail = "staffspace@gmail.com";
-    const defaultPassword = "StaffSpace@Admin2025"; // Default password for initial setup
-
-    // Validate inputs
-    if (!secretKey) {
-      return res.status(400).json({ 
-        success: false,
-        message: "Missing required secret key" 
-      });
-    }
-
-    // Check the secret key (this is a simple security measure)
-    const expectedSecretKey = process.env.ADMIN_SECRET_KEY || "staffspace-owner-key";
+    // Use the admin SDK to find the user
+    console.log("Looking for user with email:", ownerEmail);
     
-    // Remove any quotes that might be in the secret key
-    // Handle both string and JSON string formats
-    let cleanSecretKey = secretKey;
-    if (typeof secretKey === "string") {
-      cleanSecretKey = secretKey.replace(/^["'](.*)["']$/, "$1");
-      cleanSecretKey = cleanSecretKey.trim();
-    }
-    
-    console.log("Received secret key:", secretKey);
-    console.log("Cleaned secret key:", cleanSecretKey);
-    console.log("Expected secret key:", expectedSecretKey);
-    
-    if (cleanSecretKey !== expectedSecretKey) {
-      return res.status(403).json({ 
-        success: false,
-        message: "Invalid secret key" 
-      });
+    const userRecord = await adminAuth.getUserByEmail(ownerEmail);
+    if (!userRecord) {
+      return res.status(404).json({ error: "User not found" });
     }
 
-    try {
-      // Use the admin SDK to find the user
-      const adminDb = admin.firestore();
-      const adminAuth = admin.auth();
-      
-      console.log("Looking for user with email:", ownerEmail);
-      
-      // First, check if we need to create Firestore rules to allow admin operations
-      try {
-        // Create a test collection with admin permissions
-        await adminDb.collection("_admin_setup").doc("_permissions_test").set({
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          testWrite: true
-        });
-        console.log("Successfully wrote to Firestore with admin permissions");
-        
-        // Clean up test document
-        await adminDb.collection("_admin_setup").doc("_permissions_test").delete();
-      } catch (permissionError) {
-        console.error("Permission error when writing to Firestore:", permissionError);
-        return res.status(500).json({
-          success: false,
-          message: "Firebase Admin SDK has insufficient permissions. Please check your service account and Firestore rules.",
-          error: permissionError instanceof Error ? permissionError.message : String(permissionError)
-        });
-      }
-      
-      // Try to find the user in Firestore
-      try {
-        const usersSnapshot = await adminDb
-          .collection("users")
-          .where("email", "==", ownerEmail)
-          .get();
+    // Set custom claims for the user
+    await adminAuth.setCustomUserClaims(userRecord.uid, {
+      admin: true,
+      staffspaceAdmin: true,
+    });
 
-        let userId;
+    // Update the user's profile in Firestore
+    await adminDb.collection("users").doc(userRecord.uid).update({
+      userType: "admin",
+      isStaffspaceAdmin: true,
+      updatedAt: new Date(),
+    });
 
-        // If user doesn't exist in Firestore, create the user
-        if (usersSnapshot.empty) {
-          console.log("User not found with email:", ownerEmail);
-          console.log("Creating new admin user...");
-          
-          try {
-            // Check if user exists in Firebase Auth
-            let userRecord;
-            try {
-              userRecord = await adminAuth.getUserByEmail(ownerEmail);
-              userId = userRecord.uid;
-              console.log("User exists in Auth but not in Firestore, using existing auth user:", userId);
-            } catch (authError) {
-              // User doesn't exist in Auth, create new user
-              console.log("User doesn't exist in Auth, creating new user");
-              userRecord = await adminAuth.createUser({
-                email: ownerEmail,
-                password: defaultPassword,
-                displayName: "StaffSpace Admin",
-                emailVerified: true
-              });
-              userId = userRecord.uid;
-              console.log("Created new auth user:", userId);
-            }
-            
-            // Create user profile in Firestore
-            const userProfile = {
-              id: userId,
-              email: ownerEmail,
-              userType: "admin",
-              firstName: "StaffSpace",
-              lastName: "Admin",
-              phoneNumber: "",
-              isAdmin: true,
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-              isActive: true
-            };
-            
-            await adminDb.collection("users").doc(userId).set(userProfile);
-            console.log("Created new admin user profile in Firestore");
-            
-            return res.status(200).json({ 
-              success: true, 
-              message: `Admin user ${ownerEmail} has been successfully created. You can now sign in with the default password: ${defaultPassword}`,
-              userId: userId,
-              isNewUser: true
-            });
-          } catch (createError) {
-            console.error("Error creating admin user:", createError);
-            return res.status(500).json({ 
-              success: false, 
-              message: "Failed to create admin user", 
-              error: createError instanceof Error ? createError.message : String(createError) 
-            });
-          }
-        } else {
-          // User exists, update to admin
-          const userDoc = usersSnapshot.docs[0];
-          userId = userDoc.id;
-          
-          console.log("Found user with ID:", userId);
-          console.log("Current user data:", userDoc.data());
-
-          // Update the user's profile in Firestore using Admin SDK
-          await adminDb.collection("users").doc(userId).update({
-            userType: "admin",
-            isAdmin: true,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-
-          console.log("Successfully updated user to admin");
-
-          return res.status(200).json({ 
-            success: true, 
-            message: `User ${ownerEmail} has been successfully made an admin. You can now sign in.`,
-            userId: userId,
-            isNewUser: false
-          });
-        }
-      } catch (firestoreError) {
-        console.error("Firestore error:", firestoreError);
-        return res.status(500).json({
-          success: false,
-          message: "Failed to interact with Firestore",
-          error: firestoreError instanceof Error ? firestoreError.message : String(firestoreError)
-        });
-      }
-    } catch (adminError) {
-      console.error("Admin SDK error:", adminError);
-      return res.status(500).json({ 
-        success: false, 
-        message: "Failed to make staffspace an admin", 
-        error: adminError instanceof Error ? adminError.message : String(adminError) 
-      });
-    }
+    return res.status(200).json({
+      success: true,
+      message: "Successfully set user as StaffSpace admin",
+      userId: userRecord.uid,
+    });
   } catch (error) {
-    console.error("Error making staffspace admin:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: "Failed to make staffspace an admin", 
-      error: error instanceof Error ? error.message : String(error) 
+    console.error("Error setting StaffSpace admin:", error);
+    return res.status(500).json({
+      error: "Failed to set StaffSpace admin",
+      details: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }

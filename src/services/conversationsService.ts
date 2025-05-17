@@ -90,22 +90,38 @@ class ConversationsService {
     }
   }
 
-  async sendMessage(conversationId: string, senderId: string, content: string): Promise<boolean> {
+  async sendMessage(
+    conversationId: string, 
+    senderId: string, 
+    content: string,
+    contentType: "text" | "image" | "file" | "video" = "text",
+    file?: File
+  ): Promise<boolean> {
     try {
       const conversationRef = doc(db, "conversations", conversationId);
-      const messageRef = await addDoc(collection(db, "messages"), {
+      const messageData: any = {
         conversationId,
         senderId,
         content,
+        contentType,
         timestamp: serverTimestamp(),
         status: MessageStatus.SENT,
-      });
+      };
+
+      if (file) {
+        messageData.fileName = file.name;
+        messageData.fileSize = file.size;
+        // Handle file upload if needed
+      }
+
+      const messageRef = await addDoc(collection(db, "messages"), messageData);
 
       await updateDoc(conversationRef, {
         lastMessage: {
           id: messageRef.id,
           content,
           senderId,
+          contentType,
           timestamp: serverTimestamp(),
         },
         updatedAt: serverTimestamp(),

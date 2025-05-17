@@ -53,17 +53,15 @@ const USERS_COLLECTION = 'users';
 // Helper function to convert string to UserRole enum
 const convertToUserRole = (userType: string | UserRole): UserRole => {
   if (typeof userType === 'string') {
-    switch (userType.toUpperCase()) {
-      case 'APPLICANT':
-        return UserRole.APPLICANT;
-      case 'RESTAURANT':
-        return UserRole.RESTAURANT;
-      case 'ADMIN':
-        return UserRole.ADMIN;
-      default:
-        return UserRole.APPLICANT;
+    const lowerCaseUserType = userType.toLowerCase();
+    // Check if the lowercase string is a valid UserRole value
+    if (Object.values(UserRole).includes(lowerCaseUserType as UserRole)) {
+      return lowerCaseUserType as UserRole;
     }
+    // Default to APPLICANT if the string doesn't match any UserRole value
+    return UserRole.APPLICANT;
   }
+  // If it's already a UserRole enum value, return it
   return userType;
 };
 
@@ -72,7 +70,7 @@ export const profilesService = {
     return await firebaseDatabaseService.getById<UserProfile>(USERS_COLLECTION, userId);
   },
 
-  async updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<{ id: string; data: Partial<UserProfile> }> {
+  async updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<{ id: string;  Partial<UserProfile> }> {
     try {
       const dataToValidate = { ...profileData };
       

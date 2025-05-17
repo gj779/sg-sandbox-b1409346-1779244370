@@ -53,8 +53,16 @@ const USERS_COLLECTION = 'users';
 // Helper function to convert string to UserRole enum
 const convertToUserRole = (userType: string | UserRole): UserRole => {
   if (typeof userType === 'string') {
-    const upperCaseType = userType.toUpperCase();
-    return UserRole[upperCaseType as keyof typeof UserRole] || UserRole.APPLICANT;
+    switch (userType.toUpperCase()) {
+      case 'APPLICANT':
+        return UserRole.APPLICANT;
+      case 'RESTAURANT':
+        return UserRole.RESTAURANT;
+      case 'ADMIN':
+        return UserRole.ADMIN;
+      default:
+        return UserRole.APPLICANT;
+    }
   }
   return userType;
 };

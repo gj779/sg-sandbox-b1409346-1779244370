@@ -161,6 +161,7 @@ export interface Resume {
     lastName: string;
     email: string;
     phone: string;
+    address?: string;
   };
   education: Education[];
   experience: Experience[];

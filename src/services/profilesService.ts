@@ -50,6 +50,15 @@ export const userProfileSchema = z.object({
 // Collection path
 const USERS_COLLECTION = 'users';
 
+// Helper function to convert string to UserRole enum
+const convertToUserRole = (userType: string | UserRole): UserRole => {
+  if (typeof userType === 'string') {
+    const upperCaseType = userType.toUpperCase();
+    return UserRole[upperCaseType as keyof typeof UserRole] || UserRole.APPLICANT;
+  }
+  return userType;
+};
+
 export const profilesService = {
   async getUserProfile(userId: string): Promise<UserProfile | null> {
     return await firebaseDatabaseService.getById<UserProfile>(USERS_COLLECTION, userId);
@@ -73,16 +82,9 @@ export const profilesService = {
         dataToValidate.education = [dataToValidate.education];
       }
 
-      // Handle userType conversion
+      // Handle userType conversion using helper function
       if (dataToValidate.userType) {
-        // If it's a string, convert it to enum
-        if (typeof dataToValidate.userType === 'string') {
-          const upperCaseType = dataToValidate.userType.toUpperCase();
-          if (upperCaseType in UserRole) {
-            dataToValidate.userType = UserRole[upperCaseType as keyof typeof UserRole];
-          }
-        }
-        // If it's already a UserRole enum value, keep it as is
+        dataToValidate.userType = convertToUserRole(dataToValidate.userType);
       }
 
       const validatedData = userProfileSchema.partial().parse(dataToValidate);
@@ -193,15 +195,7 @@ export const profilesService = {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        let userType = data.userType;
-        
-        // Convert string userType to enum if needed
-        if (typeof userType === 'string') {
-          const upperCaseType = userType.toUpperCase();
-          if (upperCaseType in UserRole) {
-            userType = UserRole[upperCaseType as keyof typeof UserRole];
-          }
-        }
+        const userType = convertToUserRole(data.userType);
 
         profiles.push({
           id: doc.id,

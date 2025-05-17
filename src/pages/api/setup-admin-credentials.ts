@@ -1,6 +1,6 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
-import { auth, firestore } from "@/lib/firebase-admin";
+import { admin } from "@/lib/firebase-admin";
 
 // This is a special endpoint for setting up admin credentials
 // It should be disabled or protected in production environments
@@ -33,10 +33,10 @@ export default async function handler(
 
     // Check if user already exists
     try {
-      const userRecord = await auth.getUserByEmail(email);
+      const userRecord = await admin.auth().getUserByEmail(email);
       
       // If user exists, make them an admin
-      await firestore.collection("users").doc(userRecord.uid).set({
+      await admin.firestore().collection("users").doc(userRecord.uid).set({
         email: email,
         userType: "admin",
         createdAt: new Date(),
@@ -49,14 +49,14 @@ export default async function handler(
       });
     } catch (error) {
       // User doesn't exist, create new user
-      const userRecord = await auth.createUser({
+      const userRecord = await admin.auth().createUser({
         email,
         password,
         emailVerified: true,
       });
 
       // Store user data in Firestore with admin role
-      await firestore.collection("users").doc(userRecord.uid).set({
+      await admin.firestore().collection("users").doc(userRecord.uid).set({
         email: email,
         userType: "admin",
         createdAt: new Date(),

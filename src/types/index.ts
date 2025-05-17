@@ -43,6 +43,7 @@ export interface UserProfile {
   businessAddress?: string;
   cuisineType?: string;
   profileComplete?: boolean;
+  isActive?: boolean; // Added isActive property
   preferences?: {
     jobTypes?: string[];
     locations?: string[];
@@ -54,6 +55,7 @@ export interface UserProfile {
   };
 }
 
+// Rest of the file remains unchanged...
 export interface FileCustomMetadata {
   userId: string;
   fileName: string;

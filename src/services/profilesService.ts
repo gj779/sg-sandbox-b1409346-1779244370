@@ -12,13 +12,13 @@ import {
 import { firebaseDatabaseService } from './firebaseDatabase';
 import { db } from "@/lib/firebase";
 import { z } from 'zod';
-import { UserProfile } from "@/types";
+import { UserProfile, UserRole } from "@/types";
 
 // Define the UserProfile schema for validation
 export const userProfileSchema = z.object({
   id: z.string().optional(),
   email: z.string().email("Invalid email format"),
-  userType: z.enum(["applicant", "restaurant", "admin"]),
+  userType: z.nativeEnum(UserRole),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   phoneNumber: z.string().optional(),
@@ -33,7 +33,7 @@ export const userProfileSchema = z.object({
   availability: z.array(z.string()).optional(),
   preferredLocation: z.string().optional(),
   bio: z.string().optional(),
-  education: z.array(z.string()).optional(), // Changed to string array to match UserProfile type
+  education: z.array(z.string()).optional(),
   jobPreferences: z.array(z.string()).optional(),
   location: z.string().optional(),
   
@@ -80,7 +80,6 @@ export const profilesService = {
       const updatePayload: Partial<UserProfile> = {
         ...validatedData,
         photoURL: validatedData.photoURL === null ? undefined : validatedData.photoURL,
-        // Ensure arrays are always arrays
         experience: validatedData.experience || [],
         education: validatedData.education || [],
         skills: validatedData.skills || []
@@ -103,7 +102,7 @@ export const profilesService = {
     experience?: string;
   }): Promise<UserProfile[]> {
     const constraints: QueryConstraint[] = [
-      where('userType', '==', 'applicant'),
+      where('userType', '==', UserRole.APPLICANT),
       where('isActive', '==', true)
     ];
     
@@ -141,7 +140,7 @@ export const profilesService = {
     cuisineType?: string;
   }): Promise<UserProfile[]> {
     const constraints: QueryConstraint[] = [
-      where('userType', '==', 'restaurant'),
+      where('userType', '==', UserRole.RESTAURANT),
       where('isActive', '==', true)
     ];
     
@@ -166,9 +165,9 @@ export const profilesService = {
     const profile = await this.getUserProfile(userId);
     if (!profile) return false;
     
-    if (profile.userType === "applicant") {
+    if (profile.userType === UserRole.APPLICANT) {
       return !!(profile.firstName && profile.lastName && profile.skills?.length && profile.experience?.length);
-    } else if (profile.userType === "restaurant") {
+    } else if (profile.userType === UserRole.RESTAURANT) {
       return !!(profile.businessName && profile.businessAddress && profile.cuisineType);
     }
     return false;
@@ -189,7 +188,7 @@ export const profilesService = {
           lastName: data.lastName,
           email: data.email,
           photoURL: data.photoURL,
-          userType: data.userType,
+          userType: data.userType as UserRole,
           experience: Array.isArray(data.experience) ? data.experience : [],
           education: Array.isArray(data.education) ? data.education : [],
           skills: Array.isArray(data.skills) ? data.skills : [],

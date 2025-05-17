@@ -2,7 +2,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getAuth } from "firebase-admin/auth";
 import stripeService from "@/services/stripeService";
-import admin, { firestore } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebase-admin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -10,68 +10,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    let customerId: string | undefined;
-    let limit = 10;
-    
-    // Parse limit from query params
-    if (req.query.limit && typeof req.query.limit === "string") {
-      limit = parseInt(req.query.limit, 10);
-      if (isNaN(limit) || limit < 1) {
-        limit = 10;
-      } else if (limit > 100) {
-        limit = 100; // Cap at 100 for performance
-      }
+    // Get the user's ID from the auth token
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: "No authorization token provided" });
     }
-    
-    // Check if customerId is provided in query params (for admin use)
-    if (req.query.customerId && typeof req.query.customerId === "string") {
-      customerId = req.query.customerId;
-    } else {
-      // Get user from Firebase Auth
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
 
-      const token = authHeader.split("Bearer ")[1];
-      try {
-        const decodedToken = await getAuth().verifyIdToken(token);
-        const userId = decodedToken.uid;
-        
-        // Get customer ID from user record
-        const userDoc = await firestore.collection("users").doc(userId).get();
-        const userData = userDoc.data();
-        
-        if (!userData || !userData.stripeCustomerId) {
-          return res.status(404).json({ error: "No Stripe customer found for this user" });
+    const token = authHeader.split("Bearer ")[1];
+    const auth = getAuth();
+    const decodedToken = await auth.verifyIdToken(token);
+    const userId = decodedToken.uid;
+
+    // Get the user's payment history from Firestore
+    const paymentsRef = adminDb.collection("payments");
+    const paymentsSnapshot = await paymentsRef
+      .where("userId", "==", userId)
+      .orderBy("createdAt", "desc")
+      .get();
+
+    const payments = paymentsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    // Get detailed payment information from Stripe
+    const paymentDetails = await Promise.all(
+      payments.map(async payment => {
+        try {
+          const stripePayment = await stripeService.retrievePayment(payment.stripePaymentId);
+          return {
+            ...payment,
+            stripeDetails: stripePayment
+          };
+        } catch (error) {
+          console.error(`Error retrieving Stripe payment ${payment.stripePaymentId}:`, error);
+          return payment;
         }
-        
-        customerId = userData.stripeCustomerId;
-      } catch (error) {
-        return res.status(401).json({ error: "Invalid authentication token" });
-      }
-    }
+      })
+    );
 
-    if (!customerId) {
-      return res.status(400).json({ error: "Customer ID is required" });
-    }
-
-    // Fetch payment history from Stripe
-    const payments = await stripeService.getPaymentHistory(customerId);
-    
-    // Limit the number of payments returned
-    const limitedPayments = payments.slice(0, limit);
-    
-    return res.status(200).json({ 
-      payments: limitedPayments,
-      total: payments.length,
-      limit
-    });
-  } catch (error: any) {
-    console.error("Payment history API error:", error);
-    return res.status(500).json({ 
-      error: "An error occurred while processing your request",
-      message: error.message
-    });
+    return res.status(200).json(paymentDetails);
+  } catch (error) {
+    console.error("Error retrieving payment history:", error);
+    return res.status(500).json({ error: "Failed to retrieve payment history" });
   }
 }

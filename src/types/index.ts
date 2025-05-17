@@ -43,7 +43,9 @@ export interface UserProfile {
   businessAddress?: string;
   cuisineType?: string;
   profileComplete?: boolean;
-  isActive?: boolean; // Added isActive property
+  isActive?: boolean;
+  createdAt?: Date | Timestamp; // Added createdAt
+  updatedAt?: Date | Timestamp; // Added updatedAt
   preferences?: {
     jobTypes?: string[];
     locations?: string[];
@@ -55,7 +57,7 @@ export interface UserProfile {
   };
 }
 
-// Rest of the file remains unchanged...
+// Rest of the interfaces remain unchanged...
 export interface FileCustomMetadata {
   userId: string;
   fileName: string;

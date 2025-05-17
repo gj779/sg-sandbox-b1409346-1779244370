@@ -59,7 +59,7 @@ export default function EditProfilePage() {
     }
   };
 
-  const onSubmit = async (data: ProfileFormData) => {
+  const onSubmit = async (formData: ProfileFormData) => {
     if (!user?.uid) return;
     
     setIsSubmitting(true);
@@ -68,8 +68,8 @@ export default function EditProfilePage() {
     try {
       // Create a clean profile update object
       const profileUpdate: Partial<UserProfile> = {
-        ...data,
-        photoURL: data.photoURL || undefined // Convert null to undefined
+        ...formData,
+        photoURL: formData.photoURL || undefined // Convert empty string or null to undefined
       };
 
       if (avatarFile) {
@@ -100,7 +100,6 @@ export default function EditProfilePage() {
     }
   };
 
-  // Rest of the component remains the same...
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(userProfileSchema.partial()),
     defaultValues: async () => {
@@ -157,8 +156,141 @@ export default function EditProfilePage() {
     }
   });
 
-  // Rest of the component implementation remains the same...
+  useEffect(() => {
+    if (currentUserProfile || !authLoading) {
+      setIsLoadingPage(false);
+    }
+  }, [currentUserProfile, authLoading]);
+
+  if (isLoadingPage) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    // JSX remains the same...
+    <>
+      <Head>
+        <title>Edit Profile | StaffSpace</title>
+      </Head>
+      <div className="container max-w-3xl py-8 md:py-12">
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Edit Profile</h1>
+        <p className="text-muted-foreground mb-8">Update your personal information.</p>
+
+        {formError && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        )}
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <AvatarUpload 
+                  currentPhotoURL={currentUserProfile?.photoURL}
+                  onAvatarChange={handleAvatarUpload}
+                  size="lg"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled />
+                      </FormControl>
+                      <FormDescription>Email cannot be changed.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phoneNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </Form>
+        <Button
+          variant="outline"
+          onClick={handleRefreshProfile}
+          disabled={isRefreshing}
+          className="mt-4"
+        >
+          {isRefreshing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-2 h-4 w-4" />
+          )}
+          Refresh Profile Data
+        </Button>
+      </div>
+    </>
   );
 }

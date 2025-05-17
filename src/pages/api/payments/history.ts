@@ -4,6 +4,17 @@ import { getAuth } from "firebase-admin/auth";
 import stripeService from "@/services/stripeService";
 import { adminDb } from "@/lib/firebase-admin";
 
+interface PaymentRecord {
+  id: string;
+  userId: string;
+  stripePaymentId: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: FirebaseFirestore.Timestamp;
+  metadata?: Record<string, any>;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -31,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const payments = paymentsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    })) as PaymentRecord[];
 
     // Get detailed payment information from Stripe
     const paymentDetails = await Promise.all(

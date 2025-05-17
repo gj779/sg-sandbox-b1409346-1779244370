@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -5,18 +6,17 @@ import { useUser } from "@/contexts/UserContext";
 import ConversationsList from "@/components/chat/ConversationsList";
 import ChatInterface from "@/components/chat/ChatInterface";
 import { UserProfile } from "@/types"; 
-import { conversationsService } 
-from "@/services/conversationsService"; 
+import { conversationsService } from "@/services/conversationsService"; 
 import { profilesService } from "@/services/profilesService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, MessageSquare } from "lucide-react"; // Added MessageSquare
+import { Search, MessageSquare } from "lucide-react";
 
 export default function MessagingPage() {
-  const { user, isAuthenticated, isLoading: userLoading } = useUser(); // Ensure isLoading is used
+  const { user, isAuthenticated, isLoading: userLoading } = useUser();
   const router = useRouter();
   
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -57,14 +57,14 @@ export default function MessagingPage() {
     }
     setIsSearchingUsers(true);
     try {
-      const allProfiles = await profilesService.getAllUserProfiles(); // Potentially inefficient
+      const allProfiles = await profilesService.getAllUserProfiles();
       const filtered = allProfiles.filter(p => 
         (p.id !== user?.uid) &&
         ((p.firstName?.toLowerCase().includes(searchUserTerm.toLowerCase())) ||
          (p.lastName?.toLowerCase().includes(searchUserTerm.toLowerCase())) ||
          (p.email?.toLowerCase().includes(searchUserTerm.toLowerCase())))
       );
-      setSearchedUsers(filtered.slice(0, 10)); // Limit results
+      setSearchedUsers(filtered.slice(0, 10));
     } catch (error) {
       console.error("Error searching users:", error);
       setSearchedUsers([]);
@@ -76,16 +76,19 @@ export default function MessagingPage() {
     if (!user || !selectedUser.id) return;
     try {
       const conversation = await conversationsService.createConversation([user.uid, selectedUser.id]);
-      setSelectedConversationId(conversation.id);
-      setOtherParticipant(selectedUser);
-      setShowNewConversationDialog(false);
-      setSearchUserTerm("");
-      setSearchedUsers([]);
+      if (conversation?.id) {
+        setSelectedConversationId(conversation.id);
+        setOtherParticipant(selectedUser);
+        setShowNewConversationDialog(false);
+        setSearchUserTerm("");
+        setSearchedUsers([]);
+      } else {
+        console.error("Failed to create conversation - no conversation ID returned");
+      }
     } catch (error) {
       console.error("Error starting new conversation:", error);
     }
   };
-
 
   if (userLoading) {
     return (
@@ -118,7 +121,7 @@ export default function MessagingPage() {
           {showConversationList && (
             <ConversationsList
               onSelectConversation={handleSelectConversation}
-              selectedConversationId={selectedConversationId || undefined} // Ensure it's string | undefined
+              selectedConversationId={selectedConversationId || undefined}
               onCreateConversation={() => setShowNewConversationDialog(true)}
             />
           )}

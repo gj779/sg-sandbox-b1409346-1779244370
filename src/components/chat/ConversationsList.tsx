@@ -2,19 +2,22 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { conversationsService } from "@/services/conversationsService";
 import { Conversation } from "@/types";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { Button } from "@/components/ui/button";
 
 interface ConversationsListProps {
   onSelectConversation: (conversation: Conversation) => void;
   selectedConversationId?: string;
+  onCreateConversation?: () => void;
 }
 
 export default function ConversationsList({
   onSelectConversation,
   selectedConversationId,
+  onCreateConversation
 }: ConversationsListProps) {
   const { user } = useFirebaseAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -59,9 +62,19 @@ export default function ConversationsList({
 
   return (
     <Card className="h-full">
-      <CardContent className="p-0">
-        <ScrollArea className="h-[calc(100vh-12rem)]">
-          <div className="space-y-1 p-2">
+      <CardContent className="p-4">
+        {onCreateConversation && (
+          <Button 
+            onClick={onCreateConversation}
+            className="w-full mb-4"
+            variant="outline"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Conversation
+          </Button>
+        )}
+        <ScrollArea className="h-[calc(100vh-14rem)]">
+          <div className="space-y-1">
             {conversations.map((conversation) => (
               <button
                 key={conversation.id}

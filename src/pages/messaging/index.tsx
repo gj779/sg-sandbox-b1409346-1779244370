@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { useUser } from "@/contexts/UserContext";
 import ConversationsList from "@/components/chat/ConversationsList";
 import ChatInterface from "@/components/chat/ChatInterface";
-import { UserProfile } from "@/types"; 
+import { UserProfile, Conversation } from "@/types"; 
 import { conversationsService } from "@/services/conversationsService"; 
 import { profilesService } from "@/services/profilesService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -40,9 +40,15 @@ export default function MessagingPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const handleSelectConversation = (conversationId: string, participant: UserProfile | null) => {
-    setSelectedConversationId(conversationId);
-    setOtherParticipant(participant);
+  const handleSelectConversation = (conversation: Conversation) => {
+    if (!user) return;
+    
+    setSelectedConversationId(conversation.id);
+    // Find the other participant's profile
+    const otherParticipantProfile = Object.values(conversation.participantProfiles || {}).find(
+      profile => profile.id !== user.uid
+    ) || null;
+    setOtherParticipant(otherParticipantProfile);
   };
 
   const handleBackToList = () => {
@@ -75,9 +81,9 @@ export default function MessagingPage() {
   const handleStartNewConversation = async (selectedUser: UserProfile) => {
     if (!user || !selectedUser.id) return;
     try {
-      const conversation = await conversationsService.createConversation([user.uid, selectedUser.id]);
-      if (conversation?.id) {
-        setSelectedConversationId(conversation.id);
+      const conversationId = await conversationsService.createConversation([user.uid, selectedUser.id]);
+      if (conversationId) {
+        setSelectedConversationId(conversationId);
         setOtherParticipant(selectedUser);
         setShowNewConversationDialog(false);
         setSearchUserTerm("");
@@ -129,7 +135,7 @@ export default function MessagingPage() {
           <div className="flex flex-col flex-auto h-full">
             {showChatInterface ? (
               <ChatInterface
-                conversationId={selectedConversationId!}
+                conversationId={selectedConversationId}
                 otherParticipant={otherParticipant}
                 onBack={isMobileView ? handleBackToList : undefined}
               />

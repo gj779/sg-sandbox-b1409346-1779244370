@@ -55,8 +55,24 @@ export default function CreateResumePage() {
     },
   });
 
-  // Rest of the component implementation remains the same...
-  
+  const handleSkipResume = () => {
+    router.push("/applicant/dashboard");
+  };
+
+  const handleNext = async () => {
+    const result = await personalInfoForm.trigger();
+    if (!result) return;
+
+    const formData = personalInfoForm.getValues();
+    setResume(prev => ({
+      ...prev,
+      personalInfo: {
+        ...formData
+      }
+    }));
+    setCurrentStep(currentStep + 1);
+  };
+
   return (
     <>
       <Head>

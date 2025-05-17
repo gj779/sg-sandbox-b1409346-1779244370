@@ -73,7 +73,7 @@ export default function EditProfilePage() {
         email: formData.email,
         phoneNumber: formData.phoneNumber,
         photoURL: formData.photoURL || undefined,
-        userType: formData.userType as UserRole, // Explicitly cast to UserRole
+        userType: formData.userType as UserRole,
         isActive: formData.isActive,
         bio: formData.bio,
         location: formData.location,
@@ -84,13 +84,11 @@ export default function EditProfilePage() {
         profileComplete: formData.profileComplete,
         // Handle array fields
         experience: formData.experience ? [formData.experience] : undefined,
-        skills: Array.isArray(formData.skills) ? formData.skills : 
-               typeof formData.skills === 'string' ? formData.skills.split(',').map(s => s.trim()).filter(Boolean) : 
-               undefined,
+        skills: formData.skills || [],
         education: formData.education ? [formData.education] : undefined,
         // Handle preferences
         preferences: {
-          jobTypes: formData.jobPreferences,
+          jobTypes: formData.jobPreferences || [],
         },
       };
 
@@ -122,30 +120,20 @@ export default function EditProfilePage() {
     }
   };
 
-  // Rest of the component implementation remains the same...
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(userProfileSchema.partial()),
     defaultValues: async () => {
       if (currentUserProfile) {
-        const userType = currentUserProfile.userType || UserRole.APPLICANT;
-        
-        let skills: string[] = [];
-        if (Array.isArray(currentUserProfile.skills)) {
-          skills = currentUserProfile.skills;
-        } else if (typeof currentUserProfile.skills === 'string') {
-          skills = currentUserProfile.skills.split(',').map(s => s.trim()).filter(Boolean);
-        }
-        
         return {
           firstName: currentUserProfile.firstName || "",
           lastName: currentUserProfile.lastName || "",
           email: currentUserProfile.email!, 
           phoneNumber: currentUserProfile.phoneNumber || "",
           photoURL: currentUserProfile.photoURL || "", 
-          userType,
+          userType: currentUserProfile.userType || UserRole.APPLICANT,
           isActive: currentUserProfile.isActive ?? true,
           bio: currentUserProfile.bio || "",
-          skills,
+          skills: currentUserProfile.skills || [],
           experience: Array.isArray(currentUserProfile.experience) ? currentUserProfile.experience[0] || "" : "",
           availability: Array.isArray(currentUserProfile.availability) 
             ? currentUserProfile.availability.map(av => typeof av === 'string' ? av : (av as any).day)

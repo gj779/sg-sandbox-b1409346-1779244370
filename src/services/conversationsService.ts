@@ -117,7 +117,8 @@ class ConversationsService {
     }
   }
 
-  subscribeToConversation(conversationId: string, callback: (messages: Message[]) => void): () => void {
+  // Renamed from subscribeToConversation to subscribeToMessages to match component usage
+  subscribeToMessages(conversationId: string, callback: (messages: Message[]) => void): () => void {
     const q = query(
       collection(db, "messages"),
       where("conversationId", "==", conversationId),

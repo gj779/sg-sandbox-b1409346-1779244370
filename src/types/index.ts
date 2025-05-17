@@ -44,8 +44,8 @@ export interface UserProfile {
   cuisineType?: string;
   profileComplete?: boolean;
   isActive?: boolean;
-  createdAt?: Date | Timestamp; // Added createdAt
-  updatedAt?: Date | Timestamp; // Added updatedAt
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
   preferences?: {
     jobTypes?: string[];
     locations?: string[];
@@ -147,7 +147,7 @@ export interface JobListing {
   availability: Availability[];
   createdAt: Date;
   updatedAt: Date;
-  cuisineType?: string;
+  cuisineTypes?: string[]; // Changed from cuisineType to cuisineTypes array
 }
 
 export interface Availability {

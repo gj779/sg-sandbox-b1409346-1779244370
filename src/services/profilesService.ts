@@ -70,7 +70,7 @@ export const profilesService = {
     return await firebaseDatabaseService.getById<UserProfile>(USERS_COLLECTION, userId);
   },
 
-  async updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<{ id: string;  Partial<UserProfile> }> {
+  async updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<{ id: string; updatedDocument: Partial<UserProfile> }> {
     try {
       const dataToValidate = { ...profileData };
       
@@ -104,10 +104,10 @@ export const profilesService = {
         skills: Array.isArray(validatedData.skills) ? validatedData.skills : []
       };
       
-      // The firebaseDatabaseService.update method returns { id: string, ...data }
-      // So we ensure the return type matches this structure.
-      const updatedDocument = await firebaseDatabaseService.update<UserProfile>(USERS_COLLECTION, userId, updatePayload);
-      return { id: updatedDocument.id,  updatedDocument as Partial<UserProfile> };
+      const updatedDocumentFromDb = await firebaseDatabaseService.update<UserProfile>(USERS_COLLECTION, userId, updatePayload);
+      // Assuming updatedDocumentFromDb is of type (Partial<UserProfile> & { id: string })
+      // We construct the object as per the defined return type
+      return { id: updatedDocumentFromDb.id, updatedDocument: updatedDocumentFromDb as Partial<UserProfile> };
 
     } catch (error) {
       console.error(`Error updating user profile ${userId}:`, error);

@@ -2,7 +2,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getAuth } from "firebase-admin/auth";
 import stripe from "@/lib/stripe-server";
-import { firestore } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebase-admin";
 import type { Stripe } from "stripe";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -11,156 +11,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Get invoice ID from the URL parameter
+    // Get the user's ID from the auth token
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: "No authorization token provided" });
+    }
+
+    const token = authHeader.split("Bearer ")[1];
+    const auth = getAuth();
+    const decodedToken = await auth.verifyIdToken(token);
+    const userId = decodedToken.uid;
+
+    // Get the invoice ID from the URL
     const { id } = req.query;
-    
     if (!id || typeof id !== "string") {
-      return res.status(400).json({ error: "Invoice ID is required" });
+      return res.status(400).json({ error: "Invalid invoice ID" });
     }
 
-    // Determine if this is a payment intent ID or an invoice ID
-    const isPaymentIntentId = id.startsWith("pi_");
-    const isInvoiceId = id.startsWith("in_");
-    
-    if (!isPaymentIntentId && !isInvoiceId) {
-      return res.status(400).json({ error: "Invalid ID format" });
-    }
+    // Check if the user has access to this invoice
+    const invoiceRef = adminDb.collection("invoices").doc(id);
+    const invoiceDoc = await invoiceRef.get();
 
-    // Check authorization (unless admin override is provided)
-    const isAdminRequest = req.query.admin === "true";
-    
-    if (!isAdminRequest) {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      const token = authHeader.split("Bearer ")[1];
-      try {
-        const decodedToken = await getAuth().verifyIdToken(token);
-        const userId = decodedToken.uid;
-        
-        // For payment intents, verify the user owns this payment
-        if (isPaymentIntentId) {
-          const paymentIntent = await stripe.paymentIntents.retrieve(id);
-          
-          if (paymentIntent.customer) {
-            // Get the user's customer ID
-            const userDoc = await firestore.collection("users").doc(userId).get();
-            const userData = userDoc.data();
-            
-            if (!userData || userData.stripeCustomerId !== paymentIntent.customer) {
-              return res.status(403).json({ error: "You don't have permission to access this invoice" });
-            }
-          } else {
-            // If no customer is associated, this is likely a guest payment
-            // We could implement additional checks here if needed
-          }
-        }
-      } catch (error) {
-        return res.status(401).json({ error: "Invalid authentication token" });
-      }
-    }
-
-    // Get the invoice data
-    let invoice: Stripe.Invoice;
-    
-    if (isPaymentIntentId) {
-      // For payment intents, we need to find the associated invoice
-      const paymentIntent = await stripe.paymentIntents.retrieve(id);
-      
-      // First try to find an invoice with this payment intent in metadata
-      const existingInvoices = await stripe.invoices.list({
-        limit: 1,
-        customer: paymentIntent.customer as string,
-      });
-      
-      const matchingInvoice = existingInvoices.data.find(inv => 
-        inv.payment_intent === id || 
-        inv.metadata?.payment_intent_id === id
-      );
-      
-      if (!matchingInvoice) {
-        // No invoice found, create one
-        const customer = paymentIntent.customer as string;
-        
-        if (!customer) {
-          return res.status(404).json({ error: "No customer associated with this payment" });
-        }
-        
-        // Create a new invoice for this payment
-        invoice = await stripe.invoices.create({
-          customer,
-          auto_advance: true, // Auto-finalize the invoice
-          description: `Invoice for payment ${id}`,
-          metadata: {
-            payment_intent_id: id
-          }
-        });
-        
-        // Finalize the invoice
-        invoice = await stripe.invoices.finalizeInvoice(invoice.id);
-        
-        // Pay the invoice with the existing payment intent
-        invoice = await stripe.invoices.pay(invoice.id, {
-          paid_out_of_band: true // Mark as paid outside of Stripe
-        });
-      } else {
-        // Use the existing invoice
-        invoice = matchingInvoice;
-      }
-    } else {
-      // For invoice IDs, just retrieve the invoice directly
-      invoice = await stripe.invoices.retrieve(id, {
-        expand: ["customer", "payment_intent", "lines.data"]
-      });
-    }
-
-    if (!invoice) {
+    if (!invoiceDoc.exists) {
       return res.status(404).json({ error: "Invoice not found" });
     }
 
-    // Get customer details safely
-    let customerName = "Customer";
-    let customerEmail = "";
-
-    if (invoice.customer) {
-      const customer = typeof invoice.customer === "object" 
-        ? invoice.customer 
-        : await stripe.customers.retrieve(invoice.customer);
-
-      if (customer && !customer.deleted) {
-        customerName = customer.name || "Customer";
-        customerEmail = customer.email || "";
-      }
+    const invoiceData = invoiceDoc.data();
+    if (invoiceData?.userId !== userId) {
+      return res.status(403).json({ error: "Not authorized to access this invoice" });
     }
 
-    // Format the invoice data for the client
-    const formattedInvoice = {
-      id: invoice.id,
-      number: invoice.number,
-      created: invoice.created,
-      customer_name: customerName,
-      customer_email: customerEmail,
-      amount_due: invoice.amount_due,
-      amount_paid: invoice.amount_paid,
-      status: invoice.status,
-      currency: invoice.currency,
-      pdf_url: invoice.invoice_pdf,
-      hosted_invoice_url: invoice.hosted_invoice_url,
-      line_items: invoice.lines.data.map((item) => ({
-        description: item.description || "Product or service",
-        amount: item.amount,
-        quantity: item.quantity
-      }))
-    };
-
-    return res.status(200).json({ invoice: formattedInvoice });
-  } catch (error: any) {
-    console.error("Invoice API error:", error);
-    return res.status(500).json({ 
-      error: "An error occurred while processing your request",
-      message: error.message
+    // Get the invoice from Stripe
+    const invoice = await stripe.invoices.retrieve(invoiceData.stripeInvoiceId, {
+      expand: ["payment_intent", "subscription", "customer"],
     });
+
+    // Generate a PDF if requested
+    const format = req.query.format;
+    if (format === "pdf") {
+      const pdfUrl = await stripe.invoices.retrievePdf(invoiceData.stripeInvoiceId);
+      return res.status(200).json({ pdfUrl });
+    }
+
+    // Return the invoice data
+    return res.status(200).json({
+      id: invoiceDoc.id,
+      ...invoiceData,
+      stripeInvoice: invoice,
+    });
+  } catch (error) {
+    console.error("Error retrieving invoice:", error);
+    return res.status(500).json({ error: "Failed to retrieve invoice" });
   }
 }

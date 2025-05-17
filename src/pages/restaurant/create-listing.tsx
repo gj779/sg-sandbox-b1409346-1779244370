@@ -71,13 +71,13 @@ export default function CreateListingPage() {
 
     setIsSubmitting(true);
     try {
-      const { cuisineTypes, requirements, availabilities } = data;
+      const { cuisineTypes, requirements, availability } = data;
       
       const jobListing: Partial<JobListing> = {
         ...data,
-        cuisineTypes, // Now matches the updated interface
+        cuisineTypes,
         requirements,
-        availability: availabilities as Availability[],
+        availability,
       };
 
       // Add your job listing creation logic here

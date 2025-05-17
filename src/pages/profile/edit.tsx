@@ -68,15 +68,30 @@ export default function EditProfilePage() {
     try {
       // Create a clean profile update object
       const profileUpdate: Partial<UserProfile> = {
-        ...formData,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
         photoURL: formData.photoURL || undefined,
-        // Convert experience string to array if it exists
+        userType: formData.userType as UserRole, // Explicitly cast to UserRole
+        isActive: formData.isActive,
+        bio: formData.bio,
+        location: formData.location,
+        preferredLocation: formData.preferredLocation,
+        businessName: formData.businessName,
+        businessAddress: formData.businessAddress,
+        cuisineType: formData.cuisineType,
+        profileComplete: formData.profileComplete,
+        // Handle array fields
         experience: formData.experience ? [formData.experience] : undefined,
-        // Ensure other array fields are properly handled
         skills: Array.isArray(formData.skills) ? formData.skills : 
                typeof formData.skills === 'string' ? formData.skills.split(',').map(s => s.trim()).filter(Boolean) : 
                undefined,
         education: formData.education ? [formData.education] : undefined,
+        // Handle preferences
+        preferences: {
+          jobTypes: formData.jobPreferences,
+        },
       };
 
       if (avatarFile) {

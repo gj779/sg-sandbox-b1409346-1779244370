@@ -80,6 +80,7 @@ class ConversationsService {
         updatedAt: serverTimestamp(),
         lastMessage: null,
         unreadCounts: participants.reduce((acc, id) => ({ ...acc, [id]: 0 }), {}),
+        typingUserIds: [],
       });
 
       return conversationRef.id;
@@ -131,6 +132,29 @@ class ConversationsService {
     }
   }
 
+  async setTypingStatus(conversationId: string, userId: string, isTyping: boolean): Promise<boolean> {
+    try {
+      const conversationRef = doc(db, "conversations", conversationId);
+      const conversation = await getDoc(conversationRef);
+      
+      if (!conversation.exists()) return false;
+      
+      const currentTypingUsers = conversation.data().typingUserIds || [];
+      let updatedTypingUsers = isTyping 
+        ? [...new Set([...currentTypingUsers, userId])]
+        : currentTypingUsers.filter((id: string) => id !== userId);
+
+      await updateDoc(conversationRef, {
+        typingUserIds: updatedTypingUsers,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error updating typing status:", error);
+      return false;
+    }
+  }
+
   subscribeToMessages(conversationId: string, callback: (messages: Message[]) => void): () => void {
     const q = query(
       collection(db, "messages"),
@@ -146,6 +170,22 @@ class ConversationsService {
       })) as Message[];
       
       callback(messages);
+    });
+  }
+
+  subscribeToConversationTypingStatus(
+    conversationId: string, 
+    callback: (typingUserIds: string[]) => void
+  ): () => void {
+    const conversationRef = doc(db, "conversations", conversationId);
+    
+    return onSnapshot(conversationRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        callback(data.typingUserIds || []);
+      } else {
+        callback([]);
+      }
     });
   }
 

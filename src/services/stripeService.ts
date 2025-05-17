@@ -1,6 +1,6 @@
 
 import stripe from "@/lib/stripe-server";
-import { firestore } from "@/lib/firebase-admin";
+import { adminDb } from "@/lib/firebase-admin";
 
 // Types for our Stripe service
 export interface PaymentIntent {
@@ -39,6 +39,12 @@ const stripeService = {
       },
     });
     
+    return paymentIntent;
+  },
+
+  // Retrieve a payment intent
+  async retrievePayment(paymentIntentId: string) {
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     return paymentIntent;
   },
 
@@ -134,12 +140,12 @@ const stripeService = {
 
   // Link a Firebase user to a Stripe customer
   async linkUserToCustomer(userId: string, customerId: string) {
-    await firestore.collection("users").doc(userId).update({
+    await adminDb.collection("users").doc(userId).update({
       stripeCustomerId: customerId,
     });
     
     // Also store in a separate collection for easier querying
-    await firestore.collection("stripe_customers").doc(customerId).set({
+    await adminDb.collection("stripe_customers").doc(customerId).set({
       userId,
       customerId,
       createdAt: new Date(),
@@ -148,7 +154,7 @@ const stripeService = {
 
   // Get Stripe customer ID for a user
   async getCustomerIdForUser(userId: string) {
-    const userDoc = await firestore.collection("users").doc(userId).get();
+    const userDoc = await adminDb.collection("users").doc(userId).get();
     const userData = userDoc.data();
     
     return userData?.stripeCustomerId;

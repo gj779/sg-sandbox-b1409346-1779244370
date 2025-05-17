@@ -1,10 +1,7 @@
 
 import { 
   where, 
-  orderBy, 
-  limit, 
   QueryConstraint,
-  DocumentData,
   collection,
   query,
   getDocs
@@ -62,6 +59,7 @@ export const profilesService = {
     try {
       const dataToValidate = { ...profileData };
       
+      // Handle null photoURL
       if (dataToValidate.photoURL === null) {
         dataToValidate.photoURL = undefined;
       }
@@ -75,14 +73,27 @@ export const profilesService = {
         dataToValidate.education = [dataToValidate.education];
       }
 
+      // Handle userType conversion
+      if (dataToValidate.userType) {
+        // If it's a string, convert it to enum
+        if (typeof dataToValidate.userType === 'string') {
+          const upperCaseType = dataToValidate.userType.toUpperCase();
+          if (upperCaseType in UserRole) {
+            dataToValidate.userType = UserRole[upperCaseType as keyof typeof UserRole];
+          }
+        }
+        // If it's already a UserRole enum value, keep it as is
+      }
+
       const validatedData = userProfileSchema.partial().parse(dataToValidate);
       
+      // Create update payload with proper type handling
       const updatePayload: Partial<UserProfile> = {
         ...validatedData,
         photoURL: validatedData.photoURL === null ? undefined : validatedData.photoURL,
-        experience: validatedData.experience || [],
-        education: validatedData.education || [],
-        skills: validatedData.skills || []
+        experience: Array.isArray(validatedData.experience) ? validatedData.experience : [],
+        education: Array.isArray(validatedData.education) ? validatedData.education : [],
+        skills: Array.isArray(validatedData.skills) ? validatedData.skills : []
       };
       
       return await firebaseDatabaseService.update<UserProfile>(USERS_COLLECTION, userId, updatePayload);
@@ -182,13 +193,23 @@ export const profilesService = {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        let userType = data.userType;
+        
+        // Convert string userType to enum if needed
+        if (typeof userType === 'string') {
+          const upperCaseType = userType.toUpperCase();
+          if (upperCaseType in UserRole) {
+            userType = UserRole[upperCaseType as keyof typeof UserRole];
+          }
+        }
+
         profiles.push({
           id: doc.id,
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
           photoURL: data.photoURL,
-          userType: data.userType as UserRole,
+          userType,
           experience: Array.isArray(data.experience) ? data.experience : [],
           education: Array.isArray(data.education) ? data.education : [],
           skills: Array.isArray(data.skills) ? data.skills : [],

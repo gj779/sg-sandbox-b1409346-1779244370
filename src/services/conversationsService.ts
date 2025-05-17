@@ -117,7 +117,20 @@ class ConversationsService {
     }
   }
 
-  // Renamed from subscribeToConversation to subscribeToMessages to match component usage
+  async updateMessageStatus(messageId: string, status: MessageStatus): Promise<boolean> {
+    try {
+      const messageRef = doc(db, "messages", messageId);
+      await updateDoc(messageRef, {
+        status,
+        updatedAt: serverTimestamp(),
+      });
+      return true;
+    } catch (error) {
+      console.error("Error updating message status:", error);
+      return false;
+    }
+  }
+
   subscribeToMessages(conversationId: string, callback: (messages: Message[]) => void): () => void {
     const q = query(
       collection(db, "messages"),

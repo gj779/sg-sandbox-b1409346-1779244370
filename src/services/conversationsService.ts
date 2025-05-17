@@ -132,6 +132,43 @@ class ConversationsService {
     }
   }
 
+  async markConversationAsRead(conversationId: string, userId: string): Promise<boolean> {
+    try {
+      const conversationRef = doc(db, "conversations", conversationId);
+      const messagesQuery = query(
+        collection(db, "messages"),
+        where("conversationId", "==", conversationId),
+        where("senderId", "!=", userId),
+        where("status", "!=", MessageStatus.READ)
+      );
+
+      const unreadMessages = await getDocs(messagesQuery);
+      const updatePromises = unreadMessages.docs.map(doc => 
+        updateDoc(doc.ref, {
+          status: MessageStatus.READ,
+          updatedAt: serverTimestamp()
+        })
+      );
+
+      await Promise.all(updatePromises);
+
+      // Reset unread count for the user
+      const conversation = await getDoc(conversationRef);
+      if (conversation.exists()) {
+        const unreadCounts = conversation.data().unreadCounts || {};
+        await updateDoc(conversationRef, {
+          [`unreadCounts.${userId}`]: 0,
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error marking conversation as read:", error);
+      return false;
+    }
+  }
+
   async setTypingStatus(conversationId: string, userId: string, isTyping: boolean): Promise<boolean> {
     try {
       const conversationRef = doc(db, "conversations", conversationId);

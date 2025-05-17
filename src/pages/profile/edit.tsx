@@ -101,11 +101,9 @@ export default function EditProfilePage() {
         businessAddress: formData.businessAddress,
         cuisineType: formData.cuisineType,
         profileComplete: formData.profileComplete,
-        // Use the experienceItems state for experience array
         experience: experienceItems,
         skills: formData.skills || [],
-        education: formData.education ? [formData.education] : undefined,
-        // Handle preferences
+        education: formData.education || [], // Updated to handle education as array
         preferences: {
           jobTypes: formData.jobPreferences || [],
         },
@@ -157,7 +155,7 @@ export default function EditProfilePage() {
             ? currentUserProfile.availability.map(av => typeof av === 'string' ? av : (av as any).day)
             : [],
           preferredLocation: currentUserProfile.preferredLocation || "",
-          education: Array.isArray(currentUserProfile.education) ? currentUserProfile.education[0] || "" : "",
+          education: currentUserProfile.education || [], // Updated to handle education as array
           jobPreferences: currentUserProfile.preferences?.jobTypes || [],
           location: currentUserProfile.location || "",
           businessName: currentUserProfile.businessName || "",
@@ -179,6 +177,7 @@ export default function EditProfilePage() {
         isActive: true,
         skills: [],
         experience: [],
+        education: [], // Initialize as empty array
         jobPreferences: [],
         hiringPositions: [],
         jobTypes: [],

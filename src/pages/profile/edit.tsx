@@ -13,7 +13,7 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Save, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Save, Loader2, AlertCircle, RefreshCw, Plus, X } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import AvatarUpload from "@/components/profile/AvatarUpload";
 import { UserProfile, UserRole } from "@/types";
@@ -31,8 +31,27 @@ export default function EditProfilePage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [experienceItems, setExperienceItems] = useState<string[]>([]);
+  const [newExperience, setNewExperience] = useState("");
   
   const currentUserProfile = authUserProfile;
+
+  useEffect(() => {
+    if (currentUserProfile?.experience) {
+      setExperienceItems(currentUserProfile.experience);
+    }
+  }, [currentUserProfile]);
+
+  const handleAddExperience = () => {
+    if (newExperience.trim()) {
+      setExperienceItems(prev => [...prev, newExperience.trim()]);
+      setNewExperience("");
+    }
+  };
+
+  const handleRemoveExperience = (index: number) => {
+    setExperienceItems(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleAvatarUpload = async (file: File) => {
     setAvatarFile(file);
@@ -82,8 +101,8 @@ export default function EditProfilePage() {
         businessAddress: formData.businessAddress,
         cuisineType: formData.cuisineType,
         profileComplete: formData.profileComplete,
-        // Handle array fields
-        experience: formData.experience ? [formData.experience] : undefined,
+        // Use the experienceItems state for experience array
+        experience: experienceItems,
         skills: formData.skills || [],
         education: formData.education ? [formData.education] : undefined,
         // Handle preferences
@@ -134,7 +153,6 @@ export default function EditProfilePage() {
           isActive: currentUserProfile.isActive ?? true,
           bio: currentUserProfile.bio || "",
           skills: currentUserProfile.skills || [],
-          experience: Array.isArray(currentUserProfile.experience) ? currentUserProfile.experience[0] || "" : "",
           availability: Array.isArray(currentUserProfile.availability) 
             ? currentUserProfile.availability.map(av => typeof av === 'string' ? av : (av as any).day)
             : [],
@@ -160,6 +178,7 @@ export default function EditProfilePage() {
         lastName: "", 
         isActive: true,
         skills: [],
+        experience: [],
         jobPreferences: [],
         hiringPositions: [],
         jobTypes: [],
@@ -265,6 +284,40 @@ export default function EditProfilePage() {
                     </FormItem>
                   )}
                 />
+
+                {/* Experience Section */}
+                <div className="space-y-4">
+                  <FormLabel>Experience</FormLabel>
+                  <div className="flex gap-2">
+                    <Input
+                      value={newExperience}
+                      onChange={(e) => setNewExperience(e.target.value)}
+                      placeholder="Add experience..."
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleAddExperience}
+                      variant="outline"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {experienceItems.map((exp, index) => (
+                      <div key={index} className="flex items-center gap-2 bg-muted/50 p-2 rounded-md">
+                        <span className="flex-1">{exp}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveExperience(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

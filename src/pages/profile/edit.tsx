@@ -69,7 +69,14 @@ export default function EditProfilePage() {
       // Create a clean profile update object
       const profileUpdate: Partial<UserProfile> = {
         ...formData,
-        photoURL: formData.photoURL || undefined // Convert empty string or null to undefined
+        photoURL: formData.photoURL || undefined,
+        // Convert experience string to array if it exists
+        experience: formData.experience ? [formData.experience] : undefined,
+        // Ensure other array fields are properly handled
+        skills: Array.isArray(formData.skills) ? formData.skills : 
+               typeof formData.skills === 'string' ? formData.skills.split(',').map(s => s.trim()).filter(Boolean) : 
+               undefined,
+        education: formData.education ? [formData.education] : undefined,
       };
 
       if (avatarFile) {
@@ -100,6 +107,7 @@ export default function EditProfilePage() {
     }
   };
 
+  // Rest of the component implementation remains the same...
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(userProfileSchema.partial()),
     defaultValues: async () => {
@@ -123,12 +131,12 @@ export default function EditProfilePage() {
           isActive: currentUserProfile.isActive ?? true,
           bio: currentUserProfile.bio || "",
           skills,
-          experience: typeof currentUserProfile.experience === "string" ? currentUserProfile.experience : "",
+          experience: Array.isArray(currentUserProfile.experience) ? currentUserProfile.experience[0] || "" : "",
           availability: Array.isArray(currentUserProfile.availability) 
             ? currentUserProfile.availability.map(av => typeof av === 'string' ? av : (av as any).day)
             : [],
           preferredLocation: currentUserProfile.preferredLocation || "",
-          education: typeof currentUserProfile.education === "string" ? currentUserProfile.education : "",
+          education: Array.isArray(currentUserProfile.education) ? currentUserProfile.education[0] || "" : "",
           jobPreferences: currentUserProfile.preferences?.jobTypes || [],
           location: currentUserProfile.location || "",
           businessName: currentUserProfile.businessName || "",

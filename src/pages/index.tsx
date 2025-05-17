@@ -1,7 +1,8 @@
+
 import Head from "next/head";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search, Briefcase, Clock, MapPin, ChefHat, Star } from "lucide-react"; // Removed FileText
+import { Search, Briefcase, Clock, MapPin, ChefHat, Star, FileText, CreditCard, MessageSquare, UserCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function HomePage() {
@@ -46,7 +47,6 @@ export default function HomePage() {
                     <a><ChefHat className="mr-2 h-4 w-4" /> Hire Staff</a>
                   </Button>
                 </Link>
-                {/* Removed File Management Link */}
               </div>
             </div>
             <div className="lg:pl-10 animate-slide-up">
@@ -79,6 +79,72 @@ export default function HomePage() {
                 </form>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* New Testing Section */}
+      <section className="py-12 bg-primary/5 border-y border-border">
+        <div className="container px-4 md:px-6">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold tracking-tighter mb-2">Try Our Latest Features</h2>
+            <p className="text-muted-foreground">
+              We've recently updated several features. Sign in to test them out!
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Profile Management */}
+            <Link href="/profile" legacyBehavior>
+              <a className="bg-card rounded-lg p-5 shadow-sm border transition-all hover:shadow-md flex flex-col items-center text-center">
+                <UserCircle className="h-10 w-10 text-primary mb-3" />
+                <h3 className="text-lg font-medium mb-1">Profile Management</h3>
+                <p className="text-sm text-muted-foreground">
+                  Update your profile with improved experience and education fields
+                </p>
+              </a>
+            </Link>
+            
+            {/* File Management */}
+            <Link href="/file-management" legacyBehavior>
+              <a className="bg-card rounded-lg p-5 shadow-sm border transition-all hover:shadow-md flex flex-col items-center text-center">
+                <FileText className="h-10 w-10 text-primary mb-3" />
+                <h3 className="text-lg font-medium mb-1">File Management</h3>
+                <p className="text-sm text-muted-foreground">
+                  Upload and manage files with enhanced metadata support
+                </p>
+              </a>
+            </Link>
+            
+            {/* Payments */}
+            <Link href="/payments" legacyBehavior>
+              <a className="bg-card rounded-lg p-5 shadow-sm border transition-all hover:shadow-md flex flex-col items-center text-center">
+                <CreditCard className="h-10 w-10 text-primary mb-3" />
+                <h3 className="text-lg font-medium mb-1">Payment System</h3>
+                <p className="text-sm text-muted-foreground">
+                  Try our new payment processing and subscription management
+                </p>
+              </a>
+            </Link>
+            
+            {/* Messaging */}
+            <Link href="/messaging" legacyBehavior>
+              <a className="bg-card rounded-lg p-5 shadow-sm border transition-all hover:shadow-md flex flex-col items-center text-center">
+                <MessageSquare className="h-10 w-10 text-primary mb-3" />
+                <h3 className="text-lg font-medium mb-1">Messaging</h3>
+                <p className="text-sm text-muted-foreground">
+                  Experience our improved real-time messaging system
+                </p>
+              </a>
+            </Link>
+          </div>
+          
+          <div className="mt-6 text-center">
+            <Link href="/auth/login" legacyBehavior>
+              <Button variant="outline" asChild>
+                <a>Sign In to Test Features</a>
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

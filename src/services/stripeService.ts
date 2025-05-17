@@ -70,6 +70,34 @@ const stripeService = {
     return subscription as Subscription;
   },
 
+  // Get all subscriptions for a customer
+  async getSubscriptionsForCustomer(customerId: string): Promise<Subscription[]> {
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "all",
+      expand: ["data.latest_invoice", "data.customer"],
+    });
+    
+    return subscriptions.data as Subscription[];
+  },
+
+  // Update a subscription with a new price
+  async updateSubscription(subscriptionId: string, newPriceId: string) {
+    // Get the subscription to find the item ID
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const itemId = subscription.items.data[0].id;
+
+    // Update the subscription item with the new price
+    const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+      items: [{
+        id: itemId,
+        price: newPriceId,
+      }],
+    });
+
+    return updatedSubscription;
+  },
+
   // Cancel a subscription
   async cancelSubscription(subscriptionId: string) {
     return await stripe.subscriptions.cancel(subscriptionId);

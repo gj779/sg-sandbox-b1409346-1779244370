@@ -1,3 +1,4 @@
+
 import { 
   where, 
   orderBy, 
@@ -28,7 +29,7 @@ export const userProfileSchema = z.object({
   
   // Applicant specific fields
   skills: z.array(z.string()).optional(),
-  experience: z.string().optional(),
+  experience: z.array(z.string()).optional(), // Changed to string array to match UserProfile type
   availability: z.array(z.string()).optional(),
   preferredLocation: z.string().optional(),
   bio: z.string().optional(),
@@ -39,7 +40,7 @@ export const userProfileSchema = z.object({
   // Restaurant specific fields
   businessName: z.string().optional(),
   businessAddress: z.string().optional(),
-  businessDescription: z.string().optional(), // Added businessDescription
+  businessDescription: z.string().optional(),
   cuisineType: z.string().optional(),
   hiringPositions: z.array(z.string()).optional(),
   jobTypes: z.array(z.string()).optional(),
@@ -76,9 +77,13 @@ export const profilesService = {
         dataToValidate.photoURL = undefined;
       }
 
+      // Ensure experience is an array if it's provided
+      if (dataToValidate.experience && !Array.isArray(dataToValidate.experience)) {
+        dataToValidate.experience = [dataToValidate.experience];
+      }
+
       const validatedData = userProfileSchema.partial().parse(dataToValidate);
       
-      // Ensure photoURL is string | undefined before passing to database service
       const updatePayload: Partial<UserProfile> = {
         ...validatedData,
         photoURL: validatedData.photoURL === null ? undefined : validatedData.photoURL,
@@ -88,7 +93,6 @@ export const profilesService = {
     } catch (error) {
       console.error(`Error updating user profile ${userId}:`, error);
       if (error instanceof z.ZodError) {
-        // Format validation errors
         const formattedErrors = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
         throw new Error(`Validation error: ${formattedErrors}`);
       }
@@ -106,16 +110,13 @@ export const profilesService = {
     location?: string;
     experience?: string;
   }): Promise<UserProfile[]> {
-    // Start with base constraints for applicant profiles
     const constraints: QueryConstraint[] = [
       where('userType', '==', 'applicant'),
       where('isActive', '==', true)
     ];
     
-    // Get all applicant profiles that match the constraints
     let profiles = await firebaseDatabaseService.query<UserProfile>(USERS_COLLECTION, constraints);
     
-    // Apply client-side filtering for criteria
     if (criteria) {
       if (criteria.skills && criteria.skills.length > 0) {
         profiles = profiles.filter(profile => {
@@ -133,7 +134,10 @@ export const profilesService = {
       }
       
       if (criteria.experience) {
-        profiles = profiles.filter(profile => profile.experience === criteria.experience);
+        profiles = profiles.filter(profile => {
+          if (!profile.experience) return false;
+          return profile.experience.includes(criteria.experience!);
+        });
       }
     }
     
@@ -149,21 +153,17 @@ export const profilesService = {
     location?: string;
     cuisineType?: string;
   }): Promise<UserProfile[]> {
-    // Start with base constraints for restaurant profiles
     const constraints: QueryConstraint[] = [
       where('userType', '==', 'restaurant'),
       where('isActive', '==', true)
     ];
     
-    // Add cuisine type filter if provided
     if (criteria?.cuisineType) {
       constraints.push(where('cuisineType', '==', criteria.cuisineType));
     }
     
-    // Get all restaurant profiles that match the constraints
     let profiles = await firebaseDatabaseService.query<UserProfile>(USERS_COLLECTION, constraints);
     
-    // Apply client-side filtering for location
     if (criteria?.location) {
       const location = criteria.location.toLowerCase();
       profiles = profiles.filter(profile => {
@@ -183,13 +183,13 @@ export const profilesService = {
   async isProfileComplete(userId: string): Promise<boolean> {
     const profile = await this.getUserProfile(userId);
     if (!profile) return false;
-    // Define what constitutes a complete profile based on userType
+    
     if (profile.userType === "applicant") {
       return !!(profile.firstName && profile.lastName && profile.skills?.length && profile.experience?.length);
     } else if (profile.userType === "restaurant") {
-      return !!(profile.businessName && profile.businessAddress && profile.cuisineType?.length);
+      return !!(profile.businessName && profile.businessAddress && profile.cuisineType);
     }
-    return false; // Default for admin or unknown types
+    return false;
   },
 
   /**
@@ -198,13 +198,12 @@ export const profilesService = {
    */
   async getAllUserProfiles(): Promise<UserProfile[]> {
     try {
-      const usersRef = collection(db, USERS_COLLECTION); // Use imported db
-      const q = query(usersRef); // No specific filters, gets all users
+      const usersRef = collection(db, USERS_COLLECTION);
+      const q = query(usersRef);
       const querySnapshot = await getDocs(q);
       const profiles: UserProfile[] = [];
+      
       querySnapshot.forEach((doc) => {
-        // Map Firestore document to UserProfile type
-        // Ensure this mapping is correct and handles potential missing fields gracefully
         const data = doc.data();
         profiles.push({
           id: doc.id,
@@ -213,13 +212,16 @@ export const profilesService = {
           email: data.email,
           photoURL: data.photoURL,
           userType: data.userType,
-          // Add any other fields from 'users' collection that are part of UserProfile
-        } as UserProfile); // Type assertion might be needed if fields are optional
+          experience: data.experience || [], // Ensure experience is always an array
+          skills: data.skills || [],
+          ...data
+        } as UserProfile);
       });
+      
       return profiles;
     } catch (error) {
       console.error("Error fetching all user profiles:", error);
-      throw error; // Or return empty array: return [];
+      throw error;
     }
   },
 

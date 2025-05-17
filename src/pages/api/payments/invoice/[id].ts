@@ -3,6 +3,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { getAuth } from "firebase-admin/auth";
 import stripe from "@/lib/stripe-server";
 import { firestore } from "@/lib/firebase-admin";
+import type { Stripe } from "stripe";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -62,18 +63,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Get the invoice data
-    let invoice;
+    let invoice: Stripe.Invoice;
     
     if (isPaymentIntentId) {
       // For payment intents, we need to find the associated invoice
       const paymentIntent = await stripe.paymentIntents.retrieve(id);
       
-      // Check if this payment has an invoice
-      const invoices = await stripe.invoices.list({
-        payment_intent: id
+      // First try to find an invoice with this payment intent in metadata
+      const existingInvoices = await stripe.invoices.list({
+        limit: 1,
+        customer: paymentIntent.customer as string,
       });
       
-      if (invoices.data.length === 0) {
+      const matchingInvoice = existingInvoices.data.find(inv => 
+        inv.payment_intent === id || 
+        inv.metadata?.payment_intent_id === id
+      );
+      
+      if (!matchingInvoice) {
         // No invoice found, create one
         const customer = paymentIntent.customer as string;
         
@@ -100,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       } else {
         // Use the existing invoice
-        invoice = invoices.data[0];
+        invoice = matchingInvoice;
       }
     } else {
       // For invoice IDs, just retrieve the invoice directly
@@ -113,20 +120,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Invoice not found" });
     }
 
+    // Get customer details safely
+    let customerName = "Customer";
+    let customerEmail = "";
+
+    if (invoice.customer) {
+      const customer = typeof invoice.customer === "object" 
+        ? invoice.customer 
+        : await stripe.customers.retrieve(invoice.customer);
+
+      if (customer && !customer.deleted) {
+        customerName = customer.name || "Customer";
+        customerEmail = customer.email || "";
+      }
+    }
+
     // Format the invoice data for the client
     const formattedInvoice = {
       id: invoice.id,
       number: invoice.number,
       created: invoice.created,
-      customer_name: typeof invoice.customer === "object" ? invoice.customer.name : "Customer",
-      customer_email: typeof invoice.customer === "object" ? invoice.customer.email : "",
+      customer_name: customerName,
+      customer_email: customerEmail,
       amount_due: invoice.amount_due,
       amount_paid: invoice.amount_paid,
       status: invoice.status,
       currency: invoice.currency,
       pdf_url: invoice.invoice_pdf,
       hosted_invoice_url: invoice.hosted_invoice_url,
-      line_items: invoice.lines.data.map((item: any) => ({
+      line_items: invoice.lines.data.map((item) => ({
         description: item.description || "Product or service",
         amount: item.amount,
         quantity: item.quantity

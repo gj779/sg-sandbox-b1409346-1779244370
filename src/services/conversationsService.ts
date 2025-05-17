@@ -1,376 +1,166 @@
-import { 
-  db 
-} from "@/lib/firebase"; // Import db from firebase setup
-import { 
-  collection,
-  query,
-  where, 
-  orderBy, 
-  limit, 
-  addDoc,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  onSnapshot,
-  writeBatch,
-  serverTimestamp, // For server-side timestamps if needed
-  FieldValue,
-  arrayUnion, // Added import
-  arrayRemove  // Added import
-} from 'firebase/firestore';
 
-import { 
-  Message, 
-  Conversation, 
-  UserProfile, 
-  MessageStatus, 
-} from "@/types"; 
-import { firebaseStorageService } from "./firebaseStorage";
-import { profilesService } from "./profilesService";
+import { db } from "@/lib/firebase";
+import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, addDoc, serverTimestamp, onSnapshot, DocumentData } from "firebase/firestore";
+import { Conversation, Message, UserProfile, MessageStatus } from "@/types";
 
-const CONVERSATIONS_COLLECTION = "conversations";
-const MESSAGES_COLLECTION = "messages";
-
-export const conversationsService = {
-  async createConversation(participantIds: string[]): Promise<Conversation> {
-    const sortedParticipantIds = [...participantIds].sort();
+class ConversationsService {
+  private async fetchParticipantProfiles(participantIds: string[]): Promise<Record<string, UserProfile>> {
+    const profiles: Record<string, UserProfile> = {};
     
-    const q = query(
-      collection(db, CONVERSATIONS_COLLECTION),
-      where("participants", "==", sortedParticipantIds)
-    );
+    for (const userId of participantIds) {
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists()) {
+        profiles[userId] = userDoc.data() as UserProfile;
+      }
+    }
+    
+    return profiles;
+  }
 
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      const docSnap = querySnapshot.docs[0];
-      const conversationData = docSnap.data() as Omit<Conversation, "id" | "participantProfiles">;
-      const participantProfiles = await Promise.all(
-        conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
-      );
-      return { 
-        id: docSnap.id, 
+  async getConversation(conversationId: string): Promise<Conversation | null> {
+    try {
+      const docSnap = await getDoc(doc(db, "conversations", conversationId));
+      
+      if (!docSnap.exists()) {
+        return null;
+      }
+
+      const conversationData = docSnap.data();
+      const participantProfiles = await this.fetchParticipantProfiles(conversationData.participants);
+
+      return {
+        id: docSnap.id,
         ...conversationData,
-        participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
-      };
+        participantProfiles,
+        createdAt: conversationData.createdAt.toDate(),
+        updatedAt: conversationData.updatedAt.toDate(),
+      } as Conversation;
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+      return null;
     }
+  }
 
-    const newConversationRef = doc(collection(db, CONVERSATIONS_COLLECTION));
-    const unreadCounts: { [userId: string]: number } = {};
-    participantIds.forEach((id: string) => unreadCounts[id] = 0);
+  async getConversationsByUserId(userId: string): Promise<Conversation[]> {
+    try {
+      const q = query(
+        collection(db, "conversations"),
+        where("participants", "array-contains", userId),
+        orderBy("updatedAt", "desc")
+      );
 
-    const newConversationData: Omit<Conversation, "id" | "participantProfiles"> = {
-      participants: sortedParticipantIds,
-      lastMessage: null,
-      unreadCounts,
-      createdAt: new Date(), // Consider serverTimestamp() for consistency
-      updatedAt: new Date(), // Consider serverTimestamp()
-      typingUserIds: [],
-    };
+      const querySnapshot = await getDocs(q);
+      const conversations: Conversation[] = [];
 
-    await setDoc(newConversationRef, newConversationData);
-    const participantProfiles = await Promise.all(
-      newConversationData.participants.map((id: string) => profilesService.getUserProfile(id))
-    );
-    return { 
-      id: newConversationRef.id, 
-      ...newConversationData,
-      participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
-    };
-  },
+      for (const doc of querySnapshot.docs) {
+        const conversationData = doc.data();
+        const participantProfiles = await this.fetchParticipantProfiles(conversationData.participants);
 
-  async sendMessage(
-    conversationId: string,
-    senderId: string,
-    content: string,
-    contentType: Message["contentType"] = "text",
-    file?: File
-  ): Promise<Message> {
-    const newMessageRef = doc(collection(db, MESSAGES_COLLECTION));
-    let fileURL: string | undefined = undefined;
-    let fileName: string | undefined = undefined;
-    let fileSize: number | undefined = undefined;
-    let fileType: string | undefined = undefined;
+        conversations.push({
+          id: doc.id,
+          ...conversationData,
+          participantProfiles,
+          createdAt: conversationData.createdAt.toDate(),
+          updatedAt: conversationData.updatedAt.toDate(),
+        } as Conversation);
+      }
 
-    if (file && (contentType === "image" || contentType === "file")) {
-      const filePath = `chat_attachments/${conversationId}/${newMessageRef.id}/${file.name}`;
-      // firebaseStorageService.uploadFile returns FileMetadata, so we need its downloadURL
-      const uploadedFileMeta = await firebaseStorageService.uploadFile(filePath, file, { ownerId: senderId, accessLevel: "shared" });
-      fileURL = uploadedFileMeta.downloadURL;
-      fileName = uploadedFileMeta.name; // or file.name
-      fileSize = uploadedFileMeta.size; // or file.size
-      fileType = uploadedFileMeta.contentType; // or file.type
+      return conversations;
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      return [];
     }
-    
-    const senderProfile = await profilesService.getUserProfile(senderId);
+  }
 
-    const newMessageData: Omit<Message, "id"> = {
-      conversationId,
-      senderId,
-      senderName: senderProfile?.firstName ? `${senderProfile.firstName} ${senderProfile.lastName || ''}`.trim() : senderProfile?.email,
-      senderPhotoURL: senderProfile?.photoURL || "",
-      content,
-      contentType,
-      fileURL,
-      fileName,
-      fileSize,
-      fileType,
-      timestamp: new Date(), // Consider serverTimestamp()
-      status: "sent",
-      reactions: {},
-    };
+  async createConversation(participants: string[]): Promise<string | null> {
+    try {
+      const conversationRef = await addDoc(collection(db, "conversations"), {
+        participants,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastMessage: null,
+        unreadCounts: participants.reduce((acc, id) => ({ ...acc, [id]: 0 }), {}),
+      });
 
-    await setDoc(newMessageRef, newMessageData);
+      return conversationRef.id;
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      return null;
+    }
+  }
 
-    const conversationRef = doc(db, CONVERSATIONS_COLLECTION, conversationId);
-    const conversationSnap = await getDoc(conversationRef);
-    if (conversationSnap.exists()) {
-      const conversationData = conversationSnap.data() as Conversation;
-      const updatedUnreadCounts = { ...(conversationData.unreadCounts || {}) };
-      conversationData.participants.forEach((participantId: string) => {
-        if (participantId !== senderId) {
-          updatedUnreadCounts[participantId] = (updatedUnreadCounts[participantId] || 0) + 1;
-        }
+  async sendMessage(conversationId: string, senderId: string, content: string): Promise<boolean> {
+    try {
+      const conversationRef = doc(db, "conversations", conversationId);
+      const messageRef = await addDoc(collection(db, "messages"), {
+        conversationId,
+        senderId,
+        content,
+        timestamp: serverTimestamp(),
+        status: MessageStatus.SENT,
       });
 
       await updateDoc(conversationRef, {
-        lastMessage: { ...newMessageData, id: newMessageRef.id },
-        updatedAt: new Date(), // Consider serverTimestamp()
-        unreadCounts: updatedUnreadCounts,
+        lastMessage: {
+          id: messageRef.id,
+          content,
+          senderId,
+          timestamp: serverTimestamp(),
+        },
+        updatedAt: serverTimestamp(),
       });
+
+      return true;
+    } catch (error) {
+      console.error("Error sending message:", error);
+      return false;
     }
+  }
 
-    return { id: newMessageRef.id, ...newMessageData };
-  },
-
-  async getMessages(conversationId: string, messageLimit: number = 50): Promise<Message[]> {
+  subscribeToConversation(conversationId: string, callback: (messages: Message[]) => void): () => void {
     const q = query(
-      collection(db, MESSAGES_COLLECTION),
-      where("conversationId", "==", conversationId),
-      orderBy("timestamp", "desc"),
-      limit(messageLimit)
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((docSnap): Message => {
-      const doc = docSnap.data();
-      const message: Message = {
-        id: docSnap.id,
-        conversationId: doc.conversationId,
-        senderId: doc.senderId,
-        senderName: doc.senderName,
-        senderPhotoURL: typeof doc.senderPhotoURL === "string" ? doc.senderPhotoURL : undefined, // Ensure photoURL is string
-        text: doc.text,
-        imageUrl: doc.imageUrl,
-        timestamp: (doc.timestamp as Timestamp).toDate(),
-        isRead: doc.isRead || false,
-      };
-      return message;
-    }).reverse();
-  },
-
-  subscribeToMessages(conversationId: string, callback: (messages: Message[]) => void): () => void {
-    const q = query(
-      collection(db, MESSAGES_COLLECTION),
+      collection(db, "messages"),
       where("conversationId", "==", conversationId),
       orderBy("timestamp", "asc")
     );
 
     return onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map((docSnap): Message => {
-        const doc = docSnap.data();
-        const message: Message = {
-          id: docSnap.id,
-          conversationId: doc.conversationId,
-          senderId: doc.senderId,
-          senderName: doc.senderName,
-          senderPhotoURL: typeof doc.senderPhotoURL === "string" ? doc.senderPhotoURL : undefined, // Ensure photoURL is string
-          text: doc.text,
-          imageUrl: doc.imageUrl,
-          timestamp: (doc.timestamp as Timestamp).toDate(),
-          isRead: doc.isRead || false,
-        };
-        return message;
-      });
+      const messages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate() || new Date(),
+      })) as Message[];
+      
       callback(messages);
     });
-  },
+  }
 
-  async getUserConversations(userId: string): Promise<Conversation[]> {
+  subscribeToConversations(userId: string, callback: (conversations: Conversation[]) => void): () => void {
     const q = query(
-      collection(db, CONVERSATIONS_COLLECTION),
-      where("participants", "array-contains", userId),
-      orderBy("updatedAt", "desc")
-    );
-    const snapshot = await getDocs(q);
-    
-    const conversations = await Promise.all(snapshot.docs.map(async (docSnapshot) => {
-      const conversationData = docSnapshot.data() as Omit<Conversation, "id" | "participantProfiles">;
-      const participantProfiles = await Promise.all(
-        conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
-      );
-      return { 
-        id: docSnapshot.id, 
-        ...conversationData,
-        participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
-      };
-    }));
-    return conversations;
-  },
-
-  subscribeToUserConversations(
-    userId: string, 
-    callback: (conversations: Conversation[]) => void,
-    onError?: (error: Error) => void // Optional error callback
-  ): () => void {
-    const q = query(
-      collection(db, CONVERSATIONS_COLLECTION),
+      collection(db, "conversations"),
       where("participants", "array-contains", userId),
       orderBy("updatedAt", "desc")
     );
 
     return onSnapshot(q, async (snapshot) => {
-      try {
-        const conversations = await Promise.all(snapshot.docs.map(async (docSnapshot) => {
-          const conversationData = docSnapshot.data() as Omit<Conversation, "id" | "participantProfiles">;
-          const participantProfiles = await Promise.all(
-            conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
-          );
-          return { 
-            id: docSnapshot.id, 
-            ...conversationData,
-            participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
-          };
-        }));
-        callback(conversations);
-      } catch (error) {
-        console.error("Error processing conversation snapshot:", error);
-        if (onError) onError(error as Error);
-      }
-    }, (error) => { // Firebase onSnapshot error callback
-      console.error("Error subscribing to user conversations:", error);
-      if (onError) onError(error);
-    });
-  },
-
-  async updateMessageStatus(messageId: string, status: MessageStatus): Promise<void> {
-    const messageRef = doc(db, MESSAGES_COLLECTION, messageId);
-    await updateDoc(messageRef, { status, updatedAt: new Date() }); // Consider serverTimestamp()
-  },
-
-  async markConversationAsRead(conversationId: string, userId: string): Promise<void> {
-    const conversationRef = doc(db, CONVERSATIONS_COLLECTION, conversationId);
-    const conversationSnap = await getDoc(conversationRef);
-    if (conversationSnap.exists()) {
-      const conversationData = conversationSnap.data() as Conversation;
-      const updatedUnreadCounts = { ...(conversationData.unreadCounts || {}), [userId]: 0 };
-      await updateDoc(conversationRef, { 
-        unreadCounts: updatedUnreadCounts,
-        updatedAt: new Date() // Consider serverTimestamp()
-      });
-
-      const q = query(
-        collection(db, MESSAGES_COLLECTION),
-        where("conversationId", "==", conversationId),
-        where("senderId", "!=", userId),
-        where("status", "!=", "read")
-      );
-      const messagesSnapshot = await getDocs(q);
-      if (!messagesSnapshot.empty) {
-        const batch = writeBatch(db);
-        messagesSnapshot.docs.forEach(messageDoc => {
-          batch.update(messageDoc.ref, { status: "read" });
-        });
-        await batch.commit();
-      }
-    }
-  },
-
-  async setTypingStatus(conversationId: string, userId: string, isTyping: boolean): Promise<void> {
-    const conversationRef = doc(db, CONVERSATIONS_COLLECTION, conversationId);
-    
-    // Firestore's arrayUnion and arrayRemove are good for this
-    if (isTyping) {
-      await updateDoc(conversationRef, { 
-        typingUserIds: arrayUnion(userId),
-        updatedAt: new Date() // Consider serverTimestamp()
-      });
-    } else {
-      await updateDoc(conversationRef, { 
-        typingUserIds: arrayRemove(userId),
-        updatedAt: new Date() // Consider serverTimestamp()
-      });
-    }
-  },
-
-  subscribeToConversationTypingStatus(conversationId: string, callback: (typingUserIds: string[]) => void): () => void {
-    const conversationRef = doc(db, CONVERSATIONS_COLLECTION, conversationId);
-    return onSnapshot(conversationRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const conversationData = docSnap.data() as Conversation;
-        callback(conversationData.typingUserIds || []);
-      }
-    });
-  },
-
-  async addReactionToMessage(messageId: string, userId: string, emoji: string): Promise<void> {
-    const messageRef = doc(db, MESSAGES_COLLECTION, messageId);
-    const messageSnap = await getDoc(messageRef);
-
-    if (messageSnap.exists()) {
-      const messageData = messageSnap.data() as Message;
-      const reactions = { ...(messageData.reactions || {}) };
+      const conversations: Conversation[] = [];
       
-      if (reactions[emoji]) {
-        if (reactions[emoji].includes(userId)) {
-          reactions[emoji] = reactions[emoji].filter(id => id !== userId);
-          if (reactions[emoji].length === 0) {
-            delete reactions[emoji];
-          }
-        } else {
-          reactions[emoji].push(userId);
-        }
-      } else {
-        reactions[emoji] = [userId];
-      }
-      await updateDoc(messageRef, { reactions, updatedAt: new Date() }); // Consider serverTimestamp()
-    }
-  },
-  
-  async getConversationById(conversationId: string): Promise<Conversation | null> {
-    const conversationRef = doc(db, CONVERSATIONS_COLLECTION, conversationId);
-    const docSnap = await getDoc(conversationRef);
-
-    if (docSnap.exists()) {
-      const conversationData = docSnap.data() as Omit<Conversation, "id" | "participantProfiles">;
-      const participantProfiles = await Promise.all(
-        conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
-      );
-      return {
-        id: docSnap.id,
-        ...conversationData,
-        participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
-      };
-    }
-    return null;
-  },
-
-  subscribeToConversationById(conversationId: string, callback: (conversation: Conversation | null) => void): () => void {
-    const conversationRef = doc(db, CONVERSATIONS_COLLECTION, conversationId);
-    return onSnapshot(conversationRef, async (docSnap) => {
-      if (docSnap.exists()) {
-        const conversationData = docSnap.data() as Omit<Conversation, "id" | "participantProfiles">;
-        const participantProfiles = await Promise.all(
-          conversationData.participants.map((id: string) => profilesService.getUserProfile(id))
-        );
-        callback({
-          id: docSnap.id,
+      for (const doc of snapshot.docs) {
+        const conversationData = doc.data();
+        const participantProfiles = await this.fetchParticipantProfiles(conversationData.participants);
+        
+        conversations.push({
+          id: doc.id,
           ...conversationData,
-          participantProfiles: participantProfiles.filter((p: UserProfile | null): p is UserProfile => p !== null)
-        });
-      } else {
-        callback(null);
+          participantProfiles,
+          createdAt: conversationData.createdAt.toDate(),
+          updatedAt: conversationData.updatedAt.toDate(),
+        } as Conversation);
       }
+      
+      callback(conversations);
     });
   }
-};
+}
+
+export const conversationsService = new ConversationsService();

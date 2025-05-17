@@ -1,6 +1,6 @@
 
 import { NextApiRequest, NextApiResponse } from "next";
-import { admin } from "@/lib/firebase-admin";
+import admin from "@/lib/firebase-admin";
 
 // This is a special endpoint for setting up admin credentials
 // It should be disabled or protected in production environments

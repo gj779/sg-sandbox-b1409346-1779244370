@@ -104,7 +104,11 @@ export const profilesService = {
         skills: Array.isArray(validatedData.skills) ? validatedData.skills : []
       };
       
-      return await firebaseDatabaseService.update<UserProfile>(USERS_COLLECTION, userId, updatePayload);
+      // The firebaseDatabaseService.update method returns { id: string, ...data }
+      // So we ensure the return type matches this structure.
+      const updatedDocument = await firebaseDatabaseService.update<UserProfile>(USERS_COLLECTION, userId, updatePayload);
+      return { id: updatedDocument.id,  updatedDocument as Partial<UserProfile> };
+
     } catch (error) {
       console.error(`Error updating user profile ${userId}:`, error);
       if (error instanceof z.ZodError) {

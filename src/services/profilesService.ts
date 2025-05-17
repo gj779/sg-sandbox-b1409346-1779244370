@@ -10,9 +10,9 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { firebaseDatabaseService } from './firebaseDatabase';
-import { db } from "@/lib/firebase"; // Import db directly
+import { db } from "@/lib/firebase";
 import { z } from 'zod';
-import { UserProfile } from "@/types"; // Ensure UserProfile is imported
+import { UserProfile } from "@/types";
 
 // Define the UserProfile schema for validation
 export const userProfileSchema = z.object({
@@ -22,18 +22,18 @@ export const userProfileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   phoneNumber: z.string().optional(),
-  photoURL: z.string().url().optional().or(z.literal("")).nullable(), // Allow empty string or null
+  photoURL: z.string().url().optional().or(z.literal("")).nullable(),
   isActive: z.boolean().default(true),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   
   // Applicant specific fields
   skills: z.array(z.string()).optional(),
-  experience: z.array(z.string()).optional(), // Changed to string array to match UserProfile type
+  experience: z.array(z.string()).optional(),
   availability: z.array(z.string()).optional(),
   preferredLocation: z.string().optional(),
   bio: z.string().optional(),
-  education: z.string().optional(),
+  education: z.array(z.string()).optional(), // Changed to string array to match UserProfile type
   jobPreferences: z.array(z.string()).optional(),
   location: z.string().optional(),
   
@@ -54,21 +54,10 @@ export const userProfileSchema = z.object({
 const USERS_COLLECTION = 'users';
 
 export const profilesService = {
-  /**
-   * Get a user profile by ID
-   * @param userId - User ID
-   * @returns Promise with the user profile
-   */
   async getUserProfile(userId: string): Promise<UserProfile | null> {
     return await firebaseDatabaseService.getById<UserProfile>(USERS_COLLECTION, userId);
   },
 
-  /**
-   * Update a user profile
-   * @param userId - User ID
-   * @param profileData - Profile data to update
-   * @returns Promise with the updated profile
-   */
   async updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<{ id: string; data: Partial<UserProfile> }> {
     try {
       const dataToValidate = { ...profileData };
@@ -77,9 +66,13 @@ export const profilesService = {
         dataToValidate.photoURL = undefined;
       }
 
-      // Ensure experience is an array if it's provided
+      // Ensure arrays are properly handled
       if (dataToValidate.experience && !Array.isArray(dataToValidate.experience)) {
         dataToValidate.experience = [dataToValidate.experience];
+      }
+      
+      if (dataToValidate.education && !Array.isArray(dataToValidate.education)) {
+        dataToValidate.education = [dataToValidate.education];
       }
 
       const validatedData = userProfileSchema.partial().parse(dataToValidate);
@@ -87,6 +80,10 @@ export const profilesService = {
       const updatePayload: Partial<UserProfile> = {
         ...validatedData,
         photoURL: validatedData.photoURL === null ? undefined : validatedData.photoURL,
+        // Ensure arrays are always arrays
+        experience: validatedData.experience || [],
+        education: validatedData.education || [],
+        skills: validatedData.skills || []
       };
       
       return await firebaseDatabaseService.update<UserProfile>(USERS_COLLECTION, userId, updatePayload);
@@ -100,11 +97,6 @@ export const profilesService = {
     }
   },
 
-  /**
-   * Get applicant profiles
-   * @param criteria - Search criteria
-   * @returns Promise with an array of applicant profiles
-   */
   async getApplicantProfiles(criteria?: {
     skills?: string[];
     location?: string;
@@ -144,11 +136,6 @@ export const profilesService = {
     return profiles;
   },
 
-  /**
-   * Get restaurant profiles
-   * @param criteria - Search criteria
-   * @returns Promise with an array of restaurant profiles
-   */
   async getRestaurantProfiles(criteria?: {
     location?: string;
     cuisineType?: string;
@@ -175,11 +162,6 @@ export const profilesService = {
     return profiles;
   },
 
-  /**
-   * Check if a profile is complete
-   * @param userId - User ID
-   * @returns Promise<boolean>
-   */
   async isProfileComplete(userId: string): Promise<boolean> {
     const profile = await this.getUserProfile(userId);
     if (!profile) return false;
@@ -192,10 +174,6 @@ export const profilesService = {
     return false;
   },
 
-  /**
-   * Get all user profiles
-   * @returns Promise with an array of user profiles
-   */
   async getAllUserProfiles(): Promise<UserProfile[]> {
     try {
       const usersRef = collection(db, USERS_COLLECTION);
@@ -212,8 +190,9 @@ export const profilesService = {
           email: data.email,
           photoURL: data.photoURL,
           userType: data.userType,
-          experience: data.experience || [], // Ensure experience is always an array
-          skills: data.skills || [],
+          experience: Array.isArray(data.experience) ? data.experience : [],
+          education: Array.isArray(data.education) ? data.education : [],
+          skills: Array.isArray(data.skills) ? data.skills : [],
           ...data
         } as UserProfile);
       });
@@ -225,12 +204,6 @@ export const profilesService = {
     }
   },
 
-  /**
-   * Subscribe to real-time updates for a user profile
-   * @param userId - User ID
-   * @param callback - Callback function to handle updates
-   * @returns Unsubscribe function
-   */
   subscribeToUserProfile(userId: string, callback: (profile: UserProfile | null) => void): () => void {
     return firebaseDatabaseService.subscribeToDocument<UserProfile>(USERS_COLLECTION, userId, callback);
   }

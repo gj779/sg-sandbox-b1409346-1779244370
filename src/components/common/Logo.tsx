@@ -61,7 +61,7 @@ export default function Logo({
     );
   }
   
-  const logoSrc = '/images/icon-s-blue-m8umsa8t.svg';
+  const logoSrc = '/icon_S_blue.jpg';
   
   return (
     <div className={`flex items-center gap-2 ${className}`}>
@@ -70,7 +70,7 @@ export default function Logo({
         alt="StaffSpace Logo" 
         width={width} 
         height={height} 
-        className="transition-all duration-200"
+        className="transition-all duration-200 rounded-full"
         onError={() => setImageError(true)}
       />
       {showText && (

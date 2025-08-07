@@ -88,9 +88,11 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/zxcvbn": "^4.4.5",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.13",
     "eslint-config-prettier": "^9.1.0",

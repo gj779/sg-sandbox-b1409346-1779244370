@@ -75,12 +75,12 @@ export default function PasswordStrengthIndicator({ password }: PasswordStrength
             <div className="text-sm font-medium flex items-center gap-1 text-orange-600">
               <AlertTriangle className="h-3 w-3" />
               Suggestions:
+              <ul className="list-disc pl-5">
+                {result.feedback.suggestions.map((suggestion: string, index: number) => (
+                  <li key={index}>{suggestion}</li>
+                ))}
+              </ul>
             </div>
-            {passwordAnalysis.feedback.map((suggestion, index) => (
-              <p key={index} className="text-xs text-orange-700">
-                • {suggestion}
-              </p>
-            ))}
           </div>
         )}
       </div>

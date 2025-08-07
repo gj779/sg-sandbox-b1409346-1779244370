@@ -18,7 +18,8 @@ import {
   UserPlus,
   Building,
   CalendarClock,
-  FolderOpen // Add FolderOpen icon
+  FolderOpen,
+  Shield // Add Shield icon
 } from "lucide-react";
 
 // Define proper types for dashboard data
@@ -87,7 +88,8 @@ export default function AdminDashboard() {
         "/admin/jobs",
         "/admin/reports",
         "/admin/settings",
-        "/file-management" // Added file management route
+        "/file-management", // Added file management route
+        "/security" // Added security route
       ];
       
       if (validRoutes.includes(path)) {
@@ -489,6 +491,15 @@ export default function AdminDashboard() {
                 >
                   <FolderOpen className="h-6 w-6" />
                   <span className="text-sm">File Management</span>
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  className="h-auto flex flex-col items-center justify-center p-4 gap-2"
+                  onClick={() => safeNavigate("/security")}
+                >
+                  <Shield className="h-6 w-6" />
+                  <span className="text-sm">Security Center</span>
                 </Button>
               </div>
             </CardContent>

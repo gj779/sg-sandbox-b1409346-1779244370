@@ -114,6 +114,12 @@ export default function Header() {
               <DropdownMenuItem onClick={() => router.push("/messaging")}>
                 Messages
               </DropdownMenuItem>
+              {userProfile?.userType === "admin" && (
+                <DropdownMenuItem onClick={() => router.push("/security")}>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Security Center
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />

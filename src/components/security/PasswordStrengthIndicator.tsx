@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { zxcvbn, ZxcvbnResult } from 'zxcvbn';
+import zxcvbn from 'zxcvbn';
 import { AlertTriangle } from 'lucide-react';
 
 interface PasswordStrengthIndicatorProps {
@@ -7,7 +7,7 @@ interface PasswordStrengthIndicatorProps {
 }
 
 export default function PasswordStrengthIndicator({ password }: PasswordStrengthIndicatorProps) {
-  const [passwordAnalysis, setPasswordAnalysis] = useState<ZxcvbnResult | null>(null);
+  const [passwordAnalysis, setPasswordAnalysis] = useState<any | null>(null);
 
   const analyzePassword = () => {
     if (password) {
@@ -70,13 +70,13 @@ export default function PasswordStrengthIndicator({ password }: PasswordStrength
           </span>
         </div>
 
-        {passwordAnalysis && passwordAnalysis.score < 4 && (
+        {passwordAnalysis && passwordAnalysis.score < 4 && passwordAnalysis.feedback && (
           <div className="space-y-1">
             <div className="text-sm font-medium flex items-center gap-1 text-orange-600">
               <AlertTriangle className="h-3 w-3" />
               Suggestions:
               <ul className="list-disc pl-5">
-                {result.feedback.suggestions.map((suggestion: string, index: number) => (
+                {passwordAnalysis.feedback.suggestions.map((suggestion: string, index: number) => (
                   <li key={index}>{suggestion}</li>
                 ))}
               </ul>

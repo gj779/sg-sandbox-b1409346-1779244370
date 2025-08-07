@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { securityService } from '@/lib/security';
 import { auditService } from '@/services/auditService';
 import { useAuth } from '@/hooks/useFirebaseAuth';
@@ -20,35 +20,7 @@ export function useSecurityMonitoring() {
   const [securityScore, setSecurityScore] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      loadSecurityData();
-      const interval = setInterval(checkSecurityStatus, 30000); // Check every 30 seconds
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  const loadSecurityData = async () => {
-    if (!user) return;
-
-    try {
-      // Load existing alerts from localStorage
-      const savedAlerts = JSON.parse(localStorage.getItem(`security_alerts_${user.uid}`) || '[]');
-      setAlerts(savedAlerts.map((alert: any) => ({
-        ...alert,
-        timestamp: new Date(alert.timestamp)
-      })));
-
-      // Calculate security score
-      await calculateSecurityScore();
-    } catch (error) {
-      console.error('Failed to load security data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const calculateSecurityScore = async () => {
+  const calculateSecurityScore = useCallback(async () => {
     if (!user) return;
 
     let score = 100; // Start with perfect score
@@ -89,9 +61,34 @@ export function useSecurityMonitoring() {
       console.error('Failed to calculate security score:', error);
       setSecurityScore(75); // Default score if calculation fails
     }
-  };
+  }, [user]);
 
-  const checkSecurityStatus = async () => {
+  const addSecurityAlert = useCallback((alertData: Omit<SecurityAlert, 'id' | 'timestamp' | 'resolved'>) => {
+    if (!user) return;
+
+    const newAlert: SecurityAlert = {
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      resolved: false,
+      ...alertData
+    };
+
+    setAlerts(prevAlerts => {
+      const updatedAlerts = [newAlert, ...prevAlerts];
+      localStorage.setItem(`security_alerts_${user.uid}`, JSON.stringify(updatedAlerts));
+      return updatedAlerts;
+    });
+
+    // Log the security alert
+    auditService.logSecurityEvent(
+      user.uid,
+      `security_alert_${alertData.type}`,
+      { alert: newAlert },
+      alertData.severity === 'critical' ? 'critical' : 'warning'
+    );
+  }, [user]);
+
+  const checkSecurityStatus = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -136,34 +133,37 @@ export function useSecurityMonitoring() {
     } catch (error) {
       console.error('Security status check failed:', error);
     }
-  };
+  }, [user, addSecurityAlert]);
 
-  const addSecurityAlert = (alertData: Omit<SecurityAlert, 'id' | 'timestamp' | 'resolved'>) => {
+  const loadSecurityData = useCallback(async () => {
     if (!user) return;
 
-    const newAlert: SecurityAlert = {
-      id: Date.now().toString(),
-      timestamp: new Date(),
-      resolved: false,
-      ...alertData
-    };
+    try {
+      // Load existing alerts from localStorage
+      const savedAlerts = JSON.parse(localStorage.getItem(`security_alerts_${user.uid}`) || '[]');
+      setAlerts(savedAlerts.map((alert: any) => ({
+        ...alert,
+        timestamp: new Date(alert.timestamp)
+      })));
 
-    setAlerts(prevAlerts => {
-      const updatedAlerts = [newAlert, ...prevAlerts];
-      localStorage.setItem(`security_alerts_${user.uid}`, JSON.stringify(updatedAlerts));
-      return updatedAlerts;
-    });
+      // Calculate security score
+      await calculateSecurityScore();
+    } catch (error) {
+      console.error('Failed to load security data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, calculateSecurityScore]);
 
-    // Log the security alert
-    auditService.logSecurityEvent(
-      user.uid,
-      `security_alert_${alertData.type}`,
-      { alert: newAlert },
-      alertData.severity === 'critical' ? 'critical' : 'warning'
-    );
-  };
+  useEffect(() => {
+    if (user) {
+      loadSecurityData();
+      const interval = setInterval(checkSecurityStatus, 30000); // Check every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [user, loadSecurityData, checkSecurityStatus]);
 
-  const resolveAlert = (alertId: string) => {
+  const resolveAlert = useCallback((alertId: string) => {
     if (!user) return;
 
     setAlerts(prevAlerts => {
@@ -173,9 +173,9 @@ export function useSecurityMonitoring() {
       localStorage.setItem(`security_alerts_${user.uid}`, JSON.stringify(updatedAlerts));
       return updatedAlerts;
     });
-  };
+  }, [user]);
 
-  const dismissAlert = (alertId: string) => {
+  const dismissAlert = useCallback((alertId: string) => {
     if (!user) return;
 
     setAlerts(prevAlerts => {
@@ -183,15 +183,15 @@ export function useSecurityMonitoring() {
       localStorage.setItem(`security_alerts_${user.uid}`, JSON.stringify(updatedAlerts));
       return updatedAlerts;
     });
-  };
+  }, [user]);
 
-  const getActiveAlerts = () => {
+  const getActiveAlerts = useCallback(() => {
     return alerts.filter(alert => !alert.resolved);
-  };
+  }, [alerts]);
 
-  const getCriticalAlerts = () => {
+  const getCriticalAlerts = useCallback(() => {
     return alerts.filter(alert => !alert.resolved && alert.severity === 'critical');
-  };
+  }, [alerts]);
 
   return {
     alerts,

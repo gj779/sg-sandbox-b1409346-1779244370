@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,11 +14,7 @@ export default function SecurityDashboard() {
   const [securityLogs, setSecurityLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadSecurityData();
-  }, [user]);
-
-  const loadSecurityData = async () => {
+  const loadSecurityData = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -34,7 +30,11 @@ export default function SecurityDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadSecurityData();
+  }, [loadSecurityData]);
 
   const clearSecurityLogs = () => {
     localStorage.removeItem('securityLogs');

@@ -18,13 +18,13 @@ export default function FileUpload({ currentUserId, onUploadSuccess, onUploadErr
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleUploadProgress = (progress: UploadProgress) => {
+  const handleUploadProgress = useCallback((progress: UploadProgress) => {
     setUploadProgress(progress);
     if (progress.state === "error" && progress.error) {
       setError(progress.error.message || "Upload failed");
       onUploadError?.(progress.error);
     }
-  };
+  }, [onUploadError]);
 
   const handleFileDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -55,7 +55,7 @@ export default function FileUpload({ currentUserId, onUploadSuccess, onUploadErr
       setError(err.message || "Failed to upload file");
       onUploadError?.(err);
     }
-  }, [currentUserId, onUploadSuccess, onUploadError]);
+  }, [currentUserId, onUploadSuccess, onUploadError, handleUploadProgress]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleFileDrop,

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pencil, Loader2 } from "lucide-react";
@@ -52,9 +53,11 @@ export default function ProfilePage() {
               <div className="grid gap-4">
                 <div className="flex items-center gap-4">
                   {userProfile?.photoURL && (
-                    <img
+                    <Image
                       src={userProfile.photoURL}
-                      alt={userProfile.displayName}
+                      alt={userProfile.displayName || "Profile picture"}
+                      width={80}
+                      height={80}
                       className="h-20 w-20 rounded-full object-cover"
                     />
                   )}

@@ -69,7 +69,8 @@ export const createUser = async (userData: admin.auth.CreateRequest) => {
   }
 };
 
-export default {
+// Create a named constant for the default export to fix lint warning
+const firebaseAdminUtils = {
   firebaseAdmin,
   adminAuth,
   adminDb,
@@ -79,3 +80,5 @@ export default {
   setCustomUserClaims,
   createUser,
 };
+
+export default firebaseAdminUtils;

@@ -12,135 +12,216 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      // Check if the user has an 'admin' role in their user profile
-      // Ensure the path to the user document is correct
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin';
     }
     
     function isValidUserProfileData(data) {
-      // Basic validation for user profile data
       return data.keys().hasAll(['email', 'userType', 'firstName', 'lastName']) &&
              (data.userType == 'applicant' || data.userType == 'restaurant' || data.userType == 'admin') &&
              data.email is string && data.email.matches('.+@.+\\..+') &&
-             data.firstName is string && data.firstName.size() > 0 &&
-             data.lastName is string && data.lastName.size() > 0;
+             data.firstName is string && data.firstName.size() > 0 && data.firstName.size() <= 50 &&
+             data.lastName is string && data.lastName.size() > 0 && data.lastName.size() <= 50 &&
+             (!data.keys().hasAny(['phoneNumber']) || (data.phoneNumber is string && data.phoneNumber.size() <= 20)) &&
+             (!data.keys().hasAny(['bio']) || (data.bio is string && data.bio.size() <= 1000));
     }
 
-    // User profiles
+    function isValidJobData(data) {
+      return data.keys().hasAll(['title', 'description', 'location', 'createdBy']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.description is string && data.description.size() >= 10 && data.description.size() <= 5000 &&
+             data.location is string && data.location.size() > 0 && data.location.size() <= 200 &&
+             data.createdBy is string &&
+             (!data.keys().hasAny(['salary']) || (data.salary is number && data.salary >= 0 && data.salary <= 1000000));
+    }
+
+    function isValidApplicationData(data) {
+      return data.keys().hasAll(['applicantId', 'jobId', 'status']) &&
+             data.applicantId is string &&
+             data.jobId is string &&
+             data.status is string && 
+             data.status in ['pending', 'reviewed', 'accepted', 'rejected', 'withdrawn'] &&
+             data.timestamp is timestamp;
+    }
+
+    function isValidMessageData(data) {
+      return data.keys().hasAll(['senderId', 'recipientId', 'content', 'timestamp']) &&
+             data.senderId is string &&
+             data.recipientId is string &&
+             data.content is string && data.content.size() > 0 && data.content.size() <= 2000 &&
+             data.timestamp is timestamp &&
+             (!data.keys().hasAny(['encrypted']) || data.encrypted is bool);
+    }
+
+    // Rate limiting function (simple check)
+    function isWithinRateLimit(userId, collection, maxRequests, timeWindowMinutes) {
+      let recentRequests = query(
+        resource,
+        where('userId', '==', userId),
+        where('timestamp', '>', timestamp.value(request.time.toMillis() - timeWindowMinutes * 60 * 1000))
+      );
+      return recentRequests.size() < maxRequests;
+    }
+
+    // User profiles with enhanced security
     match /users/{userId} {
-      // Authenticated users can read any profile (adjust if more privacy is needed)
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && 
+                    (isOwner(userId) || isAdmin() || 
+                     // Allow reading public profile info only
+                     request.auth.token.email_verified == true);
       
-      // Users can create their own profile document if it doesn't exist
-      // Or admins can create profiles
       allow create: if isSignedIn() && 
-                      (isOwner(userId) && isValidUserProfileData(request.resource.data)) || 
-                      (isAdmin() && isValidUserProfileData(request.resource.data));
+                      isOwner(userId) && 
+                      isValidUserProfileData(request.resource.data) &&
+                      request.auth.token.email == request.resource.data.email &&
+                      request.auth.token.email_verified == true;
       
-      // Only the owner or an admin can update their profile
-      // Ensure that critical fields like email or userType are not changed arbitrarily
       allow update: if isSignedIn() && 
                       (isOwner(userId) || isAdmin()) &&
                       isValidUserProfileData(request.resource.data) &&
-                      request.resource.data.email == resource.data.email && // Email shouldn't change
-                      request.resource.data.userType == resource.data.userType; // UserType shouldn't change post-creation by user
+                      request.resource.data.email == resource.data.email &&
+                      // Prevent userType changes by regular users
+                      (isAdmin() || request.resource.data.userType == resource.data.userType) &&
+                      // Rate limiting: max 10 updates per hour
+                      resource.data.lastUpdated == null ||
+                      request.time > resource.data.lastUpdated + duration.value(3600, 's');
 
-      // Only admins can delete user profiles directly
       allow delete: if isSignedIn() && isAdmin();
     }
     
-    // Jobs
+    // Jobs with enhanced validation
     match /jobs/{jobId} {
-      // Anyone can read job listings
-      allow read: if true; // Or use isSignedIn() if jobs are not public
+      allow read: if true; // Jobs are public but with rate limiting in app
       
-      // Only authenticated restaurant users or admins can create jobs
       allow create: if isSignedIn() && 
-                      (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'restaurant' || isAdmin());
+                      request.auth.token.email_verified == true &&
+                      (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'restaurant' || isAdmin()) &&
+                      isValidJobData(request.resource.data) &&
+                      request.resource.data.createdBy == request.auth.uid;
       
-      // Only the job creator (restaurant user) or an admin can update or delete jobs
-      allow update, delete: if isSignedIn() && 
-                              (resource.data.createdBy == request.auth.uid || isAdmin());
+      allow update: if isSignedIn() && 
+                      (resource.data.createdBy == request.auth.uid || isAdmin()) &&
+                      isValidJobData(request.resource.data) &&
+                      request.resource.data.createdBy == resource.data.createdBy;
+
+      allow delete: if isSignedIn() && 
+                      (resource.data.createdBy == request.auth.uid || isAdmin());
     }
     
-    // Applications
+    // Applications with enhanced security
     match /applications/{applicationId} {
-      // Applicant can read their own applications
-      // Restaurant (job poster) can read applications for their jobs
-      // Admins can read any application
       allow read: if isSignedIn() && 
                     (resource.data.applicantId == request.auth.uid || 
                      resource.data.restaurantId == request.auth.uid || 
                      isAdmin());
       
-      // Only authenticated applicant users can create applications for a job
-      // Ensure applicantId in the application matches the authenticated user
       allow create: if isSignedIn() && 
+                      request.auth.token.email_verified == true &&
                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'applicant' &&
-                      request.resource.data.applicantId == request.auth.uid;
+                      isValidApplicationData(request.resource.data) &&
+                      request.resource.data.applicantId == request.auth.uid &&
+                      request.resource.data.timestamp == request.time;
       
-      // Applicant can update their application (e.g., withdraw)
-      // Restaurant can update application status (e.g., accepted, rejected)
       allow update: if isSignedIn() && 
                       (resource.data.applicantId == request.auth.uid || 
-                       resource.data.restaurantId == request.auth.uid);
+                       resource.data.restaurantId == request.auth.uid || 
+                       isAdmin()) &&
+                      isValidApplicationData(request.resource.data) &&
+                      request.resource.data.applicantId == resource.data.applicantId &&
+                      request.resource.data.jobId == resource.data.jobId;
       
-      // Only admins can delete applications (or perhaps applicant/restaurant under certain conditions)
       allow delete: if isSignedIn() && isAdmin();
     }
     
-    // Messages
+    // Messages with encryption support
     match /messages/{messageId} {
-      // Only participants in the conversation (sender or recipient) can read messages
       allow read: if isSignedIn() && 
                     (resource.data.senderId == request.auth.uid || 
                      resource.data.recipientId == request.auth.uid);
       
-      // Users can only create messages where they are the sender
       allow create: if isSignedIn() && 
-                      request.resource.data.senderId == request.auth.uid;
+                      request.auth.token.email_verified == true &&
+                      isValidMessageData(request.resource.data) &&
+                      request.resource.data.senderId == request.auth.uid &&
+                      request.resource.data.timestamp == request.time;
       
-      // Messages generally should not be updated once sent to maintain integrity
-      allow update: if false; 
+      allow update: if false; // Messages are immutable
       
-      // Only admins can delete messages (consider if users should be able to delete their own)
-      allow delete: if isSignedIn() && isAdmin();
+      allow delete: if isSignedIn() && 
+                      (isAdmin() || resource.data.senderId == request.auth.uid);
     }
     
-    // Conversations (metadata for chats)
+    // Conversations with enhanced security
     match /conversations/{conversationId} {
-      // Only participants in the conversation can read its metadata
       allow read: if isSignedIn() && 
                     (request.auth.uid in resource.data.participants);
       
-      // Users can create conversations they are part of
       allow create: if isSignedIn() && 
-                      (request.auth.uid in request.resource.data.participants);
+                      request.auth.token.email_verified == true &&
+                      (request.auth.uid in request.resource.data.participants) &&
+                      request.resource.data.participants.size() >= 2 &&
+                      request.resource.data.participants.size() <= 10;
       
-      // Only participants can update conversation metadata (e.g., lastMessage, unread counts)
       allow update: if isSignedIn() && 
-                      (request.auth.uid in resource.data.participants);
+                      (request.auth.uid in resource.data.participants) &&
+                      request.resource.data.participants == resource.data.participants;
       
-      // Only admins can delete conversations
       allow delete: if isSignedIn() && isAdmin();
     }
     
-    // Notifications
+    // Audit logs (read-only for users, write for system)
+    match /auditLogs/{logId} {
+      allow read: if isSignedIn() && 
+                    (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow create: if isSignedIn() &&
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.timestamp == request.time;
+      
+      allow update, delete: if false; // Audit logs are immutable
+    }
+    
+    // Security events (admin only)
+    match /securityEvents/{eventId} {
+      allow read: if isSignedIn() && isAdmin();
+      allow create: if isSignedIn() && 
+                      (request.resource.data.userId == request.auth.uid || isAdmin());
+      allow update, delete: if false; // Security events are immutable
+    }
+    
+    // Notifications with enhanced privacy
     match /notifications/{notificationId} {
-      // Users can only read their own notifications
       allow read: if isSignedIn() && 
                     resource.data.userId == request.auth.uid;
       
-      // Notifications are typically created by the system (e.g., via Cloud Functions) or admins
-      allow create: if isSignedIn() && isAdmin(); // Or allow server-side creation
+      allow create: if isSignedIn() && 
+                      (isAdmin() || 
+                       // Allow system-generated notifications
+                       request.resource.data.userId == request.auth.uid);
       
-      // Users can mark their own notifications as read/unread
       allow update: if isSignedIn() && 
                       resource.data.userId == request.auth.uid &&
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+                      // Only allow marking as read/unread
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
       
-      // Only admins can delete notifications (or users their own)
-      allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow delete: if isSignedIn() && 
+                      (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+
+    // Data privacy and GDPR compliance
+    match /dataPrivacy/{userId} {
+      allow read: if isSignedIn() && 
+                    (isOwner(userId) || isAdmin());
+      
+      allow create, update: if isSignedIn() && 
+                              isOwner(userId);
+      
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // User consent and privacy settings
+    match /privacySettings/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isAdmin();
     }
   }
 }

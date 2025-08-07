@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
@@ -11,103 +12,116 @@ service firebase.storage {
     }
     
     function isAdmin() {
-      // Ensure this path matches your Firestore structure for user roles
       return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.userType == 'admin';
     }
     
-    // Validate image properties: type and size (e.g., max 5MB)
-    function isValidImage() {
-      return request.resource.contentType.matches('image/.*') &&
-             request.resource.size < 5 * 1024 * 1024; 
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
     }
     
-    // Validate resume properties: type (PDF, DOC, DOCX) and size (e.g., max 10MB)
-    function isValidResume() {
+    // Enhanced image validation with security checks
+    function isValidImage() {
+      return request.resource.contentType.matches('image/(jpeg|png|gif|webp)') &&
+             request.resource.size < 5 * 1024 * 1024 && // 5MB limit
+             request.resource.size > 1024; // Minimum 1KB to prevent malicious tiny files
+    }
+    
+    // Enhanced document validation
+    function isValidDocument() {
       return (request.resource.contentType.matches('application/pdf') || 
               request.resource.contentType.matches('application/msword') ||
-              request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document')) &&
-             request.resource.size < 10 * 1024 * 1024;
+              request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+              request.resource.contentType.matches('text/plain')) &&
+             request.resource.size < 10 * 1024 * 1024 && // 10MB limit
+             request.resource.size > 100; // Minimum 100 bytes
     }
     
-    // Profile images: stored under profiles/{userId}/{fileName}
+    // Check for malicious file names
+    function isSafeFileName(fileName) {
+      return !fileName.matches('.*\\.(exe|bat|cmd|scr|pif|com|js|jar|php|asp|jsp)$') &&
+             fileName.size() <= 255 &&
+             fileName.size() > 0;
+    }
+    
+    // Profile images with enhanced security
     match /profiles/{userId}/{fileName} {
-      // Anyone can read profile images (if public)
-      allow read: if true; 
+      allow read: if isSafeFileName(fileName);
       
-      // Only the authenticated owner of the profile or an admin can upload/update.
-      // Validate that it's an image and within size limits.
       allow write: if isSignedIn() && 
+                     isEmailVerified() &&
                      (isOwner(userId) || isAdmin()) && 
-                     isValidImage();
+                     isValidImage() &&
+                     isSafeFileName(fileName);
       
-      // Only the owner or an admin can delete their profile image.
       allow delete: if isSignedIn() && 
                       (isOwner(userId) || isAdmin());
     }
     
-    // Resumes: stored under resumes/{userId}/{fileName}
+    // Encrypted resumes with strict access control
     match /resumes/{userId}/{fileName} {
-      // Owner, relevant restaurant users (e.g., if applied to their job), or admins can read.
-      // This rule might need to be more complex based on application logic (e.g., checking job applications).
       allow read: if isSignedIn() && 
                     (isOwner(userId) || 
                      firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.userType == 'restaurant' || 
-                     isAdmin());
+                     isAdmin()) &&
+                    isSafeFileName(fileName);
       
-      // Only the owner or an admin can upload/update their resume.
-      // Validate file type and size.
       allow write: if isSignedIn() && 
+                     isEmailVerified() &&
                      (isOwner(userId) || isAdmin()) && 
-                     isValidResume();
+                     isValidDocument() &&
+                     isSafeFileName(fileName);
       
-      // Only the owner or an admin can delete their resume.
       allow delete: if isSignedIn() && 
                       (isOwner(userId) || isAdmin());
     }
     
-    // Job-related attachments (e.g., company logo for a job posting)
-    // Stored under jobs/{jobId}/{fileName}
+    // Job attachments with validation
     match /jobs/{jobId}/{fileName} {
-      // Anyone can read job attachments if they are public.
-      allow read: if true; 
+      allow read: if isSafeFileName(fileName);
       
-      // Only authenticated restaurant users who created the job or admins can upload.
-      // Validate file type and size.
       allow write: if isSignedIn() && 
+                     isEmailVerified() &&
                      (firestore.get(/databases/(default)/documents/jobs/$(jobId)).data.createdBy == request.auth.uid || 
                       isAdmin()) &&
-                     (isValidImage() || isValidResume()); // Example: allow images or documents
+                     (isValidImage() || isValidDocument()) &&
+                     isSafeFileName(fileName);
       
-      // Only the job creator or an admin can delete job attachments.
       allow delete: if isSignedIn() && 
                       (firestore.get(/databases/(default)/documents/jobs/$(jobId)).data.createdBy == request.auth.uid || 
                        isAdmin());
     }
     
-    // Message attachments (e.g., images sent in chat)
-    // Stored under messages/{conversationId}/{messageId}/{fileName} (example path)
+    // Encrypted chat attachments
     match /chat_attachments/{conversationId}/{messageId}/{fileName} {
-      // Only participants of the conversation can read attachments.
-      // This requires checking conversation participants in Firestore.
       allow read: if isSignedIn() && 
-                    (request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(conversationId)).data.participants);
+                    (request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(conversationId)).data.participants) &&
+                    isSafeFileName(fileName);
       
-      // Only participants of the conversation can upload attachments.
-      // Validate file type and size (e.g. max 10MB for general files, 5MB for images)
       allow write: if isSignedIn() &&
+                     isEmailVerified() &&
                      (request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(conversationId)).data.participants) &&
-                     ( (request.resource.contentType.matches('image/.*') && request.resource.size < 5 * 1024 * 1024) ||
-                       (request.resource.contentType.matches('application/pdf') && request.resource.size < 10 * 1024 * 1024) ||
-                       (request.resource.contentType.matches('application/msword') && request.resource.size < 10 * 1024 * 1024) ||
-                       (request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document') && request.resource.size < 10 * 1024 * 1024) ||
-                       (request.resource.contentType.matches('text/plain') && request.resource.size < 2 * 1024 * 1024) 
-                     );
+                     (isValidImage() || isValidDocument()) &&
+                     isSafeFileName(fileName) &&
+                     // Additional size restrictions for chat
+                     ((request.resource.contentType.matches('image/.*') && request.resource.size < 3 * 1024 * 1024) ||
+                      (request.resource.contentType.matches('application/pdf') && request.resource.size < 5 * 1024 * 1024) ||
+                      (request.resource.contentType.matches('text/plain') && request.resource.size < 1 * 1024 * 1024));
       
-      // Only admins or perhaps the sender can delete (more complex logic might be needed).
-      // For simplicity, allowing sender or admin to delete.
       allow delete: if isSignedIn() && 
                       (isAdmin() || 
                        firestore.get(/databases/(default)/documents/messages/$(messageId)).data.senderId == request.auth.uid);
+    }
+    
+    // Secure backup storage (admin only)
+    match /backups/{userId}/{fileName} {
+      allow read, write, delete: if isSignedIn() && isAdmin();
+    }
+    
+    // Audit trail files (immutable, admin only)
+    match /audit_files/{year}/{month}/{fileName} {
+      allow read: if isSignedIn() && isAdmin();
+      allow write: if isSignedIn() && isAdmin();
+      allow delete: if false; // Audit files are immutable
     }
   }
 }

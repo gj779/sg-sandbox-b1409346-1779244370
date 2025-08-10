@@ -125,7 +125,7 @@ export default function LoginPage() {
                 <p className="text-sm text-center text-muted-foreground">
                   Don&apos;t have an account?{" "}
                   <Link href="/auth/register?type=applicant" legacyBehavior>
-                    <a className="text-primary hover:underline">Create account</a>
+                    <a className="text-primary hover:underline">Sign up</a>
                   </Link>
                 </p>
               </CardFooter>
@@ -163,7 +163,7 @@ export default function LoginPage() {
                 <p className="text-sm text-center text-muted-foreground">
                   Don&apos;t have an account?{" "}
                   <Link href="/auth/register?type=restaurant" legacyBehavior>
-                    <a className="text-primary hover:underline">Create account</a>
+                    <a className="text-primary hover:underline">Sign up</a>
                   </Link>
                 </p>
               </CardFooter>

@@ -19,8 +19,10 @@ import {
   Building,
   CalendarClock,
   FolderOpen,
-  Shield // Add Shield icon
+  Shield,
+  Wrench // Add Wrench icon for debug tools
 } from "lucide-react";
+import FirebaseConnectionTest from "@/components/debug/FirebaseConnectionTest";
 
 // Define proper types for dashboard data
 interface DashboardStats {
@@ -502,6 +504,24 @@ export default function AdminDashboard() {
                   <span className="text-sm">Security Center</span>
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Add Firebase Testing Section */}
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wrench className="h-5 w-5" />
+                Authentication Testing
+              </CardTitle>
+              <CardDescription>
+                Test Firebase authentication and user sign-up functionality
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <FirebaseConnectionTest />
             </CardContent>
           </Card>
         </div>

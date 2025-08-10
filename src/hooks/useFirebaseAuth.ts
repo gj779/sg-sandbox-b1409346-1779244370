@@ -44,8 +44,36 @@ export function useFirebaseAuth(): FirebaseAuthHook {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Define fetchUserProfile first so it can be used in other functions
+  const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
+    try {
+      console.log("Fetching user profile for ID:", userId);
+      const userRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        const profile = userDoc.data() as UserProfile;
+        console.log("User profile fetched:", profile);
+        return profile;
+      }
+      console.log("No user profile found for ID:", userId);
+      return null;
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return null;
+    }
+  };
+
   useEffect(() => {
+    // Check if Firebase is properly initialized
+    if (!auth) {
+      console.error("Firebase auth is not initialized");
+      setError("Firebase authentication is not properly configured");
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log("Auth state changed:", user ? "User signed in" : "User signed out");
       setUser(user);
       if (user) {
         const profile = await fetchUserProfile(user.uid);
@@ -59,22 +87,12 @@ export function useFirebaseAuth(): FirebaseAuthHook {
     return () => unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
-    try {
-      const userRef = doc(db, "users", userId);
-      const userDoc = await getDoc(userRef);
-      if (userDoc.exists()) {
-        return userDoc.data() as UserProfile;
-      }
-      return null;
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      return null;
-    }
-  };
-
   const signUp = async (email: string, password: string, firstName: string, lastName: string, userType: UserRole): Promise<UserProfile | null> => {
     try {
+      setError(null);
+      setLoading(true);
+      console.log("Attempting to sign up user:", email);
+      
       const result = await createUserWithEmailAndPassword(auth, email, password);
       const profile: UserProfile = {
         id: result.user.uid,
@@ -94,9 +112,13 @@ export function useFirebaseAuth(): FirebaseAuthHook {
         updatedAt: serverTimestamp()
       });
 
+      console.log("User signed up successfully:", result.user.uid);
+      setLoading(false);
       return profile;
-    } catch (error) {
+    } catch (error: any) {
+      setLoading(false);
       console.error("Error in signUp:", error);
+      setError("Failed to create account. Please try again.");
       return null;
     }
   };
@@ -105,8 +127,42 @@ export function useFirebaseAuth(): FirebaseAuthHook {
     try {
       setError(null);
       setLoading(true);
+      console.log("Attempting to sign in user:", email);
+      
+      // Validate inputs
+      if (!email || !password) {
+        throw new Error("Email and password are required");
+      }
+      
       const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Firebase auth successful, fetching profile...");
+      
       const profile = await fetchUserProfile(result.user.uid);
+      
+      if (!profile) {
+        console.warn("No user profile found, creating basic profile...");
+        // If no profile exists, create a basic one
+        const basicProfile: UserProfile = {
+          id: result.user.uid,
+          userId: result.user.uid,
+          email: result.user.email || email,
+          displayName: result.user.displayName || "",
+          userType: UserRole.APPLICANT, // Default role
+          profileComplete: false
+        };
+        
+        const userRef = doc(db, "users", result.user.uid);
+        await setDoc(userRef, {
+          ...basicProfile,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        
+        setLoading(false);
+        return basicProfile;
+      }
+      
+      console.log("Sign in successful:", result.user.uid);
       setLoading(false);
       return profile;
     } catch (error: any) {
@@ -114,35 +170,56 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       console.error("Error in signIn:", error);
       
       // Set user-friendly error messages based on Firebase error codes
+      let errorMessage = "Sign in failed. Please try again.";
+      
       switch (error.code) {
         case 'auth/user-not-found':
-          setError('No account found with this email address.');
+          errorMessage = 'No account found with this email address.';
           break;
         case 'auth/wrong-password':
-          setError('Incorrect password. Please try again.');
+          errorMessage = 'Incorrect password. Please try again.';
           break;
         case 'auth/invalid-email':
-          setError('Please enter a valid email address.');
+          errorMessage = 'Please enter a valid email address.';
           break;
         case 'auth/user-disabled':
-          setError('This account has been disabled.');
+          errorMessage = 'This account has been disabled.';
           break;
         case 'auth/too-many-requests':
-          setError('Too many failed attempts. Please try again later.');
+          errorMessage = 'Too many failed attempts. Please try again later.';
           break;
         case 'auth/network-request-failed':
-          setError('Network error. Please check your connection and try again.');
+          errorMessage = 'Network error. Please check your connection and try again.';
+          break;
+        case 'auth/invalid-credential':
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+          break;
+        case 'auth/missing-email':
+          errorMessage = 'Please enter an email address.';
+          break;
+        case 'auth/missing-password':
+          errorMessage = 'Please enter a password.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Password is too weak. Please choose a stronger password.';
           break;
         default:
-          setError('Sign in failed. Please try again.');
+          if (error.message) {
+            errorMessage = error.message;
+          }
       }
       
+      setError(errorMessage);
       return null;
     }
   };
 
   const signInWithGoogle = async (userType: UserRole): Promise<UserProfile | null> => {
     try {
+      setError(null);
+      setLoading(true);
+      console.log("Attempting Google sign in...");
+      
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
@@ -165,12 +242,17 @@ export function useFirebaseAuth(): FirebaseAuthHook {
           updatedAt: serverTimestamp()
         });
 
+        setLoading(false);
         return profile;
       }
 
-      return await fetchUserProfile(result.user.uid);
-    } catch (error) {
+      const profile = await fetchUserProfile(result.user.uid);
+      setLoading(false);
+      return profile;
+    } catch (error: any) {
+      setLoading(false);
       console.error("Error in signInWithGoogle:", error);
+      setError("Google sign in failed. Please try again.");
       return null;
     }
   };
@@ -238,6 +320,7 @@ export function useFirebaseAuth(): FirebaseAuthHook {
         await sendPasswordResetEmail(auth, email);
         return true;
       } catch (error) {
+        console.error("Error sending password reset email:", error);
         return false;
       }
     },

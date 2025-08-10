@@ -153,7 +153,8 @@ export class TestAccountSeeder {
         email: testAccount.email,
         displayName: testAccount.displayName,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        isActive: true,
       };
 
       await profilesService.createUserProfile(userId, profileData);

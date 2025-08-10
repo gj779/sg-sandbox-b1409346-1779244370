@@ -4,7 +4,9 @@ import {
   QueryConstraint,
   collection,
   query,
-  getDocs
+  getDocs,
+  doc,
+  setDoc
 } from 'firebase/firestore';
 import { firebaseDatabaseService } from './firebaseDatabase';
 import { db } from "@/lib/firebase";
@@ -66,8 +68,45 @@ const convertToUserRole = (userType: string | UserRole): UserRole => {
 };
 
 export const profilesService = {
+  async createUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<void> {
+    try {
+      const userProfileRef = doc(db, "profiles", userId);
+      await setDoc(userProfileRef, profileData, { merge: true });
+      console.log(`User profile created for userId: ${userId}`);
+    } catch (error) {
+      console.error("Error creating user profile in Firestore:", error);
+      throw new Error("Failed to create user profile.");
+    }
+  },
+
   async getUserProfile(userId: string): Promise<UserProfile | null> {
-    return await firebaseDatabaseService.getById<UserProfile>(USERS_COLLECTION, userId);
+    try {
+      const userProfileRef = doc(db, "profiles", userId);
+      const docSnap = await getDoc(userProfileRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const userType = convertToUserRole(data.userType);
+
+        return {
+          id: docSnap.id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          photoURL: data.photoURL,
+          userType,
+          experience: Array.isArray(data.experience) ? data.experience : [],
+          education: Array.isArray(data.education) ? data.education : [],
+          skills: Array.isArray(data.skills) ? data.skills : [],
+          ...data
+        } as UserProfile;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      throw error;
+    }
   },
 
   async updateUserProfile(userId: string, profileData: Partial<UserProfile>): Promise<{ id: string; updatedDocument: Partial<UserProfile> }> {

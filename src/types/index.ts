@@ -23,41 +23,66 @@ export interface User {
 
 export interface UserProfile {
   id: string;
-  userId: string;
-  displayName: string;
   email: string;
-  photoURL?: string;
-  phoneNumber?: string;
+  userType: UserRole; // Replaced 'role' with 'userType' for consistency
+  displayName?: string;
   firstName?: string;
   lastName?: string;
-  bio?: string;
+  phoneNumber?: string;
   location?: string;
-  preferredLocation?: string;
-  skills?: string[];
+  bio?: string;
+  photoURL?: string; // Added from User
+  
+  // Applicant-specific fields
   experience?: string[];
-  education?: string[];
-  certifications?: string[];
-  availability?: string[];
-  userType?: UserRole;
-  businessName?: string;
-  businessAddress?: string;
-  cuisineType?: string;
-  profileComplete?: boolean;
-  isActive?: boolean;
-  createdAt?: Date | Timestamp;
-  updatedAt?: Date | Timestamp;
-  preferences?: {
-    jobTypes?: string[];
-    locations?: string[];
-    salary?: {
+  skills?: string[];
+  availability?: string;
+  hourlyRate?: number;
+  resumeUrl?: string;
+  preferredLocation?: string; // Added missing field
+  education?: Education[]; // Added missing field
+  preferences?: { // Added missing field
+    jobTypes: string[];
+    locations: string[];
+    salary: {
       min?: number;
       max?: number;
       currency?: string;
     };
   };
+
+  // Restaurant-specific fields
+  restaurantName?: string;
+  contactName?: string;
+  cuisineType?: string;
+  restaurantSize?: string;
+  description?: string;
+  website?: string;
+  businessName?: string; // Added missing field
+  businessAddress?: string; // Added missing field
+
+  // Common fields
+  avatarUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLogin?: Date;
+  isActive: boolean;
+  profileComplete?: boolean; // Added from User
+  
+  // New fields from previous implementation
+  isVerified?: boolean;
+  notifications?: NotificationPreferences;
+  privacySettings?: PrivacySettings;
 }
 
-// Rest of the interfaces remain unchanged...
+export interface NotificationPreferences {
+  // Notification preferences fields
+}
+
+export interface PrivacySettings {
+  // Privacy settings fields
+}
+
 export interface FileCustomMetadata {
   userId: string;
   fileName: string;

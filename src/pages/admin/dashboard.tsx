@@ -2,26 +2,26 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@/contexts/UserContext";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { 
   Users, 
+  Building, 
   Briefcase, 
-  FileText, 
-  BarChart3, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle,
+  MessageSquare, 
+  TrendingUp, 
+  AlertTriangle, 
+  Settings, 
+  UserCheck, 
+  Clock,
+  TestTube,
   UserPlus,
-  Building,
-  CalendarClock,
-  FolderOpen,
-  Shield,
-  Wrench // Add Wrench icon for debug tools
+  FileText,
+  BarChart3,
+  Wrench
 } from "lucide-react";
+import { useUser } from "@/contexts/UserContext";
 import FirebaseConnectionTest from "@/components/debug/FirebaseConnectionTest";
 
 // Define proper types for dashboard data
@@ -441,67 +441,57 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="col-span-1">
+          {/* Quick Actions */}
+          <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Quick Actions
+              </CardTitle>
               <CardDescription>
-                Common administrative tasks
+                Common administrative tasks and utilities
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button 
                   variant="outline" 
-                  className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => safeNavigate("/admin/users/create")}
+                  className="h-auto p-4 flex flex-col items-start"
+                  onClick={() => router.push('/admin/users')}
                 >
-                  <UserPlus className="h-6 w-6" />
-                  <span className="text-sm">Add User</span>
+                  <Users className="w-5 h-5 mb-2" />
+                  <span className="font-medium">Manage Users</span>
+                  <span className="text-xs text-muted-foreground">View and moderate user accounts</span>
                 </Button>
                 
                 <Button 
                   variant="outline" 
-                  className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => safeNavigate("/admin/jobs/review")}
+                  className="h-auto p-4 flex flex-col items-start"
+                  onClick={() => router.push('/admin/jobs')}
                 >
-                  <CheckCircle className="h-6 w-6" />
-                  <span className="text-sm">Review Jobs</span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => safeNavigate("/admin/reports")}
-                >
-                  <AlertTriangle className="h-6 w-6" />
-                  <span className="text-sm">View Reports</span>
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => safeNavigate("/admin/settings")}
-                >
-                  <Building className="h-6 w-6" />
-                  <span className="text-sm">Platform Settings</span>
+                  <Briefcase className="w-5 h-5 mb-2" />
+                  <span className="font-medium">Job Listings</span>
+                  <span className="text-xs text-muted-foreground">Monitor and moderate job posts</span>
                 </Button>
 
                 <Button 
                   variant="outline" 
-                  className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => safeNavigate("/file-management")}
+                  className="h-auto p-4 flex flex-col items-start"
+                  onClick={() => router.push('/admin/test-accounts')}
                 >
-                  <FolderOpen className="h-6 w-6" />
-                  <span className="text-sm">File Management</span>
+                  <TestTube className="w-5 h-5 mb-2" />
+                  <span className="font-medium">Test Accounts</span>
+                  <span className="text-xs text-muted-foreground">Create and manage test user accounts</span>
                 </Button>
-
+                
                 <Button 
                   variant="outline" 
-                  className="h-auto flex flex-col items-center justify-center p-4 gap-2"
-                  onClick={() => safeNavigate("/security")}
+                  className="h-auto p-4 flex flex-col items-start"
+                  onClick={() => router.push('/admin/reports')}
                 >
-                  <Shield className="h-6 w-6" />
-                  <span className="text-sm">Security Center</span>
+                  <TrendingUp className="w-5 h-5 mb-2" />
+                  <span className="font-medium">Reports</span>
+                  <span className="text-xs text-muted-foreground">Analytics and usage reports</span>
                 </Button>
               </div>
             </CardContent>

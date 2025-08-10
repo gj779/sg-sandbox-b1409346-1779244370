@@ -103,10 +103,40 @@ export function useFirebaseAuth(): FirebaseAuthHook {
 
   const signIn = async (email: string, password: string): Promise<UserProfile | null> => {
     try {
+      setError(null);
+      setLoading(true);
       const result = await signInWithEmailAndPassword(auth, email, password);
-      return await fetchUserProfile(result.user.uid);
-    } catch (error) {
+      const profile = await fetchUserProfile(result.user.uid);
+      setLoading(false);
+      return profile;
+    } catch (error: any) {
+      setLoading(false);
       console.error("Error in signIn:", error);
+      
+      // Set user-friendly error messages based on Firebase error codes
+      switch (error.code) {
+        case 'auth/user-not-found':
+          setError('No account found with this email address.');
+          break;
+        case 'auth/wrong-password':
+          setError('Incorrect password. Please try again.');
+          break;
+        case 'auth/invalid-email':
+          setError('Please enter a valid email address.');
+          break;
+        case 'auth/user-disabled':
+          setError('This account has been disabled.');
+          break;
+        case 'auth/too-many-requests':
+          setError('Too many failed attempts. Please try again later.');
+          break;
+        case 'auth/network-request-failed':
+          setError('Network error. Please check your connection and try again.');
+          break;
+        default:
+          setError('Sign in failed. Please try again.');
+      }
+      
       return null;
     }
   };

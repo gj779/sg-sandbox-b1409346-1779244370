@@ -149,7 +149,7 @@ export class TestAccountSeeder {
       // Create user profile
       const profileData: Partial<UserProfile> = {
         ...testAccount.profileData,
-        role: testAccount.role,
+        userType: testAccount.role,
         email: testAccount.email,
         displayName: testAccount.displayName,
         createdAt: new Date(),

@@ -81,7 +81,7 @@ export default function UserOnboarding() {
   };
 
   const handleEducationChange = (value: string) => {
-    setEducation([value]);
+    setEducation(value);
   };
 
   const handleJobTypeChange = (type: string, checked: boolean) => {
@@ -285,7 +285,15 @@ export default function UserOnboarding() {
             availability,
             preferredLocation,
             bio,
-            education,
+            education: education ? [{
+              institution: education,
+              degree: "",
+              field: "",
+              fieldOfStudy: education,
+              startDate: new Date(),
+              current: false,
+              isCurrentlyStudying: false
+            }] : [],
             preferences: {
               jobTypes,
               locations,
@@ -301,7 +309,15 @@ export default function UserOnboarding() {
             cuisineType: experience[0] || "",
             bio,
             skills,
-            education,
+            education: education ? [{
+              institution: education,
+              degree: "",
+              field: "",
+              fieldOfStudy: education,
+              startDate: new Date(),
+              current: false,
+              isCurrentlyStudying: false
+            }] : [],
             profileComplete: true,
             userType: UserRole.RESTAURANT
           };

@@ -96,13 +96,15 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       const profile: UserProfile = {
         id: result.user.uid,
-        userId: result.user.uid,
         email,
         displayName: `${firstName} ${lastName}`,
         firstName,
         lastName,
         userType,
-        profileComplete: false
+        profileComplete: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isActive: true
       };
       
       const userRef = doc(db, "users", result.user.uid);
@@ -144,11 +146,13 @@ export function useFirebaseAuth(): FirebaseAuthHook {
         // If no profile exists, create a basic one
         const basicProfile: UserProfile = {
           id: result.user.uid,
-          userId: result.user.uid,
           email: result.user.email || email,
           displayName: result.user.displayName || "",
           userType: UserRole.APPLICANT, // Default role
-          profileComplete: false
+          profileComplete: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isActive: true
         };
         
         const userRef = doc(db, "users", result.user.uid);
@@ -227,12 +231,14 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       if (isNewUser) {
         const profile: UserProfile = {
           id: result.user.uid,
-          userId: result.user.uid,
           email: result.user.email || "",
           displayName: result.user.displayName || "",
           photoURL: result.user.photoURL || undefined,
           userType,
-          profileComplete: false
+          profileComplete: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isActive: true
         };
 
         const userRef = doc(db, "users", result.user.uid);

@@ -6,7 +6,8 @@ import {
   query,
   getDocs,
   doc,
-  setDoc
+  setDoc,
+  getDoc
 } from 'firebase/firestore';
 import { firebaseDatabaseService } from './firebaseDatabase';
 import { db } from "@/lib/firebase";

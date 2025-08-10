@@ -58,10 +58,10 @@ export default function UserOnboarding() {
   
   const [skills, setSkills] = useState<string[]>([]);
   const [experience, setExperience] = useState<string[]>([]);
-  const [availability, setAvailability] = useState<string[]>([]);
+  const [availability, setAvailability] = useState<string>("");
   const [preferredLocation, setPreferredLocation] = useState("");
   const [bio, setBio] = useState("");
-  const [education, setEducation] = useState<string[]>([]);
+  const [education, setEducation] = useState<string>("");
   const [jobTypes, setJobTypes] = useState<string[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [businessName, setBusinessName] = useState("");

@@ -157,10 +157,10 @@ export default function EditProfilePage() {
           isActive: currentUserProfile.isActive ?? true,
           bio: currentUserProfile.bio || "",
           skills: currentUserProfile.skills || [],
-          availability: typeof currentUserProfile.availability === 'string' 
-            ? currentUserProfile.availability 
-            : Array.isArray(currentUserProfile.availability) 
-              ? currentUserProfile.availability.join(', ')
+          availability: Array.isArray(currentUserProfile.availability) 
+            ? currentUserProfile.availability.join(', ')
+            : typeof currentUserProfile.availability === 'string'
+              ? currentUserProfile.availability
               : "",
           preferredLocation: currentUserProfile.preferredLocation || "",
           education: currentUserProfile.education || [], // Use education as-is since it's already Education[]

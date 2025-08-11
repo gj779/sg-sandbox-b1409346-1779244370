@@ -106,6 +106,12 @@ export default function EditProfilePage() {
         education: formData.education || [], // Updated to handle education as array
         preferences: {
           jobTypes: formData.jobPreferences || [],
+          locations: [], // Add required locations array
+          salary: { // Add required salary object
+            min: undefined,
+            max: undefined,
+            currency: "USD"
+          }
         },
       };
 
@@ -151,11 +157,15 @@ export default function EditProfilePage() {
           isActive: currentUserProfile.isActive ?? true,
           bio: currentUserProfile.bio || "",
           skills: currentUserProfile.skills || [],
-          availability: Array.isArray(currentUserProfile.availability) 
-            ? currentUserProfile.availability.map(av => typeof av === 'string' ? av : (av as any).day)
-            : [],
+          availability: typeof currentUserProfile.availability === 'string' 
+            ? currentUserProfile.availability 
+            : Array.isArray(currentUserProfile.availability) 
+              ? currentUserProfile.availability.join(', ')
+              : "",
           preferredLocation: currentUserProfile.preferredLocation || "",
-          education: currentUserProfile.education || [], // Updated to handle education as array
+          education: currentUserProfile.education?.map(edu => 
+            typeof edu === 'string' ? edu : edu.institution || edu.fieldOfStudy || ""
+          ) || [], 
           jobPreferences: currentUserProfile.preferences?.jobTypes || [],
           location: currentUserProfile.location || "",
           businessName: currentUserProfile.businessName || "",

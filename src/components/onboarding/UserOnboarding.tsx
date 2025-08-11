@@ -58,7 +58,7 @@ export default function UserOnboarding() {
   
   const [skills, setSkills] = useState<string[]>([]);
   const [experience, setExperience] = useState<string[]>([]);
-  const [availability, setAvailability] = useState<string>("");
+  const [availability, setAvailability] = useState<string[]>([]);
   const [preferredLocation, setPreferredLocation] = useState("");
   const [bio, setBio] = useState("");
   const [education, setEducation] = useState<string>("");
@@ -177,6 +177,28 @@ export default function UserOnboarding() {
                 <label htmlFor={type}>{type}</label>
               </div>
             ))}
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Availability</label>
+            <div className="grid grid-cols-2 gap-2">
+              {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                <div key={day} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={day}
+                    checked={availability.includes(day)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setAvailability([...availability, day]);
+                      } else {
+                        setAvailability(availability.filter(d => d !== day));
+                      }
+                    }}
+                  />
+                  <label htmlFor={day}>{day}</label>
+                </div>
+              ))}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input

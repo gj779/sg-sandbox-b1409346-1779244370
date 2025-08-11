@@ -103,11 +103,12 @@ export default function EditProfilePage() {
         profileComplete: formData.profileComplete,
         experience: experienceItems,
         skills: formData.skills || [],
-        education: formData.education || [], // Remove the complex mapping that was causing type errors
+        availability: formData.availability || [], // Handle as string array
+        education: formData.education || [],
         preferences: {
           jobTypes: formData.jobPreferences || [],
-          locations: [], // Add required locations array
-          salary: { // Add required salary object
+          locations: [],
+          salary: {
             min: undefined,
             max: undefined,
             currency: "USD"
@@ -158,10 +159,10 @@ export default function EditProfilePage() {
           bio: currentUserProfile.bio || "",
           skills: currentUserProfile.skills || [],
           availability: Array.isArray(currentUserProfile.availability) 
-            ? currentUserProfile.availability.join(', ')
-            : typeof currentUserProfile.availability === 'string'
-              ? currentUserProfile.availability
-              : "",
+            ? currentUserProfile.availability
+            : currentUserProfile.availability 
+              ? [currentUserProfile.availability]
+              : [],
           preferredLocation: currentUserProfile.preferredLocation || "",
           education: currentUserProfile.education || [], // Use education as-is since it's already Education[]
           jobPreferences: currentUserProfile.preferences?.jobTypes || [],

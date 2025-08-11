@@ -36,7 +36,7 @@ export interface UserProfile {
   // Applicant-specific fields
   experience?: string[];
   skills?: string[];
-  availability?: string;
+  availability?: string[];
   hourlyRate?: number;
   resumeUrl?: string;
   preferredLocation?: string; // Added missing field

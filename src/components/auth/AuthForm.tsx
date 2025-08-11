@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useUser } from "@/contexts/UserContext";
@@ -167,22 +167,6 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-muted-foreground">
-          {mode === "login" 
-            ? "Don't have an account? " 
-            : "Already have an account? "}
-          <Button 
-            variant="link" 
-            className="p-0" 
-            onClick={() => router.push(mode === "login" 
-              ? `/auth/register?type=${router.query.type}` 
-              : "/auth/login")}
-          >
-            {mode === "login" ? "Sign Up" : "Sign In"}
-          </Button>
-        </p>
-      </CardFooter>
     </Card>
   );
 }

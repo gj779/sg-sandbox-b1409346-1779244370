@@ -24,7 +24,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
-import Layout from "@/components/layout/Layout";
 import AuthForm from "@/components/auth/AuthForm";
 import { UserRole } from "@/types";
 
@@ -70,7 +69,7 @@ export default function LoginPage() {
   };
 
   return (
-    <Layout>
+    <>
       <Head>
         <title>Sign In | StaffSpace</title>
         <meta name="description" content="Sign in to your StaffSpace account to find restaurant jobs or hire talented staff." />
@@ -145,6 +144,6 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-    </Layout>
+    </>
   );
 }

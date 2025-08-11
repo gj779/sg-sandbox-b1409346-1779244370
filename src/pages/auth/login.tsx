@@ -95,63 +95,43 @@ export default function LoginPage() {
           </TabsList>
 
           <TabsContent value="applicant">
-            <Card>
-              <CardHeader>
-                <CardTitle>Job Seeker Sign In</CardTitle>
-                <CardDescription>
-                  Sign in to find restaurant and hospitality jobs
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {authError && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{authError}</AlertDescription>
-                  </Alert>
-                )}
-                <AuthForm mode="login" onSuccess={handleAuthSuccess} />
-                <div className="mt-4 flex items-center">
-                  <Separator className="flex-1" />
-                  <span className="mx-2 text-xs text-muted-foreground">OR</span>
-                  <Separator className="flex-1" />
-                </div>
-                <div className="mt-4">
-                  <GoogleSignInButton 
-                    userType={UserRole.APPLICANT}
-                    onError={handleGoogleError}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {authError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{authError}</AlertDescription>
+              </Alert>
+            )}
+            <AuthForm mode="login" onSuccess={handleAuthSuccess} />
+            <div className="mt-4 flex items-center">
+              <Separator className="flex-1" />
+              <span className="mx-2 text-xs text-muted-foreground">OR</span>
+              <Separator className="flex-1" />
+            </div>
+            <div className="mt-4">
+              <GoogleSignInButton 
+                userType={UserRole.APPLICANT}
+                onError={handleGoogleError}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="restaurant">
-            <Card>
-              <CardHeader>
-                <CardTitle>Restaurant Sign In</CardTitle>
-                <CardDescription>
-                  Sign in to find talented staff for your restaurant
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                 {authError && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{authError}</AlertDescription>
-                  </Alert>
-                )}
-                <AuthForm mode="login" onSuccess={handleAuthSuccess} />
-                 <div className="mt-4 flex items-center">
-                  <Separator className="flex-1" />
-                  <span className="mx-2 text-xs text-muted-foreground">OR</span>
-                  <Separator className="flex-1" />
-                </div>
-                <div className="mt-4">
-                  <GoogleSignInButton 
-                    userType={UserRole.RESTAURANT}
-                    onError={handleGoogleError}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {authError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{authError}</AlertDescription>
+              </Alert>
+            )}
+            <AuthForm mode="login" onSuccess={handleAuthSuccess} />
+            <div className="mt-4 flex items-center">
+              <Separator className="flex-1" />
+              <span className="mx-2 text-xs text-muted-foreground">OR</span>
+              <Separator className="flex-1" />
+            </div>
+            <div className="mt-4">
+              <GoogleSignInButton 
+                userType={UserRole.RESTAURANT}
+                onError={handleGoogleError}
+              />
+            </div>
           </TabsContent>
         </Tabs>
 

@@ -121,14 +121,6 @@ export default function LoginPage() {
                   />
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col gap-4">
-                <p className="text-sm text-center text-muted-foreground">
-                  Don&apos;t have an account?{" "}
-                  <Link href="/auth/register?type=applicant" legacyBehavior>
-                    <a className="text-primary hover:underline">Sign up</a>
-                  </Link>
-                </p>
-              </CardFooter>
             </Card>
           </TabsContent>
 
@@ -159,17 +151,19 @@ export default function LoginPage() {
                   />
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col gap-4">
-                <p className="text-sm text-center text-muted-foreground">
-                  Don&apos;t have an account?{" "}
-                  <Link href="/auth/register?type=restaurant" legacyBehavior>
-                    <a className="text-primary hover:underline">Sign up</a>
-                  </Link>
-                </p>
-              </CardFooter>
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Single footer outside of tabs */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link href={`/auth/register?type=${currentTab}`} legacyBehavior>
+              <a className="text-primary hover:underline">Sign up</a>
+            </Link>
+          </p>
+        </div>
       </div>
     </Layout>
   );

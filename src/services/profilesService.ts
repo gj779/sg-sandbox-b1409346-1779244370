@@ -40,8 +40,8 @@ export const userProfileSchema = z.object({
     fieldOfStudy: z.string(),
     startDate: z.date(),
     endDate: z.date().optional(),
-    current: z.boolean().optional(),
-    isCurrentlyStudying: z.boolean().optional()
+    current: z.boolean(),
+    isCurrentlyStudying: z.boolean()
   })).optional(),
   jobPreferences: z.array(z.string()).optional(),
   location: z.string().optional(),

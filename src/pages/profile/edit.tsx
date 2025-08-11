@@ -103,15 +103,7 @@ export default function EditProfilePage() {
         profileComplete: formData.profileComplete,
         experience: experienceItems,
         skills: formData.skills || [],
-        education: formData.education?.map(eduString => ({
-          institution: eduString,
-          degree: "",
-          field: "",
-          fieldOfStudy: eduString,
-          startDate: new Date(),
-          current: false,
-          isCurrentlyStudying: false
-        })) || [], // Convert string array back to Education array
+        education: formData.education || [], // Remove the complex mapping that was causing type errors
         preferences: {
           jobTypes: formData.jobPreferences || [],
           locations: [], // Add required locations array
@@ -171,9 +163,7 @@ export default function EditProfilePage() {
               ? currentUserProfile.availability.join(', ')
               : "",
           preferredLocation: currentUserProfile.preferredLocation || "",
-          education: currentUserProfile.education?.map(edu => 
-            typeof edu === 'string' ? edu : edu.institution || edu.fieldOfStudy || ""
-          ) || [], 
+          education: currentUserProfile.education || [], // Use education as-is since it's already Education[]
           jobPreferences: currentUserProfile.preferences?.jobTypes || [],
           location: currentUserProfile.location || "",
           businessName: currentUserProfile.businessName || "",

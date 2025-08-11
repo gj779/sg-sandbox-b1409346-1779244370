@@ -27,7 +27,7 @@ export const TEST_ACCOUNTS: TestAccount[] = [
       bio: "Experienced server with 3+ years in fine dining. Passionate about creating exceptional customer experiences.",
       experience: ["Fine Dining Server", "Bartender", "Customer Service"],
       skills: ["Customer Service", "POS Systems", "Wine Knowledge", "Team Collaboration"],
-      availability: "Full-time, Evenings, Weekends",
+      availability: ["Full-time", "Evenings", "Weekends"],
       hourlyRate: 18
     }
   },
@@ -44,7 +44,7 @@ export const TEST_ACCOUNTS: TestAccount[] = [
       bio: "Professional chef with 5 years experience in Italian cuisine. Specialized in pasta and seafood dishes.",
       experience: ["Line Cook", "Sous Chef", "Prep Cook"],
       skills: ["Italian Cuisine", "Knife Skills", "Food Safety", "Kitchen Management"],
-      availability: "Full-time, Part-time",
+      availability: ["Full-time", "Part-time"],
       hourlyRate: 22
     }
   },
@@ -61,7 +61,7 @@ export const TEST_ACCOUNTS: TestAccount[] = [
       bio: "Energetic server and bartender with excellent multitasking skills. Fluent in Spanish and English.",
       experience: ["Server", "Bartender", "Host"],
       skills: ["Multitasking", "Bilingual", "Cash Handling", "Customer Relations"],
-      availability: "Part-time, Weekends",
+      availability: ["Part-time", "Weekends"],
       hourlyRate: 16
     }
   },

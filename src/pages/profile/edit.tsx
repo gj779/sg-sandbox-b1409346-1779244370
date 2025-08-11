@@ -103,7 +103,15 @@ export default function EditProfilePage() {
         profileComplete: formData.profileComplete,
         experience: experienceItems,
         skills: formData.skills || [],
-        education: formData.education || [], // Updated to handle education as array
+        education: formData.education?.map(eduString => ({
+          institution: eduString,
+          degree: "",
+          field: "",
+          fieldOfStudy: eduString,
+          startDate: new Date(),
+          current: false,
+          isCurrentlyStudying: false
+        })) || [], // Convert string array back to Education array
         preferences: {
           jobTypes: formData.jobPreferences || [],
           locations: [], // Add required locations array

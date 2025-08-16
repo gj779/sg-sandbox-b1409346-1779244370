@@ -51,7 +51,17 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       const userRef = doc(db, "users", userId);
       const userDoc = await getDoc(userRef);
       if (userDoc.exists()) {
-        const profile = userDoc.data() as UserProfile;
+        const data = userDoc.data();
+        console.log("Raw user profile data:", data);
+        
+        // Convert Firebase Timestamps to Dates
+        const profile: UserProfile = {
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
+          updatedAt: data.updatedAt?.toDate?.() || data.updatedAt || new Date(),
+          lastLogin: data.lastLogin?.toDate?.() || data.lastLogin,
+        } as UserProfile;
+        
         console.log("User profile fetched:", profile);
         return profile;
       }
@@ -108,14 +118,43 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       const profile: UserProfile = {
         id: result.user.uid,
         email,
+        userType,
         displayName: `${firstName} ${lastName}`,
         firstName,
         lastName,
-        userType,
+        phoneNumber: result.user.phoneNumber || undefined,
+        location: undefined,
+        bio: undefined,
+        photoURL: result.user.photoURL || undefined,
+        // Applicant-specific fields
+        experience: [],
+        skills: [],
+        availability: [],
+        hourlyRate: undefined,
+        resumeUrl: undefined,
+        preferredLocation: undefined,
+        education: [],
+        preferences: undefined,
+        // Restaurant-specific fields
+        restaurantName: undefined,
+        contactName: undefined,
+        cuisineType: undefined,
+        restaurantSize: undefined,
+        description: undefined,
+        website: undefined,
+        businessName: undefined,
+        businessAddress: undefined,
+        // Common fields
+        avatarUrl: undefined,
+        createdAt: new Date(), // Will be overwritten by serverTimestamp
+        updatedAt: new Date(), // Will be overwritten by serverTimestamp
+        lastLogin: undefined,
+        isActive: true,
         profileComplete: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isActive: true
+        // New fields
+        isVerified: false,
+        notifications: undefined,
+        privacySettings: undefined
       };
       
       console.log("Creating user profile document:", profile);
@@ -127,8 +166,11 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       });
 
       console.log("User profile created successfully:", result.user.uid);
+      
+      // Fetch the profile back to get the proper server timestamps
+      const createdProfile = await fetchUserProfile(result.user.uid);
       setLoading(false);
-      return profile;
+      return createdProfile;
     } catch (error: any) {
       setLoading(false);
       console.error("Error in signUp:", error);
@@ -291,16 +333,52 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
 
       if (isNewUser) {
+        // Extract name parts from displayName
+        const displayName = result.user.displayName || '';
+        const nameParts = displayName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
         const profile: UserProfile = {
           id: result.user.uid,
           email: result.user.email || "",
-          displayName: result.user.displayName || "",
-          photoURL: result.user.photoURL || undefined,
           userType,
+          displayName: result.user.displayName || "",
+          firstName,
+          lastName,
+          phoneNumber: result.user.phoneNumber || undefined,
+          location: undefined,
+          bio: undefined,
+          photoURL: result.user.photoURL || undefined,
+          // Applicant-specific fields
+          experience: [],
+          skills: [],
+          availability: [],
+          hourlyRate: undefined,
+          resumeUrl: undefined,
+          preferredLocation: undefined,
+          education: [],
+          preferences: undefined,
+          // Restaurant-specific fields
+          restaurantName: undefined,
+          contactName: undefined,
+          cuisineType: undefined,
+          restaurantSize: undefined,
+          description: undefined,
+          website: undefined,
+          businessName: undefined,
+          businessAddress: undefined,
+          // Common fields
+          avatarUrl: undefined,
+          createdAt: new Date(), // Will be overwritten by serverTimestamp
+          updatedAt: new Date(), // Will be overwritten by serverTimestamp
+          lastLogin: undefined,
+          isActive: true,
           profileComplete: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isActive: true
+          // New fields
+          isVerified: false,
+          notifications: undefined,
+          privacySettings: undefined
         };
 
         const userRef = doc(db, "users", result.user.uid);
@@ -310,8 +388,10 @@ export function useFirebaseAuth(): FirebaseAuthHook {
           updatedAt: serverTimestamp()
         });
 
+        // Fetch the profile back to get the proper server timestamps
+        const createdProfile = await fetchUserProfile(result.user.uid);
         setLoading(false);
-        return profile;
+        return createdProfile;
       }
 
       const profile = await fetchUserProfile(result.user.uid);

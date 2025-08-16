@@ -22,11 +22,12 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { UserRole } from '@/types';
 
 export interface RegisterUserParams {
   email: string;
   password: string;
-  userType: 'applicant' | 'restaurant' | 'admin';
+  userType: UserRole;
   firstName: string;
   lastName: string;
   phoneNumber?: string;
@@ -35,7 +36,7 @@ export interface RegisterUserParams {
 export interface UserProfile {
   id: string;
   email: string;
-  userType: 'applicant' | 'restaurant' | 'admin';
+  userType: UserRole;
   firstName: string;
   lastName: string;
   phoneNumber?: string;
@@ -146,7 +147,7 @@ export const firebaseAuthService = {
   },
 
   // Sign in with Google
-  async signInWithGoogle(userType: 'applicant' | 'restaurant' = 'applicant'): Promise<{ user: User; userProfile: UserProfile | null; isNewUser: boolean }> {
+  async signInWithGoogle(userType: UserRole = UserRole.APPLICANT): Promise<{ user: User; userProfile: UserProfile | null; isNewUser: boolean }> {
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
@@ -260,7 +261,7 @@ export const firebaseAuthService = {
         const lastName = nameParts.slice(1).join(' ') || '';
         
         // Default to applicant for redirect flow
-        const userType = 'applicant';
+        const userType = UserRole.APPLICANT;
         
         // Create new profile
         const newProfile: UserProfile = {

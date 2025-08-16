@@ -59,41 +59,33 @@ export async function createTestAccount(account: TestAccount) {
     
     // Create user profile in Firestore
     const profileData = {
-      uid: user.uid,
+      id: user.uid,
       email: account.email,
-      displayName: account.displayName,
       userType: account.role,
-      isActive: true,
+      firstName: account.displayName.split(" ")[0],
+      lastName: account.displayName.split(" ")[1] || "User",
+      phoneNumber: "",
+      photoURL: user.photoURL || "",
       createdAt: new Date(),
       updatedAt: new Date(),
-      emailVerified: false, // Start with unverified for testing
-      profile: account.role === UserRole.RESTAURANT 
-        ? {
-            businessName: account.displayName,
-            businessType: "Restaurant",
-            location: {
-              address: "123 Test St",
-              city: "Test City",
-              state: "TS",
-              zipCode: "12345"
-            },
-            description: "A test restaurant for development purposes"
-          }
-        : {
-            firstName: account.displayName.split(" ")[0],
-            lastName: account.displayName.split(" ")[1] || "User",
-            skills: ["Customer Service", "Food Handling"],
-            experience: ["Entry Level"],
-            availability: {
-              monday: true,
-              tuesday: true,
-              wednesday: true,
-              thursday: true,
-              friday: true,
-              saturday: true,
-              sunday: false
-            }
-          }
+      isActive: true,
+      // Initialize onboarding fields
+      skills: [],
+      experience: "",
+      availability: [],
+      preferredLocation: "",
+      bio: "",
+      education: "",
+      jobPreferences: [],
+      location: "",
+      cuisineType: "",
+      hiringPositions: [],
+      jobTypes: [],
+      benefits: "",
+      profileComplete: false,
+      // Restaurant specific fields
+      businessName: account.role === UserRole.RESTAURANT ? account.displayName : undefined,
+      businessAddress: account.role === UserRole.RESTAURANT ? "123 Test St, Test City, TS 12345" : undefined,
     };
     
     await setDoc(doc(db, "users", user.uid), profileData);

@@ -115,55 +115,23 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       console.log("Firebase user created successfully:", result.user.uid);
       
-      const profile: UserProfile = {
-        id: result.user.uid,
+      // Create a minimal profile that matches Firestore rules exactly
+      const profile = {
         email,
         userType,
-        displayName: `${firstName} ${lastName}`,
         firstName,
         lastName,
-        phoneNumber: result.user.phoneNumber || undefined,
-        location: undefined,
-        bio: undefined,
-        photoURL: result.user.photoURL || undefined,
-        // Applicant-specific fields
-        experience: [],
-        skills: [],
-        availability: [],
-        hourlyRate: undefined,
-        resumeUrl: undefined,
-        preferredLocation: undefined,
-        education: [],
-        preferences: undefined,
-        // Restaurant-specific fields
-        restaurantName: undefined,
-        contactName: undefined,
-        cuisineType: undefined,
-        restaurantSize: undefined,
-        description: undefined,
-        website: undefined,
-        businessName: undefined,
-        businessAddress: undefined,
-        // Common fields
-        avatarUrl: undefined,
-        createdAt: new Date(), // Will be overwritten by serverTimestamp
-        updatedAt: new Date(), // Will be overwritten by serverTimestamp
-        lastLogin: undefined,
+        // Only include the required fields for initial creation
+        // Optional fields will be added during onboarding
         isActive: true,
         profileComplete: false,
-        // New fields
-        isVerified: false,
-        notifications: undefined,
-        privacySettings: undefined
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
       
       console.log("Creating user profile document:", profile);
       const userRef = doc(db, "users", result.user.uid);
-      await setDoc(userRef, {
-        ...profile,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      await setDoc(userRef, profile);
 
       console.log("User profile created successfully:", result.user.uid);
       
@@ -196,6 +164,9 @@ export function useFirebaseAuth(): FirebaseAuthHook {
           break;
         case 'auth/too-many-requests':
           errorMessage = 'Too many attempts. Please try again later.';
+          break;
+        case 'permission-denied':
+          errorMessage = 'Permission denied. There may be an issue with the database rules.';
           break;
         default:
           if (error.message) {

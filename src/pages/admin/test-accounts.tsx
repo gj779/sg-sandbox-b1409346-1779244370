@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Copy, Users, Store, Play, CheckCircle, XCircle, Eye, EyeOff } from "lucide-react";
 import { testSeeder, TEST_ACCOUNTS } from "@/utils/testAccountSeeder";
+import { testExistingAccounts, debugSignIn, debugCreateAccount } from "@/utils/debugAuth";
 import { UserRole } from "@/types";
 import Layout from "@/components/layout/Layout";
 
@@ -75,6 +76,27 @@ export default function TestAccountsPage() {
 
   const applicantAccounts = TEST_ACCOUNTS.filter(account => account.role === UserRole.APPLICANT);
   const restaurantAccounts = TEST_ACCOUNTS.filter(account => account.role === UserRole.RESTAURANT);
+
+  const handleDebugAuth = async () => {
+    console.log("Running debug auth tests...");
+    await testExistingAccounts();
+  };
+
+  const handleTestSignIn = async () => {
+    const result = await debugSignIn("sarah.applicant@staffspace.test", "testpassword123");
+    console.log("Test sign in result:", result);
+  };
+
+  const handleTestCreateAccount = async () => {
+    const result = await debugCreateAccount(
+      "test.user@staffspace.test", 
+      "testpassword123", 
+      "Test", 
+      "User", 
+      UserRole.APPLICANT
+    );
+    console.log("Test create account result:", result);
+  };
 
   return (
     <Layout>
@@ -335,6 +357,24 @@ export default function TestAccountsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Debug Authentication</h2>
+          <div className="flex gap-4 mb-4">
+            <Button onClick={handleDebugAuth} variant="outline">
+              Debug Existing Accounts
+            </Button>
+            <Button onClick={handleTestSignIn} variant="outline">
+              Test Sign In
+            </Button>
+            <Button onClick={handleTestCreateAccount} variant="outline">
+              Test Create Account
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Check the browser console for detailed debug information.
+          </p>
+        </div>
       </div>
     </Layout>
   );

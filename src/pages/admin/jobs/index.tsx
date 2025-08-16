@@ -201,9 +201,15 @@ export default function AdminJobsPage() {
     if (!job.salary) return "Not specified";
     
     // Handle both possible salary structures
-    if (typeof job.salary === 'object' && 'amount' in job.salary) {
+    if (typeof job.salary === 'object' && 'amount' in job.salary && job.salary.amount) {
       const { amount, period } = job.salary;
-      return `$${amount.toLocaleString()} ${period}`;
+      return `$${amount.toLocaleString()} ${period || 'per year'}`;
+    }
+    
+    // Handle min/max salary structure
+    if (typeof job.salary === 'object' && 'min' in job.salary && 'max' in job.salary) {
+      const { min, max, currency } = job.salary;
+      return `${currency || '$'}${min.toLocaleString()} - ${currency || '$'}${max.toLocaleString()}`;
     }
     
     return "Not specified";

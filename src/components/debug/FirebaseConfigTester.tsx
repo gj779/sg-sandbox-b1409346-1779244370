@@ -5,13 +5,27 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 
+interface TestResult {
+  status: string;
+  message: string;
+  currentUser?: string;
+  error?: string;
+  code?: string;
+}
+
+interface TestResults {
+  envVars: Record<string, string>;
+  connectionTest: TestResult | null;
+  authTest: TestResult | null;
+}
+
 export default function FirebaseConfigTester() {
-  const [testResults, setTestResults] = useState<any>(null);
+  const [testResults, setTestResults] = useState<TestResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const testFirebaseConfig = async () => {
     setIsLoading(true);
-    const results = {
+    const results: TestResults = {
       envVars: {},
       connectionTest: null,
       authTest: null

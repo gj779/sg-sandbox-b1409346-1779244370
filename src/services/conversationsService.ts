@@ -7,10 +7,48 @@ class ConversationsService {
   private async fetchParticipantProfiles(participantIds: string[]): Promise<Record<string, UserProfile>> {
     const profiles: Record<string, UserProfile> = {};
     
-    for (const userId of participantIds) {
-      const userDoc = await getDoc(doc(db, "users", userId));
-      if (userDoc.exists()) {
-        profiles[userId] = userDoc.data() as UserProfile;
+    // Batch fetch all user profiles in a single query instead of N+1 queries
+    if (participantIds.length === 0) {
+      return profiles;
+    }
+    
+    try {
+      // Firestore has a limit of 10 items for 'in' queries, so batch them if needed
+      const batchSize = 10;
+      const batches = [];
+      
+      for (let i = 0; i < participantIds.length; i += batchSize) {
+        const batchIds = participantIds.slice(i, i + batchSize);
+        const q = query(
+          collection(db, "users"),
+          where("__name__", "in", batchIds)
+        );
+        batches.push(getDocs(q));
+      }
+      
+      // Execute all batches in parallel
+      const batchResults = await Promise.all(batches);
+      
+      // Process results from all batches
+      for (const querySnapshot of batchResults) {
+        querySnapshot.docs.forEach(doc => {
+          if (doc.exists()) {
+            profiles[doc.id] = doc.data() as UserProfile;
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching participant profiles:", error);
+      // Fallback to individual queries if batch query fails
+      for (const userId of participantIds) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", userId));
+          if (userDoc.exists()) {
+            profiles[userId] = userDoc.data() as UserProfile;
+          }
+        } catch (individualError) {
+          console.error(`Error fetching profile for user ${userId}:`, individualError);
+        }
       }
     }
     

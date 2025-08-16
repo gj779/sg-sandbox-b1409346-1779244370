@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from "next";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
@@ -7,12 +6,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { email, password } = req.body;
+  const { email, password, secretKey } = req.body;
 
-  if (!email || !password) {
+  if (!email || !password || !secretKey) {
     return res.status(400).json({
       error: "Missing required fields",
-      requiredFields: ["email", "password"],
+      requiredFields: ["email", "password", "secretKey"],
+    });
+  }
+
+  // Verify secret key before allowing admin creation
+  const expectedSecretKey = process.env.ADMIN_SECRET_KEY;
+  if (!expectedSecretKey) {
+    console.error("ADMIN_SECRET_KEY environment variable not set");
+    return res.status(500).json({ 
+      error: "Server configuration error. Admin setup is not available." 
+    });
+  }
+  
+  if (secretKey !== expectedSecretKey) {
+    return res.status(403).json({ 
+      error: "Invalid secret key. Unauthorized access attempt logged." 
     });
   }
 

@@ -51,8 +51,9 @@ import {
   DollarSign
 } from "lucide-react";
 import { firebaseAdminService } from "@/services/firebaseAdmin";
-import { firebaseJobsService, JobListing } from "@/services/firebaseJobs";
+import { firebaseJobsService } from "@/services/firebaseJobs";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
+import { JobListing } from "@/types";
 
 export default function AdminJobsPage() {
   const router = useRouter();
@@ -199,11 +200,13 @@ export default function AdminJobsPage() {
   const formatSalary = (job: JobListing) => {
     if (!job.salary) return "Not specified";
     
-    // Fix the destructuring to match the actual structure of the salary object
-    const { amount, period } = job.salary;
+    // Handle both possible salary structures
+    if (typeof job.salary === 'object' && 'amount' in job.salary) {
+      const { amount, period } = job.salary;
+      return `$${amount.toLocaleString()} ${period}`;
+    }
     
-    // Update the return statements to use the correct properties
-    return `$${amount.toLocaleString()} ${period}`;
+    return "Not specified";
   };
 
   if (isLoading || isLoadingData) {
@@ -325,7 +328,7 @@ export default function AdminJobsPage() {
                         <TableCell className="font-medium">
                           {job.title}
                         </TableCell>
-                        <TableCell>{job.restaurantId}</TableCell>
+                        <TableCell>{job.restaurantId || job.restaurantName || "N/A"}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
@@ -334,7 +337,7 @@ export default function AdminJobsPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {job.jobType}
+                            {job.jobType || "N/A"}
                           </Badge>
                         </TableCell>
                         <TableCell>

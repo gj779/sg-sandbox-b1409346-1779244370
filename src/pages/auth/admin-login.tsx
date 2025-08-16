@@ -22,7 +22,7 @@ import Logo from "@/components/common/Logo";
 export default function AdminLoginPage() {
   const router = useRouter();
   const { redirect } = router.query;
-  const [email, setEmail] = useState("staffspace@gmail.com"); // Default for convenience
+  const [email, setEmail] = useState(""); // Default for convenience
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   

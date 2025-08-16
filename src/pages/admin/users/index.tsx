@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -40,7 +41,7 @@ import {
 } from "lucide-react";
 import { firebaseAdminService } from "@/services/firebaseAdmin";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
-import { UserProfile } from "@/services/firebaseAuth";
+import { UserProfile, UserRole } from "@/types";
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -82,8 +83,8 @@ export default function AdminUsersPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(user => 
-        user.firstName.toLowerCase().includes(query) || 
-        user.lastName.toLowerCase().includes(query) || 
+        (user.firstName && user.firstName.toLowerCase().includes(query)) || 
+        (user.lastName && user.lastName.toLowerCase().includes(query)) || 
         user.email.toLowerCase().includes(query)
       );
     }
@@ -103,7 +104,7 @@ export default function AdminUsersPage() {
       setUsers(prevUsers => 
         prevUsers.map(user => 
           user.id === userId 
-            ? { ...user, userType: "admin" } 
+            ? { ...user, userType: UserRole.ADMIN } 
             : user
         )
       );

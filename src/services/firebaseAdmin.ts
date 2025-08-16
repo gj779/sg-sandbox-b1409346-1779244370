@@ -1,9 +1,10 @@
+
 import { firestoreService } from "./firebaseFirestore";
 import { doc, updateDoc, query, collection, where, getDocs, WhereFilterOp } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import { UserProfile } from "./firebaseAuth";
-import { JobListing } from "./firebaseJobs";
-import { JobApplication } from "./firebaseApplications";
+import { UserProfile, UserRole } from "@/types";
+import { JobListing } from "@/types";
+import { JobApplication } from "@/types";
 
 // Admin-specific operations for the StaffSpace platform
 export const firebaseAdminService = {
@@ -19,7 +20,7 @@ export const firebaseAdminService = {
         {
           id: "user1",
           email: "staffspace@gmail.com",
-          userType: "admin",
+          userType: UserRole.ADMIN,
           firstName: "StaffSpace",
           lastName: "Admin",
           isActive: true,
@@ -29,7 +30,7 @@ export const firebaseAdminService = {
         {
           id: "user2",
           email: "applicant@example.com",
-          userType: "applicant",
+          userType: UserRole.APPLICANT,
           firstName: "John",
           lastName: "Doe",
           isActive: true,
@@ -39,7 +40,7 @@ export const firebaseAdminService = {
         {
           id: "user3",
           email: "restaurant@example.com",
-          userType: "restaurant",
+          userType: UserRole.RESTAURANT,
           firstName: "Jane",
           lastName: "Smith",
           isActive: true,
@@ -67,7 +68,7 @@ export const firebaseAdminService = {
         return [{
           id: "user1",
           email: "staffspace@gmail.com",
-          userType: "admin",
+          userType: UserRole.ADMIN,
           firstName: "StaffSpace",
           lastName: "Admin",
           isActive: true,
@@ -78,7 +79,7 @@ export const firebaseAdminService = {
         return [{
           id: "user2",
           email: "applicant@example.com",
-          userType: "applicant",
+          userType: UserRole.APPLICANT,
           firstName: "John",
           lastName: "Doe",
           isActive: true,
@@ -89,7 +90,7 @@ export const firebaseAdminService = {
         return [{
           id: "user3",
           email: "restaurant@example.com",
-          userType: "restaurant",
+          userType: UserRole.RESTAURANT,
           firstName: "Jane",
           lastName: "Smith",
           isActive: true,
@@ -112,7 +113,7 @@ export const firebaseAdminService = {
 
   async setUserAsAdmin(userId: string): Promise<void> {
     try {
-      return await firestoreService.updateDocument("users", userId, { userType: "admin" });
+      return await firestoreService.updateDocument("users", userId, { userType: UserRole.ADMIN });
     } catch (error) {
       console.error(`Error setting user as admin for ${userId}:`, error);
       // Don't throw error, just log it
@@ -129,44 +130,7 @@ export const firebaseAdminService = {
       console.error("Error getting all job listings:", error);
       // Return mock data with correct types
       return [
-        {
-          id: "job1",
-          restaurantId: "rest1",
-          restaurantName: "Gourmet Kitchen",
-          title: "Head Chef",
-          description: "Leading the kitchen team",
-          requirements: ["5+ years experience", "Culinary degree"],
-          location: "New York, NY",
-          cuisineType: ["french"],
-          jobType: "full-time",
-          salary: {
-            amount: 75000,
-            period: "Yearly"
-          },
-          isPremium: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          applicants: []
-        },
-        {
-          id: "job2",
-          restaurantId: "rest1",
-          restaurantName: "Gourmet Kitchen",
-          title: "Sous Chef",
-          description: "Assisting the head chef",
-          requirements: ["3+ years experience"],
-          location: "New York, NY",
-          cuisineType: ["french"],
-          jobType: "full-time",
-          salary: {
-            amount: 55000,
-            period: "Yearly"
-          },
-          isPremium: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          applicants: []
-        }
+        
       ];
     }
   },
@@ -185,25 +149,7 @@ export const firebaseAdminService = {
       console.error("Error getting featured job listings:", error);
       // Return mock premium job with correct types
       return [
-        {
-          id: "job1",
-          restaurantId: "rest1",
-          restaurantName: "Gourmet Kitchen",
-          title: "Head Chef",
-          description: "Leading the kitchen team",
-          requirements: ["5+ years experience", "Culinary degree"],
-          location: "New York, NY",
-          cuisineType: ["french"],
-          jobType: "full-time",
-          salary: {
-            amount: 75000,
-            period: "Yearly"
-          },
-          isPremium: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          applicants: []
-        }
+        
       ];
     }
   },
@@ -243,22 +189,7 @@ export const firebaseAdminService = {
       console.error("Error getting all applications:", error);
       // Return mock data
       return [
-        {
-          id: "app1",
-          jobId: "job1",
-          applicantId: "user2",
-          status: "Pending",
-          appliedAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: "app2",
-          jobId: "job2",
-          applicantId: "user2",
-          status: "Reviewed",
-          appliedAt: new Date(Date.now() - 86400000),
-          updatedAt: new Date()
-        }
+        
       ];
     }
   },

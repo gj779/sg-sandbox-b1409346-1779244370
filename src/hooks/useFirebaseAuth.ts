@@ -91,9 +91,20 @@ export function useFirebaseAuth(): FirebaseAuthHook {
     try {
       setError(null);
       setLoading(true);
-      console.log("Attempting to sign up user:", email);
+      console.log("Attempting to sign up user:", email, "with role:", userType);
+      
+      // Validate inputs
+      if (!email || !password || !firstName || !lastName) {
+        throw new Error("All fields are required");
+      }
+
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters long");
+      }
       
       const result = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("Firebase user created successfully:", result.user.uid);
+      
       const profile: UserProfile = {
         id: result.user.uid,
         email,
@@ -107,6 +118,7 @@ export function useFirebaseAuth(): FirebaseAuthHook {
         isActive: true
       };
       
+      console.log("Creating user profile document:", profile);
       const userRef = doc(db, "users", result.user.uid);
       await setDoc(userRef, {
         ...profile,
@@ -114,13 +126,42 @@ export function useFirebaseAuth(): FirebaseAuthHook {
         updatedAt: serverTimestamp()
       });
 
-      console.log("User signed up successfully:", result.user.uid);
+      console.log("User profile created successfully:", result.user.uid);
       setLoading(false);
       return profile;
     } catch (error: any) {
       setLoading(false);
       console.error("Error in signUp:", error);
-      setError("Failed to create account. Please try again.");
+      
+      // Set user-friendly error messages based on Firebase error codes
+      let errorMessage = "Failed to create account. Please try again.";
+      
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'An account with this email address already exists.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Please enter a valid email address.';
+          break;
+        case 'auth/operation-not-allowed':
+          errorMessage = 'Email/password accounts are not enabled.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Password is too weak. Please choose a stronger password.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your connection and try again.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many attempts. Please try again later.';
+          break;
+        default:
+          if (error.message) {
+            errorMessage = error.message;
+          }
+      }
+      
+      setError(errorMessage);
       return null;
     }
   };

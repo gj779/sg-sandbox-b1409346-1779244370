@@ -72,8 +72,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && 
                       isOwner(userId) && 
                       isValidUserProfileData(request.resource.data) &&
-                      request.auth.token.email == request.resource.data.email &&
-                      request.auth.token.email_verified == true;
+                      request.auth.token.email == request.resource.data.email;
+                      // Removed email_verified requirement for initial profile creation
       
       allow update: if isSignedIn() && 
                       (isOwner(userId) || isAdmin()) &&

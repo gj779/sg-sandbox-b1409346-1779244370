@@ -11,6 +11,7 @@ import { useUser } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { UserRole } from "@/types";
+import { securityService } from "@/lib/security";
 
 interface AuthFormProps {
   mode: "login" | "register";
@@ -35,6 +36,20 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
     clearAuthError();
     setFormError(null);
 
+    // Basic input validation
+    if (!email || !password) {
+      setFormError("Please fill in all required fields.");
+      return;
+    }
+
+    // Validate email format
+    try {
+      securityService.validateAndSanitize(email, 'email');
+    } catch (error) {
+      setFormError("Please enter a valid email address.");
+      return;
+    }
+
     if (mode === "register") {
       if (password !== confirmPassword) {
         setFormError("Passwords do not match");
@@ -42,6 +57,13 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
       }
       if (!firstName || !lastName) {
         setFormError("First and last name are required for registration.");
+        return;
+      }
+      
+      // Validate password strength
+      const passwordValidation = securityService.validatePasswordStrength(password);
+      if (!passwordValidation.isValid) {
+        setFormError(passwordValidation.feedback.join('. ') + '.');
         return;
       }
     }

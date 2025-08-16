@@ -86,37 +86,35 @@ export const firebaseAuthService = {
       // Send email verification
       await sendEmailVerification(user);
       
-      // Create user profile in Firestore
-      const userProfile: UserProfile = {
-        id: user.uid,
+      // Create user profile in Firestore - MINIMAL PROFILE ONLY
+      const userProfile = {
         email,
         userType,
         firstName,
         lastName,
-        phoneNumber: phoneNumber || '',
-        photoURL: user.photoURL || '',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        // Only include the required fields for initial creation
+        // Optional fields will be added during onboarding
         isActive: true,
-        // Initialize onboarding fields
-        skills: [],
-        experience: '',
-        availability: [],
-        preferredLocation: '',
-        bio: '',
-        education: '',
-        jobPreferences: [],
-        location: '',
-        cuisineType: '',
-        hiringPositions: [],
-        jobTypes: [],
-        benefits: '',
         profileComplete: false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       };
       
+      console.log("Creating user profile document:", userProfile);
       await setDoc(doc(db, 'users', user.uid), userProfile);
       
-      return { user, userProfile };
+      // Fetch back the profile to get proper timestamps
+      const createdDoc = await getDoc(doc(db, 'users', user.uid));
+      const createdProfile = createdDoc.exists() ? {
+        id: user.uid,
+        ...createdDoc.data()
+      } as UserProfile : null;
+      
+      if (!createdProfile) {
+        throw new Error("Failed to create user profile");
+      }
+      
+      return { user, userProfile: createdProfile };
     } catch (error: any) {
       console.error('Registration error:', error);
       
@@ -136,6 +134,9 @@ export const firebaseAuthService = {
             break;
           case 'auth/operation-not-allowed':
             errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+            break;
+          case 'permission-denied':
+            errorMessage = 'Permission denied. There may be an issue with the database rules.';
             break;
           default:
             errorMessage = error.message ? error.message.replace(/@/g, ' at ') : errorMessage;

@@ -2,6 +2,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  signOut as firebaseSignOut,
   sendEmailVerification,
   sendPasswordResetEmail,
   confirmPasswordReset,
@@ -294,6 +295,18 @@ export const firebaseAuthService = {
       const user = userCredential.user;
       
       console.log(`User signed in successfully: ${user.uid}`);
+      
+      // Check if email is verified
+      if (!user.emailVerified) {
+        // Allow admin accounts to sign in without verification for system setup
+        const userProfileDoc = await getDoc(doc(db, 'users', user.uid));
+        const userProfile = userProfileDoc.exists() ? userProfileDoc.data() as UserProfile : null;
+        
+        if (!userProfile || userProfile.userType !== 'admin') {
+          await firebaseSignOut(auth);
+          throw new Error('Please verify your email address before signing in. Check your inbox for the verification link.');
+        }
+      }
       
       // Get user profile from Firestore
       const userProfileDoc = await getDoc(doc(db, 'users', user.uid));

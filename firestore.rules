@@ -65,9 +65,8 @@ service cloud.firestore {
     // User profiles with enhanced security
     match /users/{userId} {
       allow read: if isSignedIn() && 
-                    (isOwner(userId) || isAdmin() || 
-                     // Allow reading public profile info only
-                     request.auth.token.email_verified == true);
+                    (isOwner(userId) || isAdmin());
+                    // Simplified read permission for authenticated users to access their own profiles
       
       allow create: if isSignedIn() && 
                       isOwner(userId) && 

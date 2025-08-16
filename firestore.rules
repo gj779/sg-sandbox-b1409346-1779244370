@@ -92,10 +92,10 @@ service cloud.firestore {
       allow read: if true; // Jobs are public but with rate limiting in app
       
       allow create: if isSignedIn() && 
-                      request.auth.token.email_verified == true &&
                       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'restaurant' || isAdmin()) &&
                       isValidJobData(request.resource.data) &&
                       request.resource.data.createdBy == request.auth.uid;
+                      // Removed email_verified requirement for job creation
       
       allow update: if isSignedIn() && 
                       (resource.data.createdBy == request.auth.uid || isAdmin()) &&
@@ -114,11 +114,11 @@ service cloud.firestore {
                      isAdmin());
       
       allow create: if isSignedIn() && 
-                      request.auth.token.email_verified == true &&
                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'applicant' &&
                       isValidApplicationData(request.resource.data) &&
                       request.resource.data.applicantId == request.auth.uid &&
                       request.resource.data.timestamp == request.time;
+                      // Removed email_verified requirement for applications
       
       allow update: if isSignedIn() && 
                       (resource.data.applicantId == request.auth.uid || 
@@ -138,10 +138,10 @@ service cloud.firestore {
                      resource.data.recipientId == request.auth.uid);
       
       allow create: if isSignedIn() && 
-                      request.auth.token.email_verified == true &&
                       isValidMessageData(request.resource.data) &&
                       request.resource.data.senderId == request.auth.uid &&
                       request.resource.data.timestamp == request.time;
+                      // Removed email_verified requirement for messages
       
       allow update: if false; // Messages are immutable
       
@@ -155,10 +155,10 @@ service cloud.firestore {
                     (request.auth.uid in resource.data.participants);
       
       allow create: if isSignedIn() && 
-                      request.auth.token.email_verified == true &&
                       (request.auth.uid in request.resource.data.participants) &&
                       request.resource.data.participants.size() >= 2 &&
                       request.resource.data.participants.size() <= 10;
+                      // Removed email_verified requirement for conversations
       
       allow update: if isSignedIn() && 
                       (request.auth.uid in resource.data.participants) &&

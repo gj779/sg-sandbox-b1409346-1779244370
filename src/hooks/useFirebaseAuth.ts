@@ -18,6 +18,7 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc, deleteDoc } from "firebase/firestore";
 import { firebaseStorageService } from "@/services/firebaseStorage";
+import { securityService } from "@/lib/security";
 import { UserProfile, UserRole } from "@/types";
 
 interface FirebaseAuthHook {
@@ -108,8 +109,14 @@ export function useFirebaseAuth(): FirebaseAuthHook {
         throw new Error("All fields are required");
       }
 
-      if (password.length < 6) {
-        throw new Error("Password must be at least 6 characters long");
+      if (password.length < 8) {
+        throw new Error("Password must be at least 8 characters long");
+      }
+
+      // Validate password strength
+      const passwordValidation = securityService.validatePasswordStrength(password);
+      if (!passwordValidation.isValid) {
+        throw new Error(passwordValidation.feedback.join('. ') + '.');
       }
       
       const result = await createUserWithEmailAndPassword(auth, email, password);

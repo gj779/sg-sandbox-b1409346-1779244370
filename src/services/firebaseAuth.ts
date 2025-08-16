@@ -156,7 +156,6 @@ export const firebaseAuthService = {
       // Sign in with popup
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      // const credential = GoogleAuthProvider.credentialFromResult(result); // Keep if needed for other purposes
       
       // Check if this is a new user using getAdditionalUserInfo
       const additionalInfo = getAdditionalUserInfo(result);
@@ -173,34 +172,21 @@ export const firebaseAuthService = {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         
-        // Create new profile
-        const newProfile: UserProfile = {
-          id: user.uid,
+        // Create minimal profile that matches Firestore rules exactly
+        const newProfile = {
           email: user.email || '',
           userType,
           firstName,
           lastName,
-          phoneNumber: user.phoneNumber || '',
-          photoURL: user.photoURL || '',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+          // Only include the required fields for initial creation
+          // Optional fields will be added during onboarding
           isActive: true,
-          skills: [],
-          experience: '',
-          availability: [],
-          preferredLocation: '',
-          bio: '',
-          education: '',
-          jobPreferences: [],
-          location: '',
-          cuisineType: '',
-          hiringPositions: [],
-          jobTypes: [],
-          benefits: '',
           profileComplete: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
         };
         
-        // Save to Firestore
+        console.log("Creating Google user profile document:", newProfile);
         await setDoc(doc(db, 'users', user.uid), newProfile);
         
         // Get the profile with server timestamps
@@ -226,6 +212,9 @@ export const firebaseAuthService = {
             break;
           case 'auth/cancelled-popup-request':
             errorMessage = 'The sign-in operation was cancelled. Please try again.';
+            break;
+          case 'permission-denied':
+            errorMessage = 'Permission denied. There may be an issue with the database rules.';
             break;
           default:
             errorMessage = error.message ? error.message.replace(/@/g, ' at ') : errorMessage;
@@ -264,34 +253,21 @@ export const firebaseAuthService = {
         // Default to applicant for redirect flow
         const userType = UserRole.APPLICANT;
         
-        // Create new profile
-        const newProfile: UserProfile = {
-          id: user.uid,
+        // Create minimal profile that matches Firestore rules exactly
+        const newProfile = {
           email: user.email || '',
           userType,
           firstName,
           lastName,
-          phoneNumber: user.phoneNumber || '',
-          photoURL: user.photoURL || '',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+          // Only include the required fields for initial creation
+          // Optional fields will be added during onboarding
           isActive: true,
-          skills: [],
-          experience: '',
-          availability: [],
-          preferredLocation: '',
-          bio: '',
-          education: '',
-          jobPreferences: [],
-          location: '',
-          cuisineType: '',
-          hiringPositions: [],
-          jobTypes: [],
-          benefits: '',
           profileComplete: false,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
         };
         
-        // Save to Firestore
+        console.log("Creating redirect user profile document:", newProfile);
         await setDoc(doc(db, 'users', user.uid), newProfile);
         
         // Get the profile with server timestamps

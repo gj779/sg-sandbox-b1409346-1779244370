@@ -15,23 +15,30 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
+import { firebaseAuthService } from "@/services/firebaseAuth";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleResetPassword = async () => {
     if (!email) return;
     
     setIsLoading(true);
+    setError("");
     
-    // Mock password reset - in a real app, this would send a reset email via Firebase
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await firebaseAuthService.forgotPassword(email);
       setIsSubmitted(true);
-    }, 1000);
+    } catch (error: any) {
+      console.error("Password reset error:", error);
+      setError(error.message || "Failed to send password reset email. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -78,6 +85,11 @@ export default function ResetPasswordPage() {
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
+                {error && (
+                  <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                    {error}
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="flex flex-col gap-4">
                 <Button 

@@ -10,11 +10,25 @@ import { testSeeder, TEST_ACCOUNTS } from "@/utils/testAccountSeeder";
 import { testExistingAccounts, debugSignIn, debugCreateAccount } from "@/utils/debugAuth";
 import { UserRole } from "@/types";
 import Layout from "@/components/layout/Layout";
+import { createBasicTestAccounts } from "@/utils/createTestUser";
 
 export default function TestAccountsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [creationResults, setCreationResults] = useState<any[]>([]);
   const [showPasswords, setShowPasswords] = useState(false);
+
+  const handleCreateBasicAccounts = async () => {
+    console.log("Creating basic test accounts...");
+    setIsCreating(true);
+    try {
+      const results = await createBasicTestAccounts();
+      setCreationResults(results);
+    } catch (error) {
+      console.error("Error creating basic test accounts:", error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   const handleCreateAllAccounts = async () => {
     setIsCreating(true);
@@ -121,6 +135,15 @@ export default function TestAccountsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-4">
+              <Button 
+                onClick={handleCreateBasicAccounts}
+                disabled={isCreating}
+                size="lg"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isCreating ? "Creating..." : "Create Basic Test Accounts"}
+              </Button>
+              
               <Button 
                 onClick={handleCreateAllAccounts} 
                 disabled={isCreating}

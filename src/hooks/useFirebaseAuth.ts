@@ -170,35 +170,69 @@ export function useFirebaseAuth(): FirebaseAuthHook {
     try {
       setError(null);
       setLoading(true);
+      console.log("=== SIGN IN DEBUG START ===");
       console.log("Attempting to sign in user:", email);
+      console.log("Firebase auth instance:", !!auth);
+      console.log("Firebase db instance:", !!db);
       
       // Validate inputs
       if (!email || !password) {
         throw new Error("Email and password are required");
       }
       
+      console.log("Step 1: Firebase authentication...");
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Firebase auth successful for user:", result.user.uid);
+      console.log("✅ Firebase auth successful");
+      console.log("User ID:", result.user.uid);
+      console.log("Email verified:", result.user.emailVerified);
+      console.log("User metadata:", {
+        creationTime: result.user.metadata.creationTime,
+        lastSignInTime: result.user.metadata.lastSignInTime
+      });
       
       // Wait a moment for auth state to propagate
+      console.log("Step 2: Waiting for auth state propagation...");
       await new Promise(resolve => setTimeout(resolve, 100));
       
+      console.log("Step 3: Fetching user profile from Firestore...");
       const profile = await fetchUserProfile(result.user.uid);
       
       if (!profile) {
-        console.warn("No user profile found for existing user, this might be a sign-up that didn't complete");
-        // Don't create a profile here for existing users - they should sign up properly
+        console.warn("❌ No user profile found for existing user");
+        console.log("This might indicate:");
+        console.log("- Profile was never created during registration");
+        console.log("- Profile was deleted");
+        console.log("- Firestore rules are blocking access");
+        console.log("- Network connectivity issues");
+        
+        // Try to check if document exists with admin privileges or different approach
+        console.log("Attempting direct Firestore document check...");
+        try {
+          const userRef = doc(db, "users", result.user.uid);
+          const directDoc = await getDoc(userRef);
+          console.log("Direct document exists:", directDoc.exists());
+          if (directDoc.exists()) {
+            console.log("Document data:", directDoc.data());
+          }
+        } catch (directError) {
+          console.error("Direct document check failed:", directError);
+        }
+        
         setLoading(false);
         throw new Error("Account profile not found. Please contact support or try signing up again.");
       }
       
-      console.log("Sign in successful with profile:", result.user.uid);
+      console.log("✅ Sign in successful with profile");
+      console.log("Profile data:", profile);
       setUserProfile(profile);
       setLoading(false);
       return profile;
     } catch (error: any) {
       setLoading(false);
-      console.error("Error in signIn:", error);
+      console.error("❌ Sign in error details:");
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+      console.error("Full error object:", error);
       
       // Set user-friendly error messages based on Firebase error codes
       let errorMessage = "Sign in failed. Please try again.";
@@ -232,7 +266,7 @@ export function useFirebaseAuth(): FirebaseAuthHook {
           errorMessage = 'Please enter a password.';
           break;
         case 'permission-denied':
-          errorMessage = 'Unable to access your profile. Please contact support.';
+          errorMessage = 'Unable to access your profile. This might be a Firestore rules issue.';
           break;
         default:
           if (error.message) {
@@ -240,6 +274,7 @@ export function useFirebaseAuth(): FirebaseAuthHook {
           }
       }
       
+      console.log("Setting error message:", errorMessage);
       setError(errorMessage);
       return null;
     }

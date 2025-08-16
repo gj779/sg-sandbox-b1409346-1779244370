@@ -92,23 +92,20 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn() && 
                     (isOwner(userId) || isAdmin());
-                    // Simplified read permission for authenticated users to access their own profiles
       
+      // Simplified create rule for initial user registration
       allow create: if isSignedIn() && 
                       isOwner(userId) && 
-                      isValidUserProfileData(request.resource.data) &&
-                      request.auth.token.email == request.resource.data.email;
-                      // Removed email_verified requirement for initial profile creation
+                      request.auth.token.email == request.resource.data.email &&
+                      request.resource.data.keys().hasAll(['email', 'userType', 'firstName', 'lastName']) &&
+                      (request.resource.data.userType == 'applicant' || request.resource.data.userType == 'restaurant' || request.resource.data.userType == 'admin');
       
       allow update: if isSignedIn() && 
                       (isOwner(userId) || isAdmin()) &&
                       isValidUserProfileData(request.resource.data) &&
                       request.resource.data.email == resource.data.email &&
                       // Prevent userType changes by regular users
-                      (isAdmin() || request.resource.data.userType == resource.data.userType) &&
-                      // Rate limiting: max 10 updates per hour
-                      resource.data.lastUpdated == null ||
-                      request.time > resource.data.lastUpdated + duration.value(3600, 's');
+                      (isAdmin() || request.resource.data.userType == resource.data.userType);
 
       allow delete: if isSignedIn() && isAdmin();
     }

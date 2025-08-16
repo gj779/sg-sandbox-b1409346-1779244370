@@ -21,8 +21,34 @@ service cloud.firestore {
              data.email is string && data.email.matches('.+@.+\\..+') &&
              data.firstName is string && data.firstName.size() > 0 && data.firstName.size() <= 50 &&
              data.lastName is string && data.lastName.size() > 0 && data.lastName.size() <= 50 &&
+             // Optional fields - allow them if present
              (!data.keys().hasAny(['phoneNumber']) || (data.phoneNumber is string && data.phoneNumber.size() <= 20)) &&
-             (!data.keys().hasAny(['bio']) || (data.bio is string && data.bio.size() <= 1000));
+             (!data.keys().hasAny(['bio']) || (data.bio is string && data.bio.size() <= 1000)) &&
+             (!data.keys().hasAny(['displayName']) || (data.displayName is string && data.displayName.size() <= 100)) &&
+             (!data.keys().hasAny(['location']) || (data.location is string && data.location.size() <= 200)) &&
+             (!data.keys().hasAny(['photoURL']) || (data.photoURL is string)) &&
+             (!data.keys().hasAny(['avatarUrl']) || (data.avatarUrl is string)) &&
+             (!data.keys().hasAny(['resumeUrl']) || (data.resumeUrl is string)) &&
+             (!data.keys().hasAny(['preferredLocation']) || (data.preferredLocation is string)) &&
+             (!data.keys().hasAny(['restaurantName']) || (data.restaurantName is string)) &&
+             (!data.keys().hasAny(['contactName']) || (data.contactName is string)) &&
+             (!data.keys().hasAny(['cuisineType']) || (data.cuisineType is string)) &&
+             (!data.keys().hasAny(['restaurantSize']) || (data.restaurantSize is string)) &&
+             (!data.keys().hasAny(['description']) || (data.description is string)) &&
+             (!data.keys().hasAny(['website']) || (data.website is string)) &&
+             (!data.keys().hasAny(['businessName']) || (data.businessName is string)) &&
+             (!data.keys().hasAny(['businessAddress']) || (data.businessAddress is string)) &&
+             (!data.keys().hasAny(['hourlyRate']) || (data.hourlyRate is number && data.hourlyRate >= 0)) &&
+             (!data.keys().hasAny(['experience']) || (data.experience is list)) &&
+             (!data.keys().hasAny(['skills']) || (data.skills is list)) &&
+             (!data.keys().hasAny(['availability']) || (data.availability is list)) &&
+             (!data.keys().hasAny(['education']) || (data.education is list)) &&
+             (!data.keys().hasAny(['isActive']) || (data.isActive is bool)) &&
+             (!data.keys().hasAny(['profileComplete']) || (data.profileComplete is bool)) &&
+             (!data.keys().hasAny(['isVerified']) || (data.isVerified is bool)) &&
+             (!data.keys().hasAny(['createdAt']) || (data.createdAt is timestamp)) &&
+             (!data.keys().hasAny(['updatedAt']) || (data.updatedAt is timestamp)) &&
+             (!data.keys().hasAny(['lastLogin']) || (data.lastLogin is timestamp));
     }
 
     function isValidJobData(data) {

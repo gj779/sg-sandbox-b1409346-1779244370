@@ -159,16 +159,22 @@ export interface JobListing {
   title: string;
   description: string;
   restaurantId: string;
+  restaurantName?: string; // Added for admin display
   location: string;
   salary?: {
     min: number;
     max: number;
     currency: string;
+    amount?: number; // Added for backward compatibility
+    period?: string; // Added for backward compatibility
   };
   requirements: string[];
   responsibilities: string[];
   type: string;
+  jobType?: string; // Added for admin filtering
   status: "open" | "closed";
+  isActive?: boolean; // Added for admin management
+  isApproved?: boolean; // Added for admin approval workflow
   availability: Availability[];
   createdAt: Date;
   updatedAt: Date;

@@ -22,7 +22,14 @@ export default async function handler(
     }
 
     // Check the secret key (this is a simple security measure)
-    const expectedSecretKey = process.env.ADMIN_SECRET_KEY || "staffspace-owner-key";
+    const expectedSecretKey = process.env.ADMIN_SECRET_KEY;
+    if (!expectedSecretKey) {
+      console.error("ADMIN_SECRET_KEY environment variable not set");
+      return res.status(500).json({ 
+        success: false, 
+        message: "Server configuration error. Admin functionality is not available." 
+      });
+    }
     if (secretKey !== expectedSecretKey) {
       return res.status(403).json({ message: "Invalid secret key" });
     }

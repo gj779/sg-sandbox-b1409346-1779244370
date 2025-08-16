@@ -310,54 +310,23 @@ export function useFirebaseAuth(): FirebaseAuthHook {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
         
-        const profile: UserProfile = {
-          id: result.user.uid,
+        // Create a minimal profile that matches Firestore rules exactly
+        const profile = {
           email: result.user.email || "",
           userType,
-          displayName: result.user.displayName || "",
           firstName,
           lastName,
-          phoneNumber: result.user.phoneNumber || undefined,
-          location: undefined,
-          bio: undefined,
-          photoURL: result.user.photoURL || undefined,
-          // Applicant-specific fields
-          experience: [],
-          skills: [],
-          availability: [],
-          hourlyRate: undefined,
-          resumeUrl: undefined,
-          preferredLocation: undefined,
-          education: [],
-          preferences: undefined,
-          // Restaurant-specific fields
-          restaurantName: undefined,
-          contactName: undefined,
-          cuisineType: undefined,
-          restaurantSize: undefined,
-          description: undefined,
-          website: undefined,
-          businessName: undefined,
-          businessAddress: undefined,
-          // Common fields
-          avatarUrl: undefined,
-          createdAt: new Date(), // Will be overwritten by serverTimestamp
-          updatedAt: new Date(), // Will be overwritten by serverTimestamp
-          lastLogin: undefined,
+          // Only include the required fields for initial creation
+          // Optional fields will be added during onboarding
           isActive: true,
           profileComplete: false,
-          // New fields
-          isVerified: false,
-          notifications: undefined,
-          privacySettings: undefined
-        };
-
-        const userRef = doc(db, "users", result.user.uid);
-        await setDoc(userRef, {
-          ...profile,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
-        });
+        };
+
+        console.log("Creating Google user profile document:", profile);
+        const userRef = doc(db, "users", result.user.uid);
+        await setDoc(userRef, profile);
 
         // Fetch the profile back to get the proper server timestamps
         const createdProfile = await fetchUserProfile(result.user.uid);
@@ -371,7 +340,33 @@ export function useFirebaseAuth(): FirebaseAuthHook {
     } catch (error: any) {
       setLoading(false);
       console.error("Error in signInWithGoogle:", error);
-      setError("Google sign in failed. Please try again.");
+      
+      // Set user-friendly error messages based on Firebase error codes
+      let errorMessage = "Google sign in failed. Please try again.";
+      
+      switch (error.code) {
+        case 'auth/account-exists-with-different-credential':
+          errorMessage = 'An account already exists with the same email address but different sign-in credentials. Sign in using a provider associated with this email address.';
+          break;
+        case 'auth/popup-blocked':
+          errorMessage = 'The popup was blocked by your browser. Please allow popups for this website and try again.';
+          break;
+        case 'auth/popup-closed-by-user':
+          errorMessage = 'The sign-in popup was closed before completing the sign in. Please try again.';
+          break;
+        case 'auth/cancelled-popup-request':
+          errorMessage = 'The sign-in operation was cancelled. Please try again.';
+          break;
+        case 'permission-denied':
+          errorMessage = 'Permission denied. There may be an issue with the database rules.';
+          break;
+        default:
+          if (error.message) {
+            errorMessage = error.message;
+          }
+      }
+      
+      setError(errorMessage);
       return null;
     }
   };

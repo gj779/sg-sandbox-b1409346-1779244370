@@ -178,36 +178,22 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       }
       
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Firebase auth successful, fetching profile...");
+      console.log("Firebase auth successful for user:", result.user.uid);
+      
+      // Wait a moment for auth state to propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       const profile = await fetchUserProfile(result.user.uid);
       
       if (!profile) {
-        console.warn("No user profile found, creating basic profile...");
-        // If no profile exists, create a basic one
-        const basicProfile: UserProfile = {
-          id: result.user.uid,
-          email: result.user.email || email,
-          displayName: result.user.displayName || "",
-          userType: UserRole.APPLICANT, // Default role
-          profileComplete: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isActive: true
-        };
-        
-        const userRef = doc(db, "users", result.user.uid);
-        await setDoc(userRef, {
-          ...basicProfile,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-        
+        console.warn("No user profile found for existing user, this might be a sign-up that didn't complete");
+        // Don't create a profile here for existing users - they should sign up properly
         setLoading(false);
-        return basicProfile;
+        throw new Error("Account profile not found. Please contact support or try signing up again.");
       }
       
-      console.log("Sign in successful:", result.user.uid);
+      console.log("Sign in successful with profile:", result.user.uid);
+      setUserProfile(profile);
       setLoading(false);
       return profile;
     } catch (error: any) {
@@ -219,7 +205,7 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       
       switch (error.code) {
         case 'auth/user-not-found':
-          errorMessage = 'No account found with this email address.';
+          errorMessage = 'No account found with this email address. Please sign up first.';
           break;
         case 'auth/wrong-password':
           errorMessage = 'Incorrect password. Please try again.';
@@ -245,8 +231,8 @@ export function useFirebaseAuth(): FirebaseAuthHook {
         case 'auth/missing-password':
           errorMessage = 'Please enter a password.';
           break;
-        case 'auth/weak-password':
-          errorMessage = 'Password is too weak. Please choose a stronger password.';
+        case 'permission-denied':
+          errorMessage = 'Unable to access your profile. Please contact support.';
           break;
         default:
           if (error.message) {

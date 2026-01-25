@@ -81,8 +81,8 @@ export default function ContactPage() {
                 <p className="text-muted-foreground mb-4">
                   For general inquiries and support
                 </p>
-                <a href="mailto:info@staffspace.com" className="text-primary hover:underline">
-                  info@staffspace.com
+                <a href="mailto:info@thestaffspace.com" className="text-primary hover:underline">
+                  info@thestaffspace.com
                 </a>
               </div>
             </CardContent>

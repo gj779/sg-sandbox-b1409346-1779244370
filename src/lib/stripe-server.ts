@@ -47,7 +47,7 @@ try {
 
 // Initialize Stripe with enhanced configuration
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-02-24.acacia',
   typescript: true,
   telemetry: false, // Disable telemetry for privacy
   appInfo: {
@@ -64,7 +64,7 @@ export default stripe;
 export const stripeConfig = {
   publicKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
   secretKey: process.env.STRIPE_SECRET_KEY!,
-  apiVersion: '2024-12-18.acacia' as const,
+  apiVersion: '2025-02-24.acacia' as const,
   
   // Validation helpers
   validateKeys(): boolean {

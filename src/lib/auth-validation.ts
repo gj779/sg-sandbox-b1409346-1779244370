@@ -71,8 +71,8 @@ export function validateSignupData(data: SignupValidationData): ValidationResult
 
   // Validate names
   try {
-    const sanitizedFirstName = securityService.validateAndSanitize(data.firstName, 'name');
-    const sanitizedLastName = securityService.validateAndSanitize(data.lastName, 'name');
+    const sanitizedFirstName = securityService.validateAndSanitize(data.firstName, 'text');
+    const sanitizedLastName = securityService.validateAndSanitize(data.lastName, 'text');
     
     if (sanitizedFirstName.length < 2 || sanitizedLastName.length < 2) {
       errors.push(AUTH_ERROR_MESSAGES.INVALID_NAME);
@@ -212,7 +212,7 @@ export function isStrongPassword(password: string): { isValid: boolean; feedback
 /**
  * Sanitizes user input safely
  */
-export function sanitizeInput(input: string, type: 'email' | 'name' | 'text' = 'text'): string {
+export function sanitizeInput(input: string, type: 'email' | 'text' = 'text'): string {
   try {
     return securityService.validateAndSanitize(input, type);
   } catch (error) {

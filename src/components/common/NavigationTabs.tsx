@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser } from "@/contexts/UserContext";
 
 interface NavigationTabsProps {
-  userType: "applicant" | "restaurant";
+  userType: "applicant" | "restaurant" | "admin";
   className?: string;
 }
 
@@ -28,7 +28,15 @@ export default function NavigationTabs({ userType, className }: NavigationTabsPr
     { value: "messages", label: "Messages", path: "/messaging" },
   ];
 
-  const tabs = userType === "applicant" ? applicantTabs : restaurantTabs;
+  const adminTabs = [
+    { value: "dashboard", label: "Dashboard", path: "/admin/dashboard" },
+    { value: "users", label: "Users", path: "/admin/users" },
+    { value: "jobs", label: "Jobs", path: "/admin/jobs" },
+    { value: "messages", label: "Messages", path: "/admin/contact-messages" },
+    { value: "test-accounts", label: "Test Accounts", path: "/admin/test-accounts" },
+  ];
+
+  const tabs = userType === "applicant" ? applicantTabs : userType === "restaurant" ? restaurantTabs : adminTabs;
   
   const getCurrentTab = () => {
     const path = router.pathname;

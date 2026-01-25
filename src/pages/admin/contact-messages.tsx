@@ -26,7 +26,7 @@ import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 function ContactMessagesPage() {
-  const { userData } = useFirebaseAuth();
+  const { userProfile } = useFirebaseAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,13 +34,13 @@ function ContactMessagesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (userData && userData.role !== "admin") {
+    if (userProfile && userProfile.userType !== "admin") {
       router.push("/");
       return;
     }
 
     loadMessages();
-  }, [userData, router]);
+  }, [userProfile, router]);
 
   const loadMessages = async () => {
     try {
@@ -113,7 +113,7 @@ function ContactMessagesPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title="Contact Messages" userType="admin">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="h-8 w-8 mx-auto mb-4 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
@@ -130,7 +130,7 @@ function ContactMessagesPage() {
         <title>Contact Messages | Admin Dashboard</title>
       </Head>
 
-      <DashboardLayout>
+      <DashboardLayout title="Contact Messages" userType="admin">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -317,7 +317,7 @@ function ContactMessagesPage() {
 
 export default function ContactMessagesPageWrapper() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedUserTypes={['admin']}>
       <ContactMessagesPage />
     </ProtectedRoute>
   );

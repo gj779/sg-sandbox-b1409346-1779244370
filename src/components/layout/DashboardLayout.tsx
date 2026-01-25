@@ -8,7 +8,7 @@ interface DashboardLayoutProps {
   children: ReactNode;
   title: string;
   description?: string;
-  userType: "applicant" | "restaurant";
+  userType: "applicant" | "restaurant" | "admin";
 }
 
 export default function DashboardLayout({

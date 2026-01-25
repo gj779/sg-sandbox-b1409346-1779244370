@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -25,8 +24,10 @@ import {
   MessageSquare, 
   HelpCircle, 
   Send,
-  CheckCircle
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ContactPage() {
   const [name, setName] = useState("");
@@ -36,14 +37,34 @@ export default function ContactPage() {
   const [inquiryType, setInquiryType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError("");
     
-    // In a real app, this would send the form data to a server
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const response = await fetch("/api/contact/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          subject,
+          message,
+          inquiryType,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send message");
+      }
+
       setIsSubmitted(true);
       
       // Reset form
@@ -52,7 +73,12 @@ export default function ContactPage() {
       setSubject("");
       setMessage("");
       setInquiryType("");
-    }, 1500);
+    } catch (err) {
+      console.error("Error submitting form:", err);
+      setError(err instanceof Error ? err.message : "Failed to send message. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -111,6 +137,13 @@ export default function ContactPage() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label htmlFor="name" className="text-sm font-medium">

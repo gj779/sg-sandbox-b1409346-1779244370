@@ -3,6 +3,11 @@
   "buildCommand": "next build",
   "installCommand": "npm install --legacy-peer-deps",
   "regions": ["iad1"],
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--max-old-space-size=4096"
+    }
+  },
   "redirects": [
     {
       "source": "/old-path",

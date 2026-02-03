@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
@@ -64,24 +64,29 @@ export default function AdminReports() {
   const [timeRange, setTimeRange] = useState("30");
   const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!authLoading && user) {
-        const idTokenResult = await user.getIdTokenResult();
-        if (idTokenResult.claims.admin === true) {
-          setIsAdmin(true);
-          fetchReportData();
-        } else {
-          router.push("/");
-        }
-      } else if (!authLoading && !user) {
-        router.push("/auth/admin-login");
-      }
-    };
-    checkAdmin();
-  }, [user, authLoading, router]);
+  const calculateMonthlyGrowth = useCallback((items: (UserDoc | ApplicationDoc)[], months: number) => {
+    const result = [];
+    const now = new Date();
+    
+    for (let i = months - 1; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      
+      const count = items.filter(item => {
+        const createdAt = item.createdAt?.toDate?.() || new Date(0);
+        return createdAt >= monthDate && createdAt < nextMonthDate;
+      }).length;
 
-  const fetchReportData = async () => {
+      result.push({
+        month: monthDate.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+        count,
+      });
+    }
+    
+    return result;
+  }, []);
+
+  const fetchReportData = useCallback(async () => {
     try {
       setLoading(true);
       const daysAgo = parseInt(timeRange);
@@ -156,29 +161,30 @@ export default function AdminReports() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange, calculateMonthlyGrowth]);
 
-  const calculateMonthlyGrowth = (items: (UserDoc | ApplicationDoc)[], months: number) => {
-    const result = [];
-    const now = new Date();
-    
-    for (let i = months - 1; i >= 0; i--) {
-      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-      
-      const count = items.filter(item => {
-        const createdAt = item.createdAt?.toDate?.() || new Date(0);
-        return createdAt >= monthDate && createdAt < nextMonthDate;
-      }).length;
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!authLoading && user) {
+        const idTokenResult = await user.getIdTokenResult();
+        if (idTokenResult.claims.admin === true) {
+          setIsAdmin(true);
+          // fetchReportData will be triggered by the other useEffect when isAdmin becomes true
+        } else {
+          router.push("/");
+        }
+      } else if (!authLoading && !user) {
+        router.push("/auth/admin-login");
+      }
+    };
+    checkAdmin();
+  }, [user, authLoading, router]);
 
-      result.push({
-        month: monthDate.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-        count,
-      });
+  useEffect(() => {
+    if (isAdmin) {
+      fetchReportData();
     }
-    
-    return result;
-  };
+  }, [timeRange, isAdmin, fetchReportData]);
 
   const exportReport = () => {
     if (!reportData) return;
@@ -215,12 +221,6 @@ Rejected: ${reportData.applicationsByStatus.rejected}
     a.click();
     URL.revokeObjectURL(url);
   };
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchReportData();
-    }
-  }, [timeRange, isAdmin]);
 
   if (authLoading || loading) {
     return (

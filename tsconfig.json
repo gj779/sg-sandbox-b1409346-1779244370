@@ -12,7 +12,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "target": "es2017", // Updated target
+    "target": "es2017",
     "plugins": [
       {
         "name": "next"
@@ -22,6 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/utils/testUtils.ts", "src/pages/admin/users/index.jsx", "public/deletemodal-m96d0k77.jsx", "public/deleteaccountmodal-m96cyhzv.jsx", "public/deletemodal-m96cyjjv.jsx", "public/deleteaccount-m96d46d2.jsx", "public/deleteaccountmodal-m96d0j1h.jsx"],
-  "exclude": ["node_modules"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next", "out", "public"]
 }

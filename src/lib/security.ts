@@ -1,6 +1,4 @@
-
 import { z } from 'zod';
-import DOMPurify from 'isomorphic-dompurify';
 
 // Input validation schemas
 export const securitySchemas = {
@@ -53,16 +51,48 @@ export class SecurityService {
     return SecurityService.instance;
   }
 
-  // Sanitize HTML content
+  // Sanitize HTML content - lightweight regex-based approach
   sanitizeHTML(input: string): string {
-    return DOMPurify.sanitize(input, {
-      ALLOWED_TAGS: ['b', 'i', 'u', 'strong', 'em', 'br', 'p'],
-      ALLOWED_ATTR: []
+    if (!input || typeof input !== 'string') {
+      return '';
+    }
+
+    // Define allowed tags
+    const allowedTags = ['b', 'i', 'u', 'strong', 'em', 'br', 'p'];
+    
+    // Remove all HTML tags except allowed ones
+    let sanitized = input;
+    
+    // Remove script tags and their content
+    sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    
+    // Remove style tags and their content
+    sanitized = sanitized.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+    
+    // Remove all event handlers
+    sanitized = sanitized.replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '');
+    sanitized = sanitized.replace(/\son\w+\s*=\s*[^\s>]*/gi, '');
+    
+    // Remove javascript: protocol
+    sanitized = sanitized.replace(/javascript:/gi, '');
+    
+    // Remove data: protocol (can be used for XSS)
+    sanitized = sanitized.replace(/data:/gi, '');
+    
+    // Remove all tags except allowed ones
+    sanitized = sanitized.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tagName) => {
+      return allowedTags.includes(tagName.toLowerCase()) ? match.replace(/\s+[a-z\-]+\s*=\s*["'][^"']*["']/gi, '') : '';
     });
+    
+    return sanitized.trim();
   }
 
   // Sanitize text input
   sanitizeText(input: string): string {
+    if (!input || typeof input !== 'string') {
+      return '';
+    }
+    
     return input
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
       .replace(/javascript:/gi, '') // Remove javascript: protocol
@@ -209,19 +239,25 @@ export class SecurityService {
     console.log('Security Event:', logEntry);
     
     // Store in localStorage for demo (in production, use secure logging service)
-    const existingLogs = JSON.parse(localStorage.getItem('securityLogs') || '[]');
-    existingLogs.push(logEntry);
-    
-    // Keep only last 100 entries
-    if (existingLogs.length > 100) {
-      existingLogs.splice(0, existingLogs.length - 100);
+    if (typeof window !== 'undefined') {
+      const existingLogs = JSON.parse(localStorage.getItem('securityLogs') || '[]');
+      existingLogs.push(logEntry);
+      
+      // Keep only last 100 entries
+      if (existingLogs.length > 100) {
+        existingLogs.splice(0, existingLogs.length - 100);
+      }
+      
+      localStorage.setItem('securityLogs', JSON.stringify(existingLogs));
     }
-    
-    localStorage.setItem('securityLogs', JSON.stringify(existingLogs));
   }
 
   // Rate limiting check (simple client-side implementation)
   checkRateLimit(action: string, maxRequests: number = 5, timeWindow: number = 60000): boolean {
+    if (typeof window === 'undefined') {
+      return true; // Skip rate limiting on server-side
+    }
+    
     const key = `rateLimit_${action}`;
     const now = Date.now();
     

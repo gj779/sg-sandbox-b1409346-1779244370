@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from "next";
 import { getAuth } from "firebase-admin/auth";
 import stripeService from "@/services/stripeService";
@@ -31,6 +30,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const auth = getAuth();
     const decodedToken = await auth.verifyIdToken(token);
     const userId = decodedToken.uid;
+
+    // Check if Firebase Admin is initialized
+    if (!adminDb) {
+      return res.status(503).json({ error: "Firebase Admin is not initialized" });
+    }
 
     // Get the user's payment history from Firestore
     const paymentsRef = adminDb.collection("payments");

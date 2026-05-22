@@ -31,6 +31,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Check if Firebase Admin is initialized
+    if (!adminAuth || !adminDb) {
+      return res.status(503).json({ error: "Firebase Admin is not initialized" });
+    }
+
     // Check if user already exists
     try {
       const userRecord = await adminAuth.getUserByEmail(email);

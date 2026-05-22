@@ -1,4 +1,3 @@
-
 import stripe from "@/lib/stripe-server";
 import { adminDb } from "@/lib/firebase-admin";
 
@@ -140,6 +139,10 @@ const stripeService = {
 
   // Link a Firebase user to a Stripe customer
   async linkUserToCustomer(userId: string, customerId: string) {
+    if (!adminDb) {
+      throw new Error("Firebase Admin is not initialized");
+    }
+
     await adminDb.collection("users").doc(userId).update({
       stripeCustomerId: customerId,
     });
@@ -154,6 +157,10 @@ const stripeService = {
 
   // Get Stripe customer ID for a user
   async getCustomerIdForUser(userId: string) {
+    if (!adminDb) {
+      throw new Error("Firebase Admin is not initialized");
+    }
+
     const userDoc = await adminDb.collection("users").doc(userId).get();
     const userData = userDoc.data();
     

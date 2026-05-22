@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from "next";
 import { getAuth } from "firebase-admin/auth";
 import stripe from "@/lib/stripe-server";
@@ -26,6 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { id } = req.query;
     if (!id || typeof id !== "string") {
       return res.status(400).json({ error: "Invalid invoice ID" });
+    }
+
+    // Check if Firebase Admin is initialized
+    if (!adminDb) {
+      return res.status(503).json({ error: "Firebase Admin is not initialized" });
     }
 
     // Check if the user has access to this invoice

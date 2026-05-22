@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from "next";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
 
@@ -18,6 +17,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Check if Firebase Admin is initialized
+    if (!adminAuth || !adminDb) {
+      return res.status(503).json({ error: "Firebase Admin is not initialized" });
+    }
+
     // Use the admin SDK to find the user
     console.log("Looking for user with email:", ownerEmail);
     

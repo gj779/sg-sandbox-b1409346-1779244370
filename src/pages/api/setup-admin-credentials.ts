@@ -61,6 +61,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     } catch (error) {
       // User doesn't exist, create new admin user
+      // Double-check Firebase Admin is still initialized
+      if (!adminAuth || !adminDb) {
+        return res.status(503).json({ error: "Firebase Admin is not initialized" });
+      }
+
       const userRecord = await adminAuth.createUser({
         email,
         password,

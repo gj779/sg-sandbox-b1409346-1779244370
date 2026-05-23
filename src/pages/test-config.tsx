@@ -1,5 +1,5 @@
 import { GetServerSideProps } from "next";
-import { Layout } from "@/components/layout/Layout";
+import Layout from "@/components/layout/Layout";
 
 interface ConfigPageProps {
   smtpConfig: {

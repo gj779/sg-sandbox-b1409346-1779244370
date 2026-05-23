@@ -119,18 +119,40 @@ export default async function handler(
     // Send email notification
     let emailSent = false;
     let emailError = null;
+    let smtpConfigured = false;
+
+    // Check if SMTP credentials are configured
+    const hasSmtpUser = !!process.env.SMTP_USER;
+    const hasSmtpPassword = !!process.env.SMTP_PASSWORD;
+    const hasSmtpHost = !!process.env.SMTP_HOST;
+    const hasSmtpPort = !!process.env.SMTP_PORT;
+
+    console.log("SMTP Configuration Check:", {
+      hasSmtpUser,
+      hasSmtpPassword,
+      hasSmtpHost,
+      hasSmtpPort,
+      smtpUser: hasSmtpUser ? process.env.SMTP_USER : "NOT SET",
+      smtpHost: hasSmtpHost ? process.env.SMTP_HOST : "NOT SET",
+      smtpPort: hasSmtpPort ? process.env.SMTP_PORT : "NOT SET"
+    });
 
     // Only attempt to send email if SMTP credentials are configured
-    if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+    if (hasSmtpUser && hasSmtpPassword) {
+      smtpConfigured = true;
       try {
         await sendEmailNotification({ name, email, subject, message, inquiryType });
         emailSent = true;
+        console.log("Email notification sent successfully");
       } catch (error) {
         console.error("Email sending failed:", error);
         emailError = error instanceof Error ? error.message : "Unknown error";
       }
     } else {
-      console.warn("SMTP credentials not configured. Email notification skipped.");
+      const missingVars = [];
+      if (!hasSmtpUser) missingVars.push("SMTP_USER");
+      if (!hasSmtpPassword) missingVars.push("SMTP_PASSWORD");
+      console.warn(`SMTP credentials not configured. Missing: ${missingVars.join(", ")}. Email notification skipped.`);
     }
 
     return res.status(200).json({
@@ -139,6 +161,13 @@ export default async function handler(
       messageId: saveResult.id,
       emailSent,
       emailError,
+      smtpConfigured,
+      debug: {
+        hasSmtpUser,
+        hasSmtpPassword,
+        hasSmtpHost,
+        hasSmtpPort
+      }
     });
   } catch (error) {
     console.error("Error processing contact form:", error);

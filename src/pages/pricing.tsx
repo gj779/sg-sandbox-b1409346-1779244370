@@ -1,4 +1,3 @@
-
 import Head from "next/head";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -108,7 +107,7 @@ export default function PricingPage() {
                   <CardTitle>Standard</CardTitle>
                   <CardDescription>For growing restaurants with regular hiring needs</CardDescription>
                   <div className="mt-4">
-                    <span className="text-3xl font-bold">$49</span>
+                    <span className="text-3xl font-bold">$29</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
                 </CardHeader>
@@ -155,7 +154,7 @@ export default function PricingPage() {
                   <CardTitle>Premium</CardTitle>
                   <CardDescription>For restaurants with high-volume hiring needs</CardDescription>
                   <div className="mt-4">
-                    <span className="text-3xl font-bold">$99</span>
+                    <span className="text-3xl font-bold">$49</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
                 </CardHeader>
@@ -211,7 +210,7 @@ export default function PricingPage() {
                   <CardTitle>Basic</CardTitle>
                   <CardDescription>For casual job seekers</CardDescription>
                   <div className="mt-4">
-                    <span className="text-3xl font-bold">$0</span>
+                    <span className="text-3xl font-bold">$1</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
                 </CardHeader>
@@ -261,7 +260,7 @@ export default function PricingPage() {
                   <CardTitle>Premium</CardTitle>
                   <CardDescription>For serious job seekers who want to stand out</CardDescription>
                   <div className="mt-4">
-                    <span className="text-3xl font-bold">$9.99</span>
+                    <span className="text-3xl font-bold">$4.99</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
                 </CardHeader>

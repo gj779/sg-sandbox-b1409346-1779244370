@@ -204,13 +204,13 @@ export default function PricingPage() {
           {/* Job Seeker Plans */}
           <TabsContent value="jobseekers">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Basic Plan */}
+              {/* Free Plan */}
               <Card className="flex flex-col">
                 <CardHeader>
-                  <CardTitle>Basic</CardTitle>
-                  <CardDescription>For casual job seekers</CardDescription>
+                  <CardTitle>Free</CardTitle>
+                  <CardDescription>Browse available positions</CardDescription>
                   <div className="mt-4">
-                    <span className="text-3xl font-bold">$1</span>
+                    <span className="text-3xl font-bold">$0</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
                 </CardHeader>
@@ -218,27 +218,27 @@ export default function PricingPage() {
                   <ul className="space-y-3">
                     <li className="flex items-start">
                       <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                      <span>Create a basic profile</span>
+                      <span>View all job listings</span>
                     </li>
                     <li className="flex items-start">
                       <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                      <span>Apply to unlimited jobs</span>
+                      <span>Browse restaurant profiles</span>
                     </li>
                     <li className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                      <span>Basic job alerts</span>
+                      <X className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">Create profile</span>
+                    </li>
+                    <li className="flex items-start">
+                      <X className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">Apply to jobs</span>
+                    </li>
+                    <li className="flex items-start">
+                      <X className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">Job alerts</span>
                     </li>
                     <li className="flex items-start">
                       <X className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
                       <span className="text-muted-foreground">Featured profile</span>
-                    </li>
-                    <li className="flex items-start">
-                      <X className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
-                      <span className="text-muted-foreground">Early access to new listings</span>
-                    </li>
-                    <li className="flex items-start">
-                      <X className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
-                      <span className="text-muted-foreground">Application insights</span>
                     </li>
                   </ul>
                 </CardContent>
@@ -251,11 +251,58 @@ export default function PricingPage() {
                 </CardFooter>
               </Card>
 
-              {/* Premium Plan */}
-              <Card className="flex flex-col border-primary relative md:col-span-2">
+              {/* Basic Plan */}
+              <Card className="flex flex-col border-primary relative">
                 <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-0">
-                  <Badge variant="default" className="bg-primary">Recommended</Badge>
+                  <Badge variant="default" className="bg-primary">Most Popular</Badge>
                 </div>
+                <CardHeader>
+                  <CardTitle>Basic</CardTitle>
+                  <CardDescription>For active job seekers</CardDescription>
+                  <div className="mt-4">
+                    <span className="text-3xl font-bold">$1</span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Create a profile</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Apply to unlimited jobs</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Basic job alerts</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Track application status</span>
+                    </li>
+                    <li className="flex items-start">
+                      <X className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">Featured profile</span>
+                    </li>
+                    <li className="flex items-start">
+                      <X className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">Early access to listings</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button className="w-full" asChild>
+                    <Link href="/auth/register?type=applicant&plan=basic">
+                      Get Started
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+
+              {/* Premium Plan */}
+              <Card className="flex flex-col">
                 <CardHeader>
                   <CardTitle>Premium</CardTitle>
                   <CardDescription>For serious job seekers who want to stand out</CardDescription>
@@ -265,47 +312,39 @@ export default function PricingPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <ul className="space-y-3">
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>All Basic features</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Featured profile (shown at top of search results)</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Early access to new job listings (24 hours before basic users)</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Application insights (see how you compare to other applicants)</span>
-                      </li>
-                    </ul>
-                    <ul className="space-y-3">
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Enhanced job alerts (customized by location, job type, and salary)</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Read receipts for applications</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Direct messaging with employers</span>
-                      </li>
-                      <li className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span>Resume review and feedback</span>
-                      </li>
-                    </ul>
-                  </div>
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>All Basic features</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Featured profile</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Early access to new listings (24 hours)</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Application insights</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Enhanced job alerts</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Direct messaging with employers</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <span>Resume review</span>
+                    </li>
+                  </ul>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full" asChild>
+                  <Button variant="outline" className="w-full" asChild>
                     <Link href="/auth/register?type=applicant&plan=premium">
                       Get Premium
                     </Link>

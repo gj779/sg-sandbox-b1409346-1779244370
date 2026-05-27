@@ -3,8 +3,8 @@ import Stripe from "stripe";
 import { buffer } from "micro";
 import { adminDb } from "@/lib/firebase-admin";
 import { logger } from "@/lib/logger";
-import { logAuditEvent } from "@/services/auditService";
-import { createNotification } from "@/services/notificationsService";
+import { auditService } from "@/services/auditService";
+import { notificationsService } from "@/services/notificationsService";
 
 // Disable Next.js body parsing — Stripe needs the raw body to verify signatures
 export const config = {
@@ -14,7 +14,7 @@ export const config = {
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia",
+  apiVersion: "2025-02-24.acacia" as any,
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -37,6 +37,11 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (!adminDb) {
+    logger.paymentError("Firebase adminDb is not initialized");
+    return res.status(500).json({ error: "Database not initialized" });
+  }
+
   // Security: Only allow POST requests
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -45,7 +50,7 @@ export default async function handler(
 
   // Security: Verify webhook secret is configured
   if (!webhookSecret) {
-    logger.error("Stripe webhook secret not configured");
+    logger.paymentError("Stripe webhook secret not configured");
     return res.status(500).json({ error: "Webhook not properly configured" });
   }
 
@@ -53,7 +58,7 @@ export default async function handler(
   const sig = req.headers["stripe-signature"];
 
   if (!sig) {
-    logger.warn("Webhook received without signature");
+    logger.paymentWarn("Webhook received without signature");
     return res.status(400).json({ error: "Missing stripe-signature header" });
   }
 
@@ -61,14 +66,14 @@ export default async function handler(
 
   try {
     // Verify webhook signature
-    event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
+    event = stripe.webhooks.constructEvent(buf, sig as string, webhookSecret);
     
-    logger.info("Webhook signature verified", {
+    logger.paymentInfo("Webhook signature verified", {
       eventId: event.id,
       eventType: event.type,
     });
   } catch (err: any) {
-    logger.error("Webhook signature verification failed", {
+    logger.paymentError("Webhook signature verification failed", {
       error: err.message,
     });
     return res.status(400).json({ error: `Webhook Error: ${err.message}` });
@@ -76,7 +81,7 @@ export default async function handler(
 
   // Idempotency: Check if event already processed
   if (processedEvents.has(event.id)) {
-    logger.info("Event already processed (idempotent)", {
+    logger.paymentInfo("Event already processed (idempotent)", {
       eventId: event.id,
     });
     return res.status(200).json({ received: true, duplicate: true });
@@ -98,14 +103,14 @@ export default async function handler(
       data: event.data.object,
     });
 
-    logger.info("Webhook event processed successfully", {
+    logger.paymentInfo("Webhook event processed successfully", {
       eventId: event.id,
       eventType: event.type,
     });
 
     return res.status(200).json({ received: true });
   } catch (err: any) {
-    logger.error("Webhook handler error", {
+    logger.paymentError("Webhook handler error", {
       eventId: event.id,
       eventType: event.type,
       error: err.message,
@@ -125,7 +130,7 @@ export default async function handler(
         data: event.data.object,
       })
       .catch((dbErr) => {
-        logger.error("Failed to store failed webhook event", {
+        logger.paymentError("Failed to store failed webhook event", {
           error: dbErr.message,
         });
       });
@@ -186,21 +191,21 @@ async function processWebhookEvent(event: Stripe.Event) {
     }
 
     default:
-      logger.info("Unhandled webhook event type", { eventType: event.type });
+      logger.paymentInfo("Unhandled webhook event type", { eventType: event.type });
   }
 }
 
 async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.userId;
   if (!userId) {
-    logger.warn("Checkout session missing userId metadata", {
+    logger.paymentWarn("Checkout session missing userId metadata", {
       sessionId: session.id,
     });
     return;
   }
 
   await retryOperation(async () => {
-    await adminDb
+    await adminDb!
       .collection("users")
       .doc(userId)
       .update({
@@ -210,28 +215,30 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       });
 
     // Audit log
-    await logAuditEvent({
+    await auditService.logEvent({
       userId,
       action: "subscription.checkout_completed",
+      resource: "payment",
+      success: true,
+      severity: "info",
+      category: "system",
       details: {
         sessionId: session.id,
         customerId: session.customer,
         amount: session.amount_total,
       },
-      timestamp: new Date(),
     });
 
     // Notify user
-    await createNotification({
+    await notificationsService.createNotification({
       userId,
-      type: "payment",
+      type: "system",
       title: "Subscription Activated",
       message: "Your subscription has been successfully activated. Welcome!",
-      timestamp: new Date(),
-      read: false,
+      isRead: false,
     });
 
-    logger.info("Checkout completed", {
+    logger.paymentInfo("Checkout completed", {
       userId,
       sessionId: session.id,
       customerId: session.customer,
@@ -242,7 +249,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.userId;
   if (!userId) {
-    logger.warn("Subscription missing userId metadata", {
+    logger.paymentWarn("Subscription missing userId metadata", {
       subscriptionId: subscription.id,
     });
     return;
@@ -252,7 +259,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   const planName = subscription.items.data[0]?.price.nickname || "Unknown Plan";
 
   await retryOperation(async () => {
-    await adminDb
+    await adminDb!
       .collection("users")
       .doc(userId)
       .update({
@@ -267,7 +274,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
       });
 
     // Log to payments subcollection
-    await adminDb
+    await adminDb!
       .collection("users")
       .doc(userId)
       .collection("payments")
@@ -282,15 +289,18 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
       });
 
     // Audit log
-    await logAuditEvent({
+    await auditService.logEvent({
       userId,
       action: "subscription.updated",
+      resource: "payment",
+      success: true,
+      severity: "info",
+      category: "system",
       details: {
         subscriptionId: subscription.id,
         status: subscription.status,
         plan: planName,
       },
-      timestamp: new Date(),
     });
 
     // Notify user of important status changes
@@ -303,17 +313,16 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
           ? "Your subscription has been updated successfully."
           : "Your subscription payment is past due. Please update your payment method.";
 
-      await createNotification({
+      await notificationsService.createNotification({
         userId,
-        type: "payment",
+        type: "system",
         title: "Subscription Update",
         message: notificationMessage,
-        timestamp: new Date(),
-        read: false,
+        isRead: false,
       });
     }
 
-    logger.info("Subscription updated", {
+    logger.paymentInfo("Subscription updated", {
       userId,
       subscriptionId: subscription.id,
       status: subscription.status,
@@ -324,14 +333,14 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
 async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.userId;
   if (!userId) {
-    logger.warn("Cancelled subscription missing userId metadata", {
+    logger.paymentWarn("Cancelled subscription missing userId metadata", {
       subscriptionId: subscription.id,
     });
     return;
   }
 
   await retryOperation(async () => {
-    await adminDb
+    await adminDb!
       .collection("users")
       .doc(userId)
       .update({
@@ -342,28 +351,30 @@ async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
       });
 
     // Audit log
-    await logAuditEvent({
+    await auditService.logEvent({
       userId,
       action: "subscription.cancelled",
+      resource: "payment",
+      success: true,
+      severity: "info",
+      category: "system",
       details: {
         subscriptionId: subscription.id,
         cancelledAt: new Date(subscription.canceled_at! * 1000),
       },
-      timestamp: new Date(),
     });
 
     // Notify user
-    await createNotification({
+    await notificationsService.createNotification({
       userId,
-      type: "payment",
+      type: "system",
       title: "Subscription Cancelled",
       message:
         "Your subscription has been cancelled. You'll have access until the end of your billing period.",
-      timestamp: new Date(),
-      read: false,
+      isRead: false,
     });
 
-    logger.info("Subscription cancelled", {
+    logger.paymentInfo("Subscription cancelled", {
       userId,
       subscriptionId: subscription.id,
     });
@@ -374,21 +385,21 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
 
   // Find user by stripeCustomerId
-  const usersSnap = await adminDb
+  const usersSnap = await adminDb!
     .collection("users")
     .where("stripeCustomerId", "==", customerId)
     .limit(1)
     .get();
 
   if (usersSnap.empty) {
-    logger.warn("Payment succeeded for unknown customer", { customerId });
+    logger.paymentWarn("Payment succeeded for unknown customer", { customerId });
     return;
   }
 
   const userId = usersSnap.docs[0].id;
 
   await retryOperation(async () => {
-    await adminDb
+    await adminDb!
       .collection("users")
       .doc(userId)
       .collection("payments")
@@ -403,28 +414,30 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
       });
 
     // Audit log
-    await logAuditEvent({
+    await auditService.logEvent({
       userId,
       action: "payment.succeeded",
+      resource: "payment",
+      success: true,
+      severity: "info",
+      category: "system",
       details: {
         invoiceId: invoice.id,
         amount: invoice.amount_paid,
         currency: invoice.currency,
       },
-      timestamp: new Date(),
     });
 
     // Notify user
-    await createNotification({
+    await notificationsService.createNotification({
       userId,
-      type: "payment",
+      type: "system",
       title: "Payment Successful",
       message: `Your payment of ${(invoice.amount_paid / 100).toFixed(2)} ${invoice.currency.toUpperCase()} was processed successfully.`,
-      timestamp: new Date(),
-      read: false,
+      isRead: false,
     });
 
-    logger.info("Payment succeeded", {
+    logger.paymentInfo("Payment succeeded", {
       userId,
       invoiceId: invoice.id,
       amount: invoice.amount_paid,
@@ -435,21 +448,21 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
 
-  const usersSnap = await adminDb
+  const usersSnap = await adminDb!
     .collection("users")
     .where("stripeCustomerId", "==", customerId)
     .limit(1)
     .get();
 
   if (usersSnap.empty) {
-    logger.warn("Payment failed for unknown customer", { customerId });
+    logger.paymentWarn("Payment failed for unknown customer", { customerId });
     return;
   }
 
   const userId = usersSnap.docs[0].id;
 
   await retryOperation(async () => {
-    await adminDb
+    await adminDb!
       .collection("users")
       .doc(userId)
       .update({
@@ -457,7 +470,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
         updatedAt: new Date(),
       });
 
-    await adminDb
+    await adminDb!
       .collection("users")
       .doc(userId)
       .collection("payments")
@@ -470,30 +483,32 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
       });
 
     // Audit log
-    await logAuditEvent({
+    await auditService.logEvent({
       userId,
       action: "payment.failed",
+      resource: "payment",
+      success: false,
+      severity: "warning",
+      category: "system",
       details: {
         invoiceId: invoice.id,
         amount: invoice.amount_due,
         currency: invoice.currency,
       },
-      timestamp: new Date(),
     });
 
     // Notify user
-    await createNotification({
+    await notificationsService.createNotification({
       userId,
-      type: "payment",
+      type: "system",
       title: "Payment Failed",
       message:
         "Your payment failed. Please update your payment method to avoid service interruption.",
-      timestamp: new Date(),
-      read: false,
-      metadata: { priority: "high" },
+      isRead: false,
+      data: { priority: "high" },
     });
 
-    logger.warn("Payment failed", {
+    logger.paymentWarn("Payment failed", {
       userId,
       invoiceId: invoice.id,
       amount: invoice.amount_due,
@@ -504,7 +519,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 async function handleUpcomingInvoice(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
 
-  const usersSnap = await adminDb
+  const usersSnap = await adminDb!
     .collection("users")
     .where("stripeCustomerId", "==", customerId)
     .limit(1)
@@ -516,16 +531,15 @@ async function handleUpcomingInvoice(invoice: Stripe.Invoice) {
 
   await retryOperation(async () => {
     // Notify user of upcoming charge
-    await createNotification({
+    await notificationsService.createNotification({
       userId,
-      type: "payment",
+      type: "system",
       title: "Upcoming Payment",
       message: `Your subscription will renew on ${new Date(invoice.period_end * 1000).toLocaleDateString()} for ${(invoice.amount_due / 100).toFixed(2)} ${invoice.currency.toUpperCase()}.`,
-      timestamp: new Date(),
-      read: false,
+      isRead: false,
     });
 
-    logger.info("Upcoming invoice notification sent", {
+    logger.paymentInfo("Upcoming invoice notification sent", {
       userId,
       invoiceId: invoice.id,
       amount: invoice.amount_due,
@@ -539,7 +553,7 @@ async function handlePaymentIntentSucceeded(
   const customerId = paymentIntent.customer as string;
   if (!customerId) return;
 
-  const usersSnap = await adminDb
+  const usersSnap = await adminDb!
     .collection("users")
     .where("stripeCustomerId", "==", customerId)
     .limit(1)
@@ -550,7 +564,7 @@ async function handlePaymentIntentSucceeded(
   const userId = usersSnap.docs[0].id;
 
   await retryOperation(async () => {
-    await adminDb
+    await adminDb!
       .collection("users")
       .doc(userId)
       .collection("payments")
@@ -563,18 +577,21 @@ async function handlePaymentIntentSucceeded(
       });
 
     // Audit log
-    await logAuditEvent({
+    await auditService.logEvent({
       userId,
       action: "payment_intent.succeeded",
+      resource: "payment",
+      success: true,
+      severity: "info",
+      category: "system",
       details: {
         paymentIntentId: paymentIntent.id,
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
       },
-      timestamp: new Date(),
     });
 
-    logger.info("Payment intent succeeded", {
+    logger.paymentInfo("Payment intent succeeded", {
       userId,
       paymentIntentId: paymentIntent.id,
     });
@@ -585,7 +602,7 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   const customerId = paymentIntent.customer as string;
   if (!customerId) return;
 
-  const usersSnap = await adminDb
+  const usersSnap = await adminDb!
     .collection("users")
     .where("stripeCustomerId", "==", customerId)
     .limit(1)
@@ -596,7 +613,7 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   const userId = usersSnap.docs[0].id;
 
   await retryOperation(async () => {
-    await adminDb
+    await adminDb!
       .collection("users")
       .doc(userId)
       .collection("payments")
@@ -610,29 +627,31 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
       });
 
     // Audit log
-    await logAuditEvent({
+    await auditService.logEvent({
       userId,
       action: "payment_intent.failed",
+      resource: "payment",
+      success: false,
+      severity: "warning",
+      category: "system",
       details: {
         paymentIntentId: paymentIntent.id,
         amount: paymentIntent.amount,
         error: paymentIntent.last_payment_error?.message,
       },
-      timestamp: new Date(),
     });
 
     // Notify user
-    await createNotification({
+    await notificationsService.createNotification({
       userId,
-      type: "payment",
+      type: "system",
       title: "Payment Failed",
       message: "Your payment could not be processed. Please try again or contact support.",
-      timestamp: new Date(),
-      read: false,
-      metadata: { priority: "high" },
+      isRead: false,
+      data: { priority: "high" },
     });
 
-    logger.warn("Payment intent failed", {
+    logger.paymentWarn("Payment intent failed", {
       userId,
       paymentIntentId: paymentIntent.id,
       error: paymentIntent.last_payment_error?.message,
@@ -653,7 +672,7 @@ async function retryOperation<T>(
       return await operation();
     } catch (error: any) {
       lastError = error;
-      logger.warn("Operation failed, retrying", {
+      logger.paymentWarn("Operation failed, retrying", {
         attempt,
         maxRetries,
         error: error.message,

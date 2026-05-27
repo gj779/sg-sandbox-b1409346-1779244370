@@ -3,6 +3,7 @@ import { getApps, initializeApp, cert, ServiceAccount } from "firebase-admin/app
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { env } from "@/env";
 
 // Initialize Firebase Admin if it hasn't been initialized yet
 if (!getApps().length) {
@@ -20,20 +21,11 @@ if (!getApps().length) {
 
   // If no service account from env, construct from individual env vars
   if (!serviceAccount) {
-    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-
-    if (projectId && clientEmail && privateKey) {
-      serviceAccount = {
-        projectId,
-        clientEmail,
-        privateKey: privateKey.replace(/\\n/g, '\n'),
-      };
-    } else {
-      console.warn("Firebase Admin SDK: Missing required environment variables. Admin features will be disabled.");
-      console.warn("Required: FIREBASE_SERVICE_ACCOUNT_KEY OR (FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY)");
-    }
+    serviceAccount = {
+      projectId: env.FIREBASE_PROJECT_ID,
+      clientEmail: env.FIREBASE_CLIENT_EMAIL,
+      privateKey: env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    };
   }
 
   // Only initialize if we have valid credentials
@@ -41,7 +33,7 @@ if (!getApps().length) {
     try {
       initializeApp({
         credential: cert(serviceAccount),
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        storageBucket: env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
         databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
       });
     } catch (error) {

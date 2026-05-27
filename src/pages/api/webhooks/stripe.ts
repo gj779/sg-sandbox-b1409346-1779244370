@@ -5,6 +5,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { logger } from "@/lib/logger";
 import { auditService } from "@/services/auditService";
 import { notificationsService } from "@/services/notificationsService";
+import { env } from "@/env";
 
 // Disable Next.js body parsing — Stripe needs the raw body to verify signatures
 export const config = {
@@ -13,11 +14,11 @@ export const config = {
   },
 };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-02-24.acacia" as any,
 });
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
 
 // Idempotency: Track processed events to prevent duplicate processing
 const processedEvents = new Map<string, number>();

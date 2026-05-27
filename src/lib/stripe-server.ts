@@ -1,59 +1,21 @@
 import Stripe from 'stripe';
 import { logger } from './logger';
+import { env } from '@/env';
 
 /**
  * Enhanced Stripe server configuration with environment validation and TypeScript support
+ * Note: Environment validation is handled by src/env.ts at build time
  */
 
-// Environment variable validation
-function validateStripeEnvironment(): void {
-  const requiredVars = {
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
-  };
-
-  const missingVars = Object.entries(requiredVars)
-    .filter(([, value]) => !value)
-    .map(([key]) => key);
-
-  if (missingVars.length > 0) {
-    const errorMessage = `Missing required Stripe environment variables: ${missingVars.join(', ')}`;
-    logger.paymentError('Stripe configuration error', new Error(errorMessage));
-    throw new Error(errorMessage);
-  }
-
-  // Validate key formats
-  if (requiredVars.STRIPE_SECRET_KEY && !requiredVars.STRIPE_SECRET_KEY.startsWith('sk_')) {
-    const errorMessage = 'STRIPE_SECRET_KEY must start with "sk_"';
-    logger.paymentError('Invalid Stripe secret key format', new Error(errorMessage));
-    throw new Error(errorMessage);
-  }
-
-  if (requiredVars.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY && !requiredVars.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.startsWith('pk_')) {
-    const errorMessage = 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY must start with "pk_"';
-    logger.paymentError('Invalid Stripe publishable key format', new Error(errorMessage));
-    throw new Error(errorMessage);
-  }
-
-  logger.paymentInfo('Stripe environment validation passed');
-}
-
-// Validate environment on module load
-try {
-  validateStripeEnvironment();
-} catch (error) {
-  logger.paymentError('Failed to initialize Stripe configuration', error);
-}
-
 // Initialize Stripe with enhanced configuration
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-02-24.acacia',
   typescript: true,
   telemetry: false, // Disable telemetry for privacy
   appInfo: {
     name: 'StaffSpace',
     version: '1.0.0',
-    url: 'https://staffspace.vercel.app',
+    url: env.NEXT_PUBLIC_APP_URL,
   },
 });
 
@@ -62,20 +24,10 @@ export default stripe;
 
 // Export configuration utilities
 export const stripeConfig = {
-  publicKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-  secretKey: process.env.STRIPE_SECRET_KEY!,
+  publicKey: env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  secretKey: env.STRIPE_SECRET_KEY,
   apiVersion: '2025-02-24.acacia' as const,
   
-  // Validation helpers
-  validateKeys(): boolean {
-    try {
-      validateStripeEnvironment();
-      return true;
-    } catch {
-      return false;
-    }
-  },
-
   // Environment detection
   isTestMode(): boolean {
     return this.secretKey.includes('test') || this.publicKey.includes('test');
@@ -92,14 +44,13 @@ export const stripeConfig = {
     keysValid: boolean;
     environment: 'test' | 'live' | 'unknown';
   } {
-    const configured = this.validateKeys();
     const testMode = this.isTestMode();
     
     return {
-      configured,
+      configured: true, // env.ts validates at build time
       testMode,
-      keysValid: configured,
-      environment: configured ? (testMode ? 'test' : 'live') : 'unknown',
+      keysValid: true, // env.ts validates at build time
+      environment: testMode ? 'test' : 'live',
     };
   },
 };

@@ -71,6 +71,17 @@ service cloud.firestore {
              (!data.keys().hasAny(['isActive']) || data.isActive is bool);
     }
 
+    function isValidInterviewData(data) {
+      return data.keys().hasAll(['jobId', 'applicantId', 'restaurantId', 'scheduledTime', 'status', 'createdAt']) &&
+             data.jobId is string &&
+             data.applicantId is string &&
+             data.restaurantId is string &&
+             data.scheduledTime is timestamp &&
+             data.status is string &&
+             data.status in ['scheduled', 'confirmed', 'completed', 'cancelled', 'rescheduled'] &&
+             data.createdAt is timestamp;
+    }
+
     // Enhanced application validation - enforces starting state and all required fields
     function isValidApplicationData(data) {
       return data.keys().hasAll(['applicantId', 'restaurantId', 'jobId', 'status', 'timestamp']) &&
@@ -90,17 +101,6 @@ service cloud.firestore {
              data.jobId is string &&
              data.status == 'pending' && // Enforce starting state on creation!
              data.timestamp is timestamp;
-    }
-
-    function isValidInterviewData(data) {
-      return data.keys().hasAll(['jobId', 'applicantId', 'restaurantId', 'scheduledTime', 'status', 'createdAt']) &&
-             data.jobId is string &&
-             data.applicantId is string &&
-             data.restaurantId is string &&
-             data.scheduledTime is timestamp &&
-             data.status is string &&
-             data.status in ['scheduled', 'confirmed', 'completed', 'cancelled', 'rescheduled'] &&
-             data.createdAt is timestamp;
     }
 
     function isValidInterviewCreation(data) {

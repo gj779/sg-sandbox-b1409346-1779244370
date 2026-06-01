@@ -82,27 +82,6 @@ service cloud.firestore {
              data.createdAt is timestamp;
     }
 
-    // Enhanced application validation - enforces starting state and all required fields
-    function isValidApplicationData(data) {
-      return data.keys().hasAll(['applicantId', 'restaurantId', 'jobId', 'status', 'timestamp']) &&
-             data.applicantId is string &&
-             data.restaurantId is string &&
-             data.jobId is string &&
-             data.status is string && 
-             data.status in ['pending', 'reviewed', 'accepted', 'rejected', 'withdrawn'] &&
-             data.timestamp is timestamp;
-    }
-
-    // Strict application creation validation
-    function isValidApplicationCreation(data) {
-      return data.keys().hasAll(['applicantId', 'restaurantId', 'jobId', 'status', 'timestamp']) &&
-             data.applicantId is string &&
-             data.restaurantId is string &&
-             data.jobId is string &&
-             data.status == 'pending' && // Enforce starting state on creation!
-             data.timestamp is timestamp;
-    }
-
     function isValidInterviewCreation(data) {
       return data.keys().hasAll(['jobId', 'applicantId', 'restaurantId', 'scheduledTime', 'status', 'createdAt']) &&
              data.jobId is string &&

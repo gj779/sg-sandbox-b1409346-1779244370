@@ -1,17 +1,27 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
+    // ========================================
+    // HELPER FUNCTIONS
+    // ========================================
+    
+    // Note: Rate limiting cannot be implemented in Firestore rules.
+    // Implement rate limiting in:
+    // - API routes (see src/middleware/apiSecurity.ts)
+    // - Firebase Cloud Functions
+    // - Upstream proxy (Vercel, CloudFlare)
+    
     function isSignedIn() {
       return request.auth != null;
     }
     
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
     
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin';
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
     function isValidUserProfileData(data) {
@@ -159,31 +169,40 @@ service cloud.firestore {
     
     // Applications with enhanced security and existence checks
     match /applications/{applicationId} {
-      allow read: if isSignedIn() && 
-                    (resource.data.applicantId == request.auth.uid || 
-                     resource.data.restaurantId == request.auth.uid || 
-                     isAdmin());
+      function isValidApplicationData(data) {
+        return data.keys().hasAll(['applicantId', 'restaurantId', 'jobId', 'status', 'timestamp']) &&
+               data.applicantId is string &&
+               data.restaurantId is string &&
+               data.jobId is string &&
+               data.status == 'pending' &&
+               data.timestamp is timestamp;
+      }
       
+      // Applicants can create applications
       allow create: if isSignedIn() && 
-                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'applicant' &&
-                      isValidApplicationCreation(request.resource.data) &&
-                      request.resource.data.applicantId == request.auth.uid &&
-                      request.resource.data.timestamp == request.time &&
-                      // Verify job exists before allowing application
-                      exists(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)) &&
-                      // Verify restaurant user exists
-                      exists(/databases/$(database)/documents/users/$(request.resource.data.restaurantId));
+                    get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'applicant' &&
+                    isValidApplicationData(request.resource.data) &&
+                    request.resource.data.applicantId == request.auth.uid &&
+                    request.resource.data.timestamp == request.time &&
+                    exists(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)) &&
+                    exists(/databases/$(database)/documents/users/$(request.resource.data.restaurantId));
       
-      allow update: if isSignedIn() && 
-                      (resource.data.applicantId == request.auth.uid || 
-                       resource.data.restaurantId == request.auth.uid || 
-                       isAdmin()) &&
-                      isValidApplicationData(request.resource.data) &&
-                      request.resource.data.applicantId == resource.data.applicantId &&
-                      request.resource.data.jobId == resource.data.jobId &&
-                      request.resource.data.restaurantId == resource.data.restaurantId;
+      // Read access
+      allow read: if isSignedIn() && (
+                    resource.data.applicantId == request.auth.uid ||
+                    resource.data.restaurantId == request.auth.uid ||
+                    isAdmin()
+                  );
       
-      allow delete: if isSignedIn() && isAdmin();
+      // Update access (status changes only by restaurant or admin)
+      allow update: if isSignedIn() && (
+                      (resource.data.restaurantId == request.auth.uid && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+                      isAdmin()
+                    );
+      
+      // Delete access (admin only)
+      allow delete: if isAdmin();
     }
 
     // Interviews with strict validation

@@ -272,24 +272,33 @@ service cloud.firestore {
       allow update, delete: if false; // Security events are immutable
     }
     
-    // Notifications with enhanced privacy
+    // ========================================
+    // NOTIFICATIONS COLLECTION
+    // ========================================
     match /notifications/{notificationId} {
-      allow read: if isSignedIn() && 
-                    resource.data.userId == request.auth.uid;
+      // SECURITY: Users should NEVER be able to create their own notifications.
+      // This prevents forging fake system messages like "Premium Membership Activated!"
+      // All notifications must be created via:
+      // 1. Admin SDK in Cloud Functions (onCreate triggers, scheduled functions)
+      // 2. Admin dashboard for manual notices
+      // 3. Backend API routes using Admin SDK
       
-      allow create: if isSignedIn() && 
-                      (isAdmin() || 
-                       // Allow system-generated notifications
-                       request.resource.data.userId == request.auth.uid) &&
-                      request.resource.data.createdAt == request.time;
+      // Only admins can manually create notifications
+      allow create: if isSignedIn() && isAdmin();
       
+      // Users can read their own notifications
+      allow read: if isSignedIn() && (
+                    resource.data.userId == request.auth.uid ||
+                    isAdmin()
+                  );
+      
+      // Users can mark their own notifications as read
       allow update: if isSignedIn() && 
-                      resource.data.userId == request.auth.uid &&
-                      // Only allow marking as read/unread
-                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
+                    resource.data.userId == request.auth.uid &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt']);
       
-      allow delete: if isSignedIn() && 
-                      (isAdmin() || resource.data.userId == request.auth.uid);
+      // Only admins can delete notifications
+      allow delete: if isAdmin();
     }
 
     // Payment records (user-specific subcollection)

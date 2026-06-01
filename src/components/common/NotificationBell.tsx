@@ -122,31 +122,14 @@ export default function NotificationBell() {
         const allNotifications = [...applicationNotifications, ...messageNotifications];
         
         // Sort by timestamp (newest first)
-        allNotifications.sort((a, b) => {
-          // Handle Firebase timestamps or Date objects
-          let timeA: number, timeB: number;
-          
-          if (a.timestamp) {
-            timeA = typeof a.timestamp === 'object' && 'toMillis' in a.timestamp && typeof a.timestamp.toMillis === 'function'
-              ? a.timestamp.toMillis() 
-              : new Date(a.timestamp).getTime();
-          } else {
-            timeA = Date.now();
-          }
-          
-          if (b.timestamp) {
-            timeB = typeof b.timestamp === 'object' && 'toMillis' in b.timestamp && typeof b.timestamp.toMillis === 'function'
-              ? b.timestamp.toMillis() 
-              : new Date(b.timestamp).getTime();
-          } else {
-            timeB = Date.now();
-          }
-          
+        const sorted = [...allNotifications].sort((a, b) => {
+          const timeA = a.createdAt?.toMillis() || 0;
+          const timeB = b.createdAt?.toMillis() || 0;
           return timeB - timeA;
         });
-        
-        setNotifications(allNotifications);
-        setUnreadCount(allNotifications.filter(n => !n.read).length);
+
+        setNotifications(sorted);
+        setUnreadCount(sorted.filter(n => !n.read).length);
       } catch (error) {
         console.error("Error fetching notifications:", error);
       }

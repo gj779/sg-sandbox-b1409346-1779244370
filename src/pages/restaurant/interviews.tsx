@@ -184,13 +184,13 @@ export default function RestaurantInterviews() {
     }
     
     // Sort by date (most recent first)
-    result.sort((a, b) => {
-      const dateA = a.date instanceof Date ? a.date.getTime() : 0;
-      const dateB = b.date instanceof Date ? b.date.getTime() : 0;
-      return dateB - dateA;
+    const sorted = [...result].sort((a, b) => {
+      const timeA = a.scheduledTime?.toMillis() || 0;
+      const timeB = b.scheduledTime?.toMillis() || 0;
+      return timeB - timeA;
     });
-    
-    setFilteredInterviews(result);
+
+    setFilteredInterviews(sorted);
   }, [statusFilter, typeFilter, searchTerm]);
 
   // Format date for display

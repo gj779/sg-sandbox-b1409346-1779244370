@@ -193,19 +193,19 @@ export default function RestaurantListings() {
     
     // Apply sorting
     if (sortBy === "newest") {
-      result.sort((a, b) => {
-        const dateA = a.postedDate instanceof Date ? a.postedDate.getTime() : 0;
-        const dateB = b.postedDate instanceof Date ? b.postedDate.getTime() : 0;
-        return dateB - dateA;
+      result = [...result].sort((a, b) => {
+        const timeA = a.createdAt?.toMillis() || 0;
+        const timeB = b.createdAt?.toMillis() || 0;
+        return timeB - timeA;
       });
     } else if (sortBy === "oldest") {
-      result.sort((a, b) => {
-        const dateA = a.postedDate instanceof Date ? a.postedDate.getTime() : 0;
-        const dateB = b.postedDate instanceof Date ? b.postedDate.getTime() : 0;
-        return dateA - dateB;
+      result = [...result].sort((a, b) => {
+        const timeA = a.createdAt?.toMillis() || 0;
+        const timeB = b.createdAt?.toMillis() || 0;
+        return timeA - timeB;
       });
     } else if (sortBy === "applicants") {
-      result.sort((a, b) => b.applicantsCount - a.applicantsCount);
+      result = [...result].sort((a, b) => b.applicantsCount - a.applicantsCount);
     }
     
     setFilteredListings(result);

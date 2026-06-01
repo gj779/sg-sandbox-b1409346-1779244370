@@ -204,17 +204,17 @@ export default function JobApplicantsPage() {
     
     // Apply sorting
     if (sortBy === "match") {
-      result.sort((a, b) => b.matchScore - a.matchScore);
+      result = [...result].sort((a, b) => b.matchScore - a.matchScore);
     } else if (sortBy === "recent") {
-      result.sort((a, b) => {
-        const dateA = a.appliedDate instanceof Date ? a.appliedDate.getTime() : 0;
-        const dateB = b.appliedDate instanceof Date ? b.appliedDate.getTime() : 0;
-        return dateB - dateA;
+      result = [...result].sort((a, b) => {
+        const timeA = a.appliedAt?.toMillis() || 0;
+        const timeB = b.appliedAt?.toMillis() || 0;
+        return timeB - timeA;
       });
     } else if (sortBy === "experience") {
-      result.sort((a, b) => {
-        const expA = parseInt(a.experience.split(" ")[0]) || 0;
-        const expB = parseInt(b.experience.split(" ")[0]) || 0;
+      result = [...result].sort((a, b) => {
+        const expA = a.experienceYears || 0;
+        const expB = b.experienceYears || 0;
         return expB - expA;
       });
     }

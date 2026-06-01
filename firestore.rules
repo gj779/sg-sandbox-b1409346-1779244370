@@ -51,21 +51,57 @@ service cloud.firestore {
     }
 
     function isValidJobData(data) {
-      return data.keys().hasAll(['title', 'description', 'location', 'createdBy']) &&
+      return data.keys().hasAll(['title', 'description', 'location', 'createdBy', 'createdAt']) &&
              data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
              data.description is string && data.description.size() >= 10 && data.description.size() <= 5000 &&
              data.location is string && data.location.size() > 0 && data.location.size() <= 200 &&
              data.createdBy is string &&
-             (!data.keys().hasAny(['salary']) || (data.salary is number && data.salary >= 0 && data.salary <= 1000000));
+             data.createdAt is timestamp &&
+             (!data.keys().hasAny(['salary']) || (data.salary is number && data.salary >= 0 && data.salary <= 1000000)) &&
+             (!data.keys().hasAny(['isActive']) || data.isActive is bool);
     }
 
+    // Enhanced application validation - enforces starting state and all required fields
     function isValidApplicationData(data) {
-      return data.keys().hasAll(['applicantId', 'jobId', 'status']) &&
+      return data.keys().hasAll(['applicantId', 'restaurantId', 'jobId', 'status', 'timestamp']) &&
              data.applicantId is string &&
+             data.restaurantId is string &&
              data.jobId is string &&
              data.status is string && 
              data.status in ['pending', 'reviewed', 'accepted', 'rejected', 'withdrawn'] &&
              data.timestamp is timestamp;
+    }
+
+    // Strict application creation validation
+    function isValidApplicationCreation(data) {
+      return data.keys().hasAll(['applicantId', 'restaurantId', 'jobId', 'status', 'timestamp']) &&
+             data.applicantId is string &&
+             data.restaurantId is string &&
+             data.jobId is string &&
+             data.status == 'pending' && // Enforce starting state on creation!
+             data.timestamp is timestamp;
+    }
+
+    function isValidInterviewData(data) {
+      return data.keys().hasAll(['jobId', 'applicantId', 'restaurantId', 'scheduledTime', 'status', 'createdAt']) &&
+             data.jobId is string &&
+             data.applicantId is string &&
+             data.restaurantId is string &&
+             data.scheduledTime is timestamp &&
+             data.status is string &&
+             data.status in ['scheduled', 'confirmed', 'completed', 'cancelled', 'rescheduled'] &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidInterviewCreation(data) {
+      return data.keys().hasAll(['jobId', 'applicantId', 'restaurantId', 'scheduledTime', 'status', 'createdAt']) &&
+             data.jobId is string &&
+             data.applicantId is string &&
+             data.restaurantId is string &&
+             data.scheduledTime is timestamp &&
+             data.scheduledTime > request.time && // Must be in the future
+             data.status == 'scheduled' && // Enforce starting state
+             data.createdAt is timestamp;
     }
 
     function isValidMessageData(data) {
@@ -74,17 +110,8 @@ service cloud.firestore {
              data.recipientId is string &&
              data.content is string && data.content.size() > 0 && data.content.size() <= 2000 &&
              data.timestamp is timestamp &&
-             (!data.keys().hasAny(['encrypted']) || data.encrypted is bool);
-    }
-
-    // Rate limiting function (simple check)
-    function isWithinRateLimit(userId, collection, maxRequests, timeWindowMinutes) {
-      let recentRequests = query(
-        resource,
-        where('userId', '==', userId),
-        where('timestamp', '>', timestamp.value(request.time.toMillis() - timeWindowMinutes * 60 * 1000))
-      );
-      return recentRequests.size() < maxRequests;
+             (!data.keys().hasAny(['encrypted']) || data.encrypted is bool) &&
+             (!data.keys().hasAny(['conversationId']) || data.conversationId is string);
     }
 
     // User profiles with enhanced security
@@ -109,15 +136,17 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isAdmin();
     }
     
-    // Jobs with enhanced validation
+    // Jobs with enhanced validation and existence checks
     match /jobs/{jobId} {
       allow read: if true; // Jobs are public but with rate limiting in app
       
       allow create: if isSignedIn() && 
                       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'restaurant' || isAdmin()) &&
                       isValidJobData(request.resource.data) &&
-                      request.resource.data.createdBy == request.auth.uid;
-                      // Removed email_verified requirement for job creation
+                      request.resource.data.createdBy == request.auth.uid &&
+                      request.resource.data.createdAt == request.time &&
+                      // Verify restaurant user exists
+                      exists(/databases/$(database)/documents/users/$(request.auth.uid));
       
       allow update: if isSignedIn() && 
                       (resource.data.createdBy == request.auth.uid || isAdmin()) &&
@@ -128,7 +157,7 @@ service cloud.firestore {
                       (resource.data.createdBy == request.auth.uid || isAdmin());
     }
     
-    // Applications with enhanced security
+    // Applications with enhanced security and existence checks
     match /applications/{applicationId} {
       allow read: if isSignedIn() && 
                     (resource.data.applicantId == request.auth.uid || 
@@ -137,10 +166,13 @@ service cloud.firestore {
       
       allow create: if isSignedIn() && 
                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'applicant' &&
-                      isValidApplicationData(request.resource.data) &&
+                      isValidApplicationCreation(request.resource.data) &&
                       request.resource.data.applicantId == request.auth.uid &&
-                      request.resource.data.timestamp == request.time;
-                      // Removed email_verified requirement for applications
+                      request.resource.data.timestamp == request.time &&
+                      // Verify job exists before allowing application
+                      exists(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)) &&
+                      // Verify restaurant user exists
+                      exists(/databases/$(database)/documents/users/$(request.resource.data.restaurantId));
       
       allow update: if isSignedIn() && 
                       (resource.data.applicantId == request.auth.uid || 
@@ -148,12 +180,43 @@ service cloud.firestore {
                        isAdmin()) &&
                       isValidApplicationData(request.resource.data) &&
                       request.resource.data.applicantId == resource.data.applicantId &&
-                      request.resource.data.jobId == resource.data.jobId;
+                      request.resource.data.jobId == resource.data.jobId &&
+                      request.resource.data.restaurantId == resource.data.restaurantId;
       
       allow delete: if isSignedIn() && isAdmin();
     }
+
+    // Interviews with strict validation
+    match /interviews/{interviewId} {
+      allow read: if isSignedIn() && 
+                    (resource.data.applicantId == request.auth.uid || 
+                     resource.data.restaurantId == request.auth.uid || 
+                     isAdmin());
+      
+      allow create: if isSignedIn() && 
+                      (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'restaurant' || isAdmin()) &&
+                      isValidInterviewCreation(request.resource.data) &&
+                      request.resource.data.restaurantId == request.auth.uid &&
+                      request.resource.data.createdAt == request.time &&
+                      // Verify job exists
+                      exists(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)) &&
+                      // Verify applicant exists
+                      exists(/databases/$(database)/documents/users/$(request.resource.data.applicantId));
+      
+      allow update: if isSignedIn() && 
+                      (resource.data.applicantId == request.auth.uid || 
+                       resource.data.restaurantId == request.auth.uid || 
+                       isAdmin()) &&
+                      isValidInterviewData(request.resource.data) &&
+                      request.resource.data.jobId == resource.data.jobId &&
+                      request.resource.data.applicantId == resource.data.applicantId &&
+                      request.resource.data.restaurantId == resource.data.restaurantId;
+      
+      allow delete: if isSignedIn() && 
+                      (resource.data.restaurantId == request.auth.uid || isAdmin());
+    }
     
-    // Messages with encryption support
+    // Messages with encryption support and validation
     match /messages/{messageId} {
       allow read: if isSignedIn() && 
                     (resource.data.senderId == request.auth.uid || 
@@ -162,8 +225,9 @@ service cloud.firestore {
       allow create: if isSignedIn() && 
                       isValidMessageData(request.resource.data) &&
                       request.resource.data.senderId == request.auth.uid &&
-                      request.resource.data.timestamp == request.time;
-                      // Removed email_verified requirement for messages
+                      request.resource.data.timestamp == request.time &&
+                      // Verify recipient exists
+                      exists(/databases/$(database)/documents/users/$(request.resource.data.recipientId));
       
       allow update: if false; // Messages are immutable
       
@@ -179,8 +243,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && 
                       (request.auth.uid in request.resource.data.participants) &&
                       request.resource.data.participants.size() >= 2 &&
-                      request.resource.data.participants.size() <= 10;
-                      // Removed email_verified requirement for conversations
+                      request.resource.data.participants.size() <= 10 &&
+                      request.resource.data.createdAt == request.time;
       
       allow update: if isSignedIn() && 
                       (request.auth.uid in resource.data.participants) &&
@@ -205,7 +269,8 @@ service cloud.firestore {
     match /securityEvents/{eventId} {
       allow read: if isSignedIn() && isAdmin();
       allow create: if isSignedIn() && 
-                      (request.resource.data.userId == request.auth.uid || isAdmin());
+                      (request.resource.data.userId == request.auth.uid || isAdmin()) &&
+                      request.resource.data.timestamp == request.time;
       allow update, delete: if false; // Security events are immutable
     }
     
@@ -217,7 +282,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && 
                       (isAdmin() || 
                        // Allow system-generated notifications
-                       request.resource.data.userId == request.auth.uid);
+                       request.resource.data.userId == request.auth.uid) &&
+                      request.resource.data.createdAt == request.time;
       
       allow update: if isSignedIn() && 
                       resource.data.userId == request.auth.uid &&
@@ -226,6 +292,25 @@ service cloud.firestore {
       
       allow delete: if isSignedIn() && 
                       (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+
+    // Payment records (user-specific subcollection)
+    match /users/{userId}/payments/{paymentId} {
+      allow read: if isSignedIn() && 
+                    (isOwner(userId) || isAdmin());
+      
+      allow create: if isSignedIn() && 
+                      (isAdmin() || isOwner(userId)) &&
+                      request.resource.data.timestamp == request.time;
+      
+      allow update, delete: if isSignedIn() && isAdmin();
+    }
+
+    // Webhook events (system only - for idempotency tracking)
+    match /webhookEvents/{eventId} {
+      allow read: if isSignedIn() && isAdmin();
+      allow create: if request.resource.data.timestamp == request.time;
+      allow update, delete: if false; // Webhook events are immutable
     }
 
     // Data privacy and GDPR compliance
@@ -254,11 +339,18 @@ service cloud.firestore {
                       request.resource.data.subject is string && request.resource.data.subject.size() > 0 && request.resource.data.subject.size() <= 200 &&
                       request.resource.data.message is string && request.resource.data.message.size() > 0 && request.resource.data.message.size() <= 2000 &&
                       request.resource.data.inquiryType is string &&
-                      request.resource.data.status == 'new';
+                      request.resource.data.status == 'new' &&
+                      request.resource.data.submittedAt == request.time;
       
       // Only admins can read and update contact messages
       allow read, update: if isSignedIn() && isAdmin();
       allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // Presence tracking (for online/offline status)
+    match /presence/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isOwner(userId);
     }
   }
 }

@@ -233,22 +233,37 @@ service cloud.firestore {
                       (isAdmin() || resource.data.senderId == request.auth.uid);
     }
     
-    // Conversations with enhanced security
+    // ========================================
+    // CONVERSATIONS COLLECTION
+    // ========================================
     match /conversations/{conversationId} {
-      allow read: if isSignedIn() && 
-                    (request.auth.uid in resource.data.participants);
-      
+      // Participants can create conversations if they're in the participant list
       allow create: if isSignedIn() && 
-                      (request.auth.uid in request.resource.data.participants) &&
-                      request.resource.data.participants.size() >= 2 &&
-                      request.resource.data.participants.size() <= 10 &&
-                      request.resource.data.createdAt == request.time;
+                    request.resource.data.participants.hasAny([request.auth.uid]) &&
+                    request.resource.data.participants.size() >= 2;
       
+      // Participants can read conversations they're part of
+      allow read: if isSignedIn() && (
+                    resource.data.participants.hasAny([request.auth.uid]) ||
+                    isAdmin()
+                  );
+      
+      // SECURITY FIX: Whitelist only specific fields that can be updated
+      // Prevents participants from injecting rogue metadata or tampering with tracking fields
       allow update: if isSignedIn() && 
-                      (request.auth.uid in resource.data.participants) &&
-                      request.resource.data.participants == resource.data.participants;
+                    resource.data.participants.hasAny([request.auth.uid]) &&
+                    // Participants array cannot be changed
+                    request.resource.data.participants == resource.data.participants &&
+                    // Only allow updating these specific fields:
+                    // - updatedAt: timestamp tracking
+                    // - lastMessage: preview text for UI
+                    // - lastMessageTimestamp: sorting/filtering
+                    // - unreadCount: participant-specific counters (nested map)
+                    request.resource.data.diff(resource.data).affectedKeys()
+                      .hasOnly(['updatedAt', 'lastMessage', 'lastMessageTimestamp', 'unreadCount']);
       
-      allow delete: if isSignedIn() && isAdmin();
+      // Only admins can delete conversations
+      allow delete: if isAdmin();
     }
     
     // Audit logs (read-only for users, write for system)

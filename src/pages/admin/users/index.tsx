@@ -50,6 +50,7 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [selectedUserType, setSelectedUserType] = useState<string>("all");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is admin
@@ -60,21 +61,22 @@ export default function AdminUsersPage() {
 
     const fetchUsers = async () => {
       try {
-        setLoadingUsers(true);
-        const usersData = await getAllUsers();
+        setIsLoadingData(true);
+        setError(null);
+        const usersData = await firebaseAdminService.getAllUsers();
         setUsers(usersData);
       } catch (err) {
         console.error('Error fetching users:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch users');
       } finally {
-        setLoadingUsers(false);
+        setIsLoadingData(false);
       }
     };
 
-    if (isAdmin && !isNavigating) {
+    if (userProfile && userProfile.userType === "admin") {
       fetchUsers();
     }
-  }, [isAdmin, isNavigating]); // FIXED: Removed 'users' - only run when admin status changes
+  }, [isLoading, userProfile, router]); // FIXED: Correct dependencies - only run when auth state changes
 
   useEffect(() => {
     // Filter users based on search query and selected user type

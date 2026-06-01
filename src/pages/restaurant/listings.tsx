@@ -194,14 +194,14 @@ export default function RestaurantListings() {
     // Apply sorting
     if (sortBy === "newest") {
       result = [...result].sort((a, b) => {
-        const timeA = a.createdAt?.toMillis() || 0;
-        const timeB = b.createdAt?.toMillis() || 0;
+        const timeA = a.postedDate?.getTime?.() || 0;
+        const timeB = b.postedDate?.getTime?.() || 0;
         return timeB - timeA;
       });
     } else if (sortBy === "oldest") {
       result = [...result].sort((a, b) => {
-        const timeA = a.createdAt?.toMillis() || 0;
-        const timeB = b.createdAt?.toMillis() || 0;
+        const timeA = a.postedDate?.getTime?.() || 0;
+        const timeB = b.postedDate?.getTime?.() || 0;
         return timeA - timeB;
       });
     } else if (sortBy === "applicants") {

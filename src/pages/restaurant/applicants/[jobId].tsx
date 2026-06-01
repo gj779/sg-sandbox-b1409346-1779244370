@@ -207,14 +207,15 @@ export default function JobApplicantsPage() {
       result = [...result].sort((a, b) => b.matchScore - a.matchScore);
     } else if (sortBy === "recent") {
       result = [...result].sort((a, b) => {
-        const timeA = a.appliedAt?.toMillis() || 0;
-        const timeB = b.appliedAt?.toMillis() || 0;
+        const timeA = a.appliedDate?.getTime?.() || 0;
+        const timeB = b.appliedDate?.getTime?.() || 0;
         return timeB - timeA;
       });
     } else if (sortBy === "experience") {
       result = [...result].sort((a, b) => {
-        const expA = a.experienceYears || 0;
-        const expB = b.experienceYears || 0;
+        // Parse experience string "X years" to number
+        const expA = parseInt(a.experience) || 0;
+        const expB = parseInt(b.experience) || 0;
         return expB - expA;
       });
     }

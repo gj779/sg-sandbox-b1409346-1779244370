@@ -185,8 +185,8 @@ export default function RestaurantInterviews() {
     
     // Sort by date (most recent first)
     const sorted = [...result].sort((a, b) => {
-      const timeA = a.scheduledTime?.toMillis() || 0;
-      const timeB = b.scheduledTime?.toMillis() || 0;
+      const timeA = a.date?.getTime?.() || 0;
+      const timeB = b.date?.getTime?.() || 0;
       return timeB - timeA;
     });
 

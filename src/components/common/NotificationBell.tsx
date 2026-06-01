@@ -123,8 +123,8 @@ export default function NotificationBell() {
         
         // Sort by timestamp (newest first)
         const sorted = [...allNotifications].sort((a, b) => {
-          const timeA = a.createdAt?.toMillis() || 0;
-          const timeB = b.createdAt?.toMillis() || 0;
+          const timeA = a.timestamp?.toMillis?.() || 0;
+          const timeB = b.timestamp?.toMillis?.() || 0;
           return timeB - timeA;
         });
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -61,20 +60,21 @@ export default function AdminUsersPage() {
 
     const fetchUsers = async () => {
       try {
-        const allUsers = await firebaseAdminService.getAllUsers();
-        setUsers(allUsers);
-        setFilteredUsers(allUsers);
-      } catch (error) {
-        console.error("Error fetching users:", error);
+        setLoadingUsers(true);
+        const usersData = await getAllUsers();
+        setUsers(usersData);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch users');
       } finally {
-        setIsLoadingData(false);
+        setLoadingUsers(false);
       }
     };
 
-    if (userProfile?.userType === "admin") {
+    if (isAdmin && !isNavigating) {
       fetchUsers();
     }
-  }, [isLoading, userProfile, router]);
+  }, [isAdmin, isNavigating]); // FIXED: Removed 'users' - only run when admin status changes
 
   useEffect(() => {
     // Filter users based on search query and selected user type

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { firebaseJobsService, JobListing, JobListingInput } from "@/services/firebaseJobs";
 import { firebaseApplicationsService, JobApplication, JobApplicationInput } from "@/services/firebaseApplications";
 

@@ -266,16 +266,26 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
-    // Audit logs (read-only for users, write for system)
+    // ========================================
+    // AUDIT LOGS COLLECTION
+    // ========================================
     match /auditLogs/{logId} {
+      // SECURITY: Users should NEVER be able to create their own audit logs.
+      // This defeats the purpose of audit trails - users could forge entries to hide malicious activity.
+      // All audit logs must be created via:
+      // 1. Admin SDK in Cloud Functions (triggered by user actions)
+      // 2. Backend API routes using Admin SDK
+      // 3. Webhook handlers (e.g., Stripe webhook creates payment audit logs)
+      
+      // Users can read their own audit logs
       allow read: if isSignedIn() && 
                     (resource.data.userId == request.auth.uid || isAdmin());
       
-      allow create: if isSignedIn() &&
-                      request.resource.data.userId == request.auth.uid &&
-                      request.resource.data.timestamp == request.time;
+      // Only admin/system can create audit logs (via Admin SDK)
+      allow create: if isSignedIn() && isAdmin();
       
-      allow update, delete: if false; // Audit logs are immutable
+      // Audit logs are immutable
+      allow update, delete: if false;
     }
     
     // Security events (admin only)

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,14 +32,24 @@ export default function TutorialGuide({
   onOpenChange 
 }: TutorialGuideProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const [highlightedElement, setHighlightedElement] = useState<HTMLElement | null>(null);
+  const highlightedElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
+    // Clean up previous highlight before adding new one
+    if (highlightedElementRef.current) {
+      try {
+        highlightedElementRef.current.classList.remove('tutorial-highlight');
+      } catch (error) {
+        console.error('Error removing previous highlight:', error);
+      }
+      highlightedElementRef.current = null;
+    }
+
     if (isOpen && steps[currentStep]?.targetElement) {
       try {
         const element = document.querySelector(steps[currentStep].targetElement!) as HTMLElement;
         if (element) {
-          setHighlightedElement(element);
+          highlightedElementRef.current = element;
           element.classList.add('tutorial-highlight');
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -49,21 +59,22 @@ export default function TutorialGuide({
     }
 
     return () => {
-      if (highlightedElement) {
+      if (highlightedElementRef.current) {
         try {
-          highlightedElement.classList.remove('tutorial-highlight');
+          highlightedElementRef.current.classList.remove('tutorial-highlight');
         } catch (error) {
           console.error('Error removing highlight class:', error);
         }
-        setHighlightedElement(null);
+        highlightedElementRef.current = null;
       }
     };
-  }, [currentStep, isOpen, steps, highlightedElement]);
+  }, [currentStep, isOpen, steps]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
-      if (highlightedElement) {
-        highlightedElement.classList.remove("tutorial-highlight");
+      if (highlightedElementRef.current) {
+        highlightedElementRef.current.classList.remove("tutorial-highlight");
+        highlightedElementRef.current = null;
       }
       setCurrentStep(currentStep + 1);
     } else {
@@ -73,16 +84,18 @@ export default function TutorialGuide({
 
   const handlePrevious = () => {
     if (currentStep > 0) {
-      if (highlightedElement) {
-        highlightedElement.classList.remove("tutorial-highlight");
+      if (highlightedElementRef.current) {
+        highlightedElementRef.current.classList.remove("tutorial-highlight");
+        highlightedElementRef.current = null;
       }
       setCurrentStep(currentStep - 1);
     }
   };
 
   const handleComplete = () => {
-    if (highlightedElement) {
-      highlightedElement.classList.remove("tutorial-highlight");
+    if (highlightedElementRef.current) {
+      highlightedElementRef.current.classList.remove("tutorial-highlight");
+      highlightedElementRef.current = null;
     }
     onComplete();
     onOpenChange(false);
@@ -90,8 +103,9 @@ export default function TutorialGuide({
   };
 
   const handleSkip = () => {
-    if (highlightedElement) {
-      highlightedElement.classList.remove("tutorial-highlight");
+    if (highlightedElementRef.current) {
+      highlightedElementRef.current.classList.remove("tutorial-highlight");
+      highlightedElementRef.current = null;
     }
     onComplete();
     onOpenChange(false);

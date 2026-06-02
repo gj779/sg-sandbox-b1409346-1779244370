@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -28,15 +27,15 @@ import Image from "next/image";
 const formSchema = z.object({
   restaurantName: z.string().min(2, "Restaurant name must be at least 2 characters."),
   description: z.string().min(10, "Description must be at least 10 characters."),
-  cuisineType: z.string().min(1, "Please select a cuisine type."),
+  cuisineType: z.string().min(1, "Please select a cuisine type.").optional().or(z.literal("")),
   address: z.string().min(5, "Address must be at least 5 characters."),
   city: z.string().min(2, "City must be at least 2 characters."),
   state: z.string().min(2, "State must be at least 2 characters."),
   zipCode: z.string().min(5, "Zip code must be at least 5 characters."),
   phone: z.string().min(10, "Phone number must be at least 10 characters."),
   website: z.string().url("Please enter a valid URL.").or(z.string().length(0)),
-  openingHours: z.string().min(1, "Please enter opening hours."),
-  closingHours: z.string().min(1, "Please enter closing hours."),
+  openingHours: z.string().min(1, "Please enter opening hours.").optional().or(z.literal("")),
+  closingHours: z.string().min(1, "Please enter closing hours.").optional().or(z.literal("")),
   acceptsReservations: z.boolean().default(false),
   hasDelivery: z.boolean().default(false),
   hasTakeout: z.boolean().default(false),

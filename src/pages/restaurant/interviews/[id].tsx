@@ -77,19 +77,35 @@ export default function InterviewDetailsPage() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [interview, setInterview] = useState(mockInterview);
   const [newNote, setNewNote] = useState("");
-  const [interviewNotes, setInterviewNotes] = useState<string[]>([]);
+
+  // Use router events for navigation state
+  useEffect(() => {
+    const handleStart = () => setIsNavigating(true);
+    const handleStop = () => setIsNavigating(false);
+
+    router.events.on('routeChangeStart', handleStart);
+    router.events.on('routeChangeComplete', handleStop);
+    router.events.on('routeChangeError', handleStop);
+
+    return () => {
+      router.events.off('routeChangeStart', handleStart);
+      router.events.off('routeChangeComplete', handleStop);
+      router.events.off('routeChangeError', handleStop);
+    };
+  }, [router]);
 
   // Check if user is authenticated
   useEffect(() => {
     let mounted = true;
     
+    // Wait for router to be ready before using id
+    if (!router.isReady) return;
+    
     // Only redirect if we've finished loading and the user is not authenticated
     if (!isLoading && !isAuthenticated && mounted && !isNavigating) {
-      setIsNavigating(true);
       router.push(`/auth/login?redirect=/restaurant/interviews/${id}`)
         .catch(err => {
           console.error("Navigation error:", err);
-          if (mounted) setIsNavigating(false);
         });
     }
     
@@ -101,34 +117,12 @@ export default function InterviewDetailsPage() {
     return () => {
       mounted = false;
     };
-  }, [isAuthenticated, isLoading, router, isNavigating, id]);
+  }, [isAuthenticated, isLoading, router, router.isReady, isNavigating, id]);
 
   // Safe navigation function
   const safeNavigate = (path: string) => {
     if (isNavigating) return;
-    
-    try {
-      setIsNavigating(true);
-      
-      // Use direct window.location for critical paths to avoid router issues
-      if (path === "/restaurant/dashboard" || path.includes("/auth/login")) {
-        window.location.href = path;
-        return;
-      }
-      
-      router.push(path)
-        .then(() => {
-          // Navigation successful
-          console.log(`Navigation to ${path} successful`);
-        })
-        .catch(err => {
-          console.error(`Navigation error for path ${path}:`, err);
-          setIsNavigating(false);
-        });
-    } catch (error) {
-      console.error('Navigation error:', error);
-      setIsNavigating(false);
-    }
+    router.push(path).catch(err => console.error("Navigation error:", err));
   };
 
   // Format date for display
@@ -213,7 +207,10 @@ export default function InterviewDetailsPage() {
   // Add a new note
   const addNote = () => {
     if (newNote.trim()) {
-      setInterviewNotes([...interviewNotes, newNote.trim()]);
+      setInterview(prev => ({
+        ...prev,
+        interviewNotes: [...prev.interviewNotes, newNote.trim()]
+      }));
       setNewNote("");
     }
   };
@@ -439,13 +436,13 @@ export default function InterviewDetailsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {interviewNotes.length === 0 ? (
+                {interview.interviewNotes.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">No notes have been added yet.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {interviewNotes.map((note, index) => (
+                    {interview.interviewNotes.map((note, index) => (
                       <div key={index} className="border rounded-md p-4">
                         <div className="flex justify-between items-start">
                           <p>{note}</p>

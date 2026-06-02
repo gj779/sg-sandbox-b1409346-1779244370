@@ -106,17 +106,31 @@ export default function RestaurantInterviews() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredInterviews, setFilteredInterviews] = useState(mockInterviews);
 
+  // Use router events for navigation state
+  useEffect(() => {
+    const handleStart = () => setIsNavigating(true);
+    const handleStop = () => setIsNavigating(false);
+
+    router.events.on('routeChangeStart', handleStart);
+    router.events.on('routeChangeComplete', handleStop);
+    router.events.on('routeChangeError', handleStop);
+
+    return () => {
+      router.events.off('routeChangeStart', handleStart);
+      router.events.off('routeChangeComplete', handleStop);
+      router.events.off('routeChangeError', handleStop);
+    };
+  }, [router]);
+
   // Check if user is authenticated
   useEffect(() => {
     let mounted = true;
     
     // Only redirect if we've finished loading and the user is not authenticated
     if (!isLoading && !isAuthenticated && mounted && !isNavigating) {
-      setIsNavigating(true);
       router.push("/auth/login?redirect=/restaurant/interviews")
         .catch(err => {
           console.error("Navigation error:", err);
-          if (mounted) setIsNavigating(false);
         });
     }
     
@@ -133,29 +147,7 @@ export default function RestaurantInterviews() {
   // Safe navigation function
   const safeNavigate = (path: string) => {
     if (isNavigating) return;
-    
-    try {
-      setIsNavigating(true);
-      
-      // Use direct window.location for critical paths to avoid router issues
-      if (path === "/restaurant/dashboard" || path.includes("/auth/login")) {
-        window.location.href = path;
-        return;
-      }
-      
-      router.push(path)
-        .then(() => {
-          // Navigation successful
-          console.log(`Navigation to ${path} successful`);
-        })
-        .catch(err => {
-          console.error(`Navigation error for path ${path}:`, err);
-          setIsNavigating(false);
-        });
-    } catch (error) {
-      console.error('Navigation error:', error);
-      setIsNavigating(false);
-    }
+    router.push(path).catch(err => console.error("Navigation error:", err));
   };
 
   // Apply filters

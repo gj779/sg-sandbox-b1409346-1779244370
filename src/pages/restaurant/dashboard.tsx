@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
@@ -172,17 +171,31 @@ export default function RestaurantDashboard() {
   // Get the user's name safely
   const userName = userProfile?.firstName || "User";
 
+  // Use router events for navigation state
+  useEffect(() => {
+    const handleStart = () => setIsNavigating(true);
+    const handleStop = () => setIsNavigating(false);
+
+    router.events.on('routeChangeStart', handleStart);
+    router.events.on('routeChangeComplete', handleStop);
+    router.events.on('routeChangeError', handleStop);
+
+    return () => {
+      router.events.off('routeChangeStart', handleStart);
+      router.events.off('routeChangeComplete', handleStop);
+      router.events.off('routeChangeError', handleStop);
+    };
+  }, [router]);
+
   // Check if user is authenticated
   useEffect(() => {
     let mounted = true;
     
     // Only redirect if we've finished loading and the user is not authenticated
     if (!isLoading && !isAuthenticated && mounted && !isNavigating) {
-      setIsNavigating(true);
       router.push("/auth/login?redirect=/restaurant/dashboard")
         .catch(err => {
           console.error("Navigation error:", err);
-          if (mounted) setIsNavigating(false);
         });
     }
     
@@ -199,35 +212,12 @@ export default function RestaurantDashboard() {
   // Safe navigation function
   const safeNavigate = (path: string) => {
     if (isNavigating) return;
-    
-    try {
-      setIsNavigating(true);
-      
-      // Use router.push for internal navigation to preserve state
-      router.push(path)
-        .then(() => {
-          console.log(`Navigation to ${path} successful`);
-          // Reset navigating state on success, maybe after a short delay
-          // setTimeout(() => setIsNavigating(false), 100); 
-        })
-        .catch(err => {
-          console.error(`Navigation error for path ${path}:`, err);
-          setIsNavigating(false); // Reset on error
-        });
-      // It might be better to reset isNavigating in a finally block
-      // or rely on component unmount/remount if navigation is successful
-      // For now, let's reset on error only to avoid potential issues.
-
-    } catch (error) {
-      console.error('Navigation error:', error);
-      setIsNavigating(false);
-    }
+    router.push(path).catch(err => console.error("Navigation error:", err));
   };
 
+  // Check tutorial status in useEffect
   useEffect(() => {
-    // Check if this is the first visit to show tutorial
-    // Only run this if the user is authenticated and we're not loading
-    if (!isLoading && isAuthenticated && typeof window !== "undefined") {
+    if (!isLoading && isAuthenticated) {
       try {
         const hasSeenTutorial = localStorage.getItem("restaurant-tutorial-completed");
         if (!hasSeenTutorial) {
@@ -243,9 +233,7 @@ export default function RestaurantDashboard() {
 
   const handleTutorialComplete = () => {
     try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("restaurant-tutorial-completed", "true");
-      }
+      localStorage.setItem("restaurant-tutorial-completed", "true");
       setTutorialCompleted(true);
       setShowTutorial(false);
     } catch (error) {
@@ -679,14 +667,12 @@ export default function RestaurantDashboard() {
       </div>
 
       {/* Tutorial Guide */}
-      {typeof window !== "undefined" && (
-        <TutorialGuide
-          steps={tutorialSteps}
-          onComplete={handleTutorialComplete}
-          isOpen={showTutorial}
-          onOpenChange={setShowTutorial}
-        />
-      )}
+      <TutorialGuide
+        steps={tutorialSteps}
+        onComplete={handleTutorialComplete}
+        isOpen={showTutorial}
+        onOpenChange={setShowTutorial}
+      />
     </ErrorBoundary>
   );
 }

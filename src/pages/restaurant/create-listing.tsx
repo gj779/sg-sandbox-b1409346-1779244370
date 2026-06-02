@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
@@ -18,8 +17,8 @@ const jobListingSchema = z.object({
   description: z.string().min(1, "Description is required"),
   location: z.string().min(1, "Location is required"),
   salary: z.object({
-    min: z.number().min(0),
-    max: z.number().min(0),
+    min: z.coerce.number().min(0),
+    max: z.coerce.number().min(0),
     currency: z.string(),
   }),
   requirements: z.array(z.string()),

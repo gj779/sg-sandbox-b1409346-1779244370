@@ -55,7 +55,10 @@ const jobCategoryData = [
 const RADIAN = Math.PI / 180;
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
   try {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    // Safe type casting to prevent NaN when Recharts passes undefined/string values
+    const iR = Number(innerRadius) || 0;
+    const oR = Number(outerRadius) || 0;
+    const radius = iR + (oR - iR) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -75,7 +78,6 @@ interface AnalyticsDashboardProps {
 }
 
 export default function AnalyticsDashboard({ userType }: AnalyticsDashboardProps) {
-  const [timeRange, setTimeRange] = useState('week');
   
   // Stats cards data based on user type
   const statsCards = userType === 'applicant' 
@@ -174,8 +176,8 @@ export default function AnalyticsDashboard({ userType }: AnalyticsDashboardProps
                         fill='#8884d8'
                         dataKey='value'
                       >
-                        {applicationStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        {applicationStatusData.map((entry) => (
+                          <Cell key={entry.name} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -211,8 +213,8 @@ export default function AnalyticsDashboard({ userType }: AnalyticsDashboardProps
                           fill='#8884d8'
                           dataKey='value'
                         >
-                          {jobCategoryData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          {jobCategoryData.map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} />
                           ))}
                         </Pie>
                         <Tooltip />
@@ -259,8 +261,8 @@ export default function AnalyticsDashboard({ userType }: AnalyticsDashboardProps
                             { name: "Mid Level", value: 30, color: "#8b5cf6" },
                             { name: "Senior", value: 15, color: "#f59e0b" },
                             { name: "Executive", value: 10, color: "#10b981" }
-                          ].map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ].map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} />
                           ))}
                         </Pie>
                         <Tooltip />

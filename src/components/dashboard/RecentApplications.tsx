@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, MapPin, MessageSquare, FileText, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useUser } from "@/contexts/UserContext";
 
 // Application status types
 type ApplicationStatus = 
@@ -66,7 +65,6 @@ export default function RecentApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user, isAuthenticated } = useUser();
 
   // Fetch applications - using mock data for now to ensure stability
   useEffect(() => {
@@ -255,21 +253,21 @@ export default function RecentApplications() {
                       </div>
                     </div>
                     <div className="flex gap-2 self-end md:self-center">
-                      <Link href={`/messaging?conversation=${application.restaurantName}`}>
-                        <Button variant="outline" size="sm" className="relative">
+                      <Button variant="outline" size="sm" className="relative" asChild>
+                        <Link href={`/messaging?conversation=${application.restaurantName}`}>
                           <MessageSquare className="h-4 w-4 mr-1" />
                           Message
                           {application.hasUnreadMessages && (
                             <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
                           )}
-                        </Button>
-                      </Link>
-                      <Link href={`/applications/${application.id}`}>
-                        <Button size="sm">
+                        </Link>
+                      </Button>
+                      <Button size="sm" asChild>
+                        <Link href={`/applications/${application.id}`}>
                           Details
                           <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button>
                     </div>
                   </div>
                 </div>

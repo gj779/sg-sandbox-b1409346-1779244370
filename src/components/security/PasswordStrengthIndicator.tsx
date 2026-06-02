@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import zxcvbn from 'zxcvbn';
 import { AlertTriangle } from 'lucide-react';
 
@@ -7,16 +7,9 @@ interface PasswordStrengthIndicatorProps {
 }
 
 export default function PasswordStrengthIndicator({ password }: PasswordStrengthIndicatorProps) {
-  const [passwordAnalysis, setPasswordAnalysis] = useState<any | null>(null);
-
-  const analyzePassword = () => {
-    if (password) {
-      const result = zxcvbn(password);
-      setPasswordAnalysis(result);
-    } else {
-      setPasswordAnalysis(null);
-    }
-  };
+  const passwordAnalysis = useMemo(() => {
+    return password ? zxcvbn(password) : null;
+  }, [password]);
 
   const getStrengthColor = (score: number) => {
     switch (score) {

@@ -23,7 +23,6 @@ import { UserProfile, UserRole } from "@/types";
 interface FirebaseAuthHook {
   user: FirebaseUser | null;
   userProfile: UserProfile | null;
-  loading: boolean;
   isLoading: boolean;
   error: string | null;
   signUp: (email: string, password: string, firstName: string, lastName: string, userType: UserRole, phoneNumber?: string) => Promise<UserProfile | null>;
@@ -433,7 +432,6 @@ export function useFirebaseAuth(): FirebaseAuthHook {
   return {
     user,
     userProfile,
-    loading,
     isLoading: loading,
     error,
     signUp,

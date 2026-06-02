@@ -57,7 +57,7 @@ interface ApplicationDoc {
 }
 
 export default function AdminReports() {
-  const { user, loading: authLoading } = useFirebaseAuth();
+  const { user, isLoading: authLoading } = useFirebaseAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<ReportData | null>(null);

@@ -1,11 +1,10 @@
-
 import { useAuth } from "@/hooks/useFirebaseAuth";
 import { Button } from "@/components/ui/button";
 import FileBrowser from "@/components/file-storage/FileBrowser";
 import { FileMetadata } from "@/types";
 
 export default function FileManagementPage() {
-  const { user, loading } = useAuth();
+  const { user, isLoading: loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;

@@ -41,32 +41,32 @@ export default function NotificationBell() {
         let applicationNotifications: Notification[] = [];
         
         if (userProfile.userType === "restaurant") {
-          const applications = await applicationsService.getApplicationsByRestaurant(userProfile.id as string);
+          const applications = await applicationsService.getApplicationsByRestaurantId(userProfile.id as string);
           // Only get recent applications (last 7 days)
           const recentApplications = applications.filter(app => {
             // Handle the appliedAt date properly
             let appDate: Date;
             
             // First check if appliedAt exists
-            if (!app.appliedAt) {
+            if (!app.createdAt) {
               return false;
             }
             
             // Then handle different types of date values
-            if (typeof app.appliedAt === 'object' && app.appliedAt !== null) {
+            if (typeof app.createdAt === 'object' && app.createdAt !== null) {
               // Check if it's a Firebase timestamp with toDate method
-              if ('toDate' in app.appliedAt && typeof app.appliedAt.toDate === 'function') {
-                appDate = app.appliedAt.toDate();
-              } else if (app.appliedAt instanceof Date) {
+              if ('toDate' in app.createdAt && typeof app.createdAt.toDate === 'function') {
+                appDate = app.createdAt.toDate();
+              } else if (app.createdAt instanceof Date) {
                 // It's already a Date object
-                appDate = app.appliedAt;
+                appDate = app.createdAt;
               } else {
                 // Try to convert to Date
-                appDate = new Date(app.appliedAt);
+                appDate = new Date(app.createdAt);
               }
             } else {
               // It's a string or number, convert to Date
-              appDate = new Date(app.appliedAt);
+              appDate = new Date(app.createdAt);
             }
             
             // Check if the date is valid
@@ -80,24 +80,24 @@ export default function NotificationBell() {
           });
           
           applicationNotifications = recentApplications.map(app => ({
-            id: app.id,
+            id: app.id || '',
             title: "New Application",
             message: `You have a new application for job ID: ${app.jobId}`,
             type: "application",
             read: false,
-            timestamp: app.appliedAt,
+            timestamp: app.createdAt,
             link: `/restaurant/applications/${app.id}`
           }));
         } else if (userProfile.userType === "applicant") {
-          const applications = await applicationsService.getApplicationsByApplicant(userProfile.id as string);
+          const applications = await applicationsService.getApplicationsByApplicantId(userProfile.id as string);
           // Only get applications with status updates
           const updatedApplications = applications.filter(app => 
             app.status.toLowerCase() !== "pending" && 
-            app.updatedAt !== app.appliedAt
+            app.updatedAt !== app.createdAt
           );
           
           applicationNotifications = updatedApplications.map(app => ({
-            id: app.id,
+            id: app.id || '',
             title: `Application ${app.status.charAt(0).toUpperCase() + app.status.slice(1)}`,
             message: `Your application status has been updated to: ${app.status}`,
             type: "application",
@@ -207,78 +207,6 @@ export default function NotificationBell() {
       return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
     } else {
       return date.toLocaleDateString();
-    }
-  };
-
-  // Handle view application
-  const handleViewApplication = async (app: JobApplication) => {
-    // Mark notification as read if there is one related to this application
-    const relatedNotification = notifications.find(
-      n => n.entityId === app.id && n.type === "application_received"
-    );
-
-    if (relatedNotification) {
-      await notificationsService.markAsRead(relatedNotification.id);
-    }
-
-    // Depending on user role, navigate appropriately
-    if (userProfile?.userType === "applicant") {
-      window.location.href = `/applications/${app.id}`;
-    } else if (userProfile?.userType === "restaurant") {
-      window.location.href = `/restaurant/applicants/${app.jobId}`;
-    }
-  };
-
-  // Handle interview actions
-  const handleViewInterview = async (app: JobApplication) => {
-    // Mark notification as read
-    const relatedNotification = notifications.find(
-      n => n.entityId === app.id && (n.type === "interview_scheduled" || n.type === "interview_reminder")
-    );
-
-    if (relatedNotification) {
-      await notificationsService.markAsRead(relatedNotification.id);
-    }
-
-    // Navigate to interview details
-    if (userProfile?.userType === "applicant") {
-      window.location.href = `/applicant/interviews/${app.id}`;
-    } else if (userProfile?.userType === "restaurant") {
-      window.location.href = `/restaurant/interviews/${app.id}`;
-    }
-  };
-
-  const handleAcceptInterview = async (app: JobApplication) => {
-    try {
-      await applicationsService.updateApplication(app.id, {
-        status: "Interview Scheduled"
-      });
-      // Mark notification as read
-      const relatedNotification = notifications.find(
-        n => n.entityId === app.id && n.type === "interview_scheduled"
-      );
-      if (relatedNotification) {
-        await notificationsService.markAsRead(relatedNotification.id);
-      }
-    } catch (error) {
-      console.error("Error accepting interview:", error);
-    }
-  };
-
-  const handleDeclineInterview = async (app: JobApplication) => {
-    try {
-      await applicationsService.updateApplication(app.id, {
-        status: "Withdrawn"
-      });
-      // Mark notification as read
-      const relatedNotification = notifications.find(
-        n => n.entityId === app.id && n.type === "interview_scheduled"
-      );
-      if (relatedNotification) {
-        await notificationsService.markAsRead(relatedNotification.id);
-      }
-    } catch (error) {
-      console.error("Error declining interview:", error);
     }
   };
 

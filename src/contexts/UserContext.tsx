@@ -32,15 +32,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated: !!auth.user,
     isLoading: auth.isLoading,
     error: auth.error,
-    signUp: async (email, password, firstName, lastName, userType, phoneNumber) => {
-      return auth.signUp(email, password, firstName, lastName, userType, phoneNumber);
-    },
-    signIn: async (email, password) => {
-      return auth.signIn(email, password);
-    },
-    signInWithGoogle: async (userType) => {
-      return auth.signInWithGoogle(userType);
-    },
+    signUp: auth.signUp,
+    signIn: auth.signIn,
+    signInWithGoogle: auth.signInWithGoogle,
     signOut: auth.signOut,
     resetPassword: auth.resetPassword,
     fetchUserProfile: auth.fetchUserProfile,

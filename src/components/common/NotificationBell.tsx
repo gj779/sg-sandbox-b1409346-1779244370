@@ -41,13 +41,13 @@ export default function NotificationBell() {
         let applicationNotifications: Notification[] = [];
         
         if (userProfile.userType === "restaurant") {
-          const applications = await applicationsService.getApplicationsByRestaurantId(userProfile.id as string);
+          const applications = await applicationsService.getApplicationsByRestaurantId(userProfile.id as string) as Array<any>;
           // Only get recent applications (last 7 days)
           const recentApplications = applications.filter(app => {
             // Handle the appliedAt date properly
             let appDate: Date;
             
-            // First check if appliedAt exists
+            // First check if createdAt exists
             if (!app.createdAt) {
               return false;
             }
@@ -80,51 +80,54 @@ export default function NotificationBell() {
           });
           
           applicationNotifications = recentApplications.map(app => ({
-            id: app.id || '',
+            id: app.id || `app-${Date.now()}-${Math.random()}`,
             title: "New Application",
             message: `You have a new application for job ID: ${app.jobId}`,
-            type: "application",
+            type: "application" as const,
             read: false,
             timestamp: app.createdAt,
             link: `/restaurant/applications/${app.id}`
           }));
         } else if (userProfile.userType === "applicant") {
-          const applications = await applicationsService.getApplicationsByApplicantId(userProfile.id as string);
+          const applications = await applicationsService.getApplicationsByApplicantId(userProfile.id as string) as Array<any>;
           // Only get applications with status updates
-          const updatedApplications = applications.filter(app => 
-            app.status.toLowerCase() !== "pending" && 
-            app.updatedAt !== app.createdAt
-          );
+          const updatedApplications = applications.filter(app => {
+            const status = app.status?.toLowerCase?.() || 'pending';
+            return status !== "pending" && app.updatedAt !== app.createdAt;
+          });
           
-          applicationNotifications = updatedApplications.map(app => ({
-            id: app.id || '',
-            title: `Application ${app.status.charAt(0).toUpperCase() + app.status.slice(1)}`,
-            message: `Your application status has been updated to: ${app.status}`,
-            type: "application",
-            read: false,
-            timestamp: app.updatedAt,
-            link: `/applicant/applications/${app.id}`
-          }));
+          applicationNotifications = updatedApplications.map(app => {
+            const status = app.status || 'Unknown';
+            return {
+              id: app.id || `app-${Date.now()}-${Math.random()}`,
+              title: `Application ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+              message: `Your application status has been updated to: ${status}`,
+              type: "application" as const,
+              read: false,
+              timestamp: app.updatedAt,
+              link: `/applicant/applications/${app.id}`
+            };
+          });
         }
         
         // Create message notifications
-        const messageNotifications: Notification[] = Array(messageCount).fill({
-          id: `message-${Date.now()}`,
+        const messageNotifications: Notification[] = Array(messageCount).fill(null).map((_, i) => ({
+          id: `message-${Date.now()}-${i}`,
           title: "New Message",
           message: "You have a new unread message",
-          type: "message",
+          type: "message" as const,
           read: false,
           timestamp: new Date(),
           link: "/messaging"
-        });
+        }));
         
         // Combine all notifications
         const allNotifications = [...applicationNotifications, ...messageNotifications];
         
         // Sort by timestamp (newest first)
         const sorted = [...allNotifications].sort((a, b) => {
-          const timeA = a.timestamp?.toMillis?.() || 0;
-          const timeB = b.timestamp?.toMillis?.() || 0;
+          const timeA = a.timestamp?.toMillis?.() || a.timestamp?.getTime?.() || 0;
+          const timeB = b.timestamp?.toMillis?.() || b.timestamp?.getTime?.() || 0;
           return timeB - timeA;
         });
 

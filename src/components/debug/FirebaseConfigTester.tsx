@@ -164,21 +164,16 @@ export default function FirebaseConfigTester() {
                 <li>Scroll down to "Your apps" section</li>
                 <li>Find your web app and copy the config object</li>
                 <li>Update your .env.local file with the correct values</li>
-                <li>Restart your development server</li>
+                <li>Restart your development server (env variables are injected at build time)</li>
               </ol>
             </div>
 
-            <div className="mt-4 p-3 bg-gray-100 rounded">
-              <h4 className="font-semibold mb-2">Current Configuration Values:</h4>
-              <pre className="text-xs font-mono text-gray-700">
-{`NEXT_PUBLIC_FIREBASE_API_KEY=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'NOT_SET'}
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'NOT_SET'}
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'NOT_SET'}
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'NOT_SET'}
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || 'NOT_SET'}
-NEXT_PUBLIC_FIREBASE_APP_ID=${process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'NOT_SET'}`}
-              </pre>
-            </div>
+            <Alert className="mt-4 border-yellow-500 bg-yellow-50">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                <strong>⚠️ Security Notice:</strong> This debug component should only be accessible to administrators and must be removed or protected before deploying to production. Environment variables shown above are build-time values and require a server restart to update.
+              </AlertDescription>
+            </Alert>
           </div>
         )}
       </CardContent>

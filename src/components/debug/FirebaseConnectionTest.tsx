@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
@@ -33,8 +32,8 @@ export default function FirebaseConnectionTest() {
         return;
       }
       addResult("✅ Firebase Auth initialized successfully");
-    } catch (error) {
-      addResult(`❌ Firebase Auth error: ${error}`);
+    } catch (error: any) {
+      addResult(`❌ Firebase Auth error: ${error?.message || error}`);
     }
 
     // Test 2: Check Firestore initialization
@@ -44,8 +43,8 @@ export default function FirebaseConnectionTest() {
         return;
       }
       addResult("✅ Firestore initialized successfully");
-    } catch (error) {
-      addResult(`❌ Firestore error: ${error}`);
+    } catch (error: any) {
+      addResult(`❌ Firestore error: ${error?.message || error}`);
     }
 
     // Test 3: Test authentication (if credentials provided)
@@ -66,8 +65,8 @@ export default function FirebaseConnectionTest() {
           } else {
             addResult("⚠️ User profile not found in Firestore");
           }
-        } catch (error) {
-          addResult(`❌ Firestore query error: ${error}`);
+        } catch (error: any) {
+          addResult(`❌ Firestore query error: ${error?.message || error}`);
         }
         
         // Sign out after test

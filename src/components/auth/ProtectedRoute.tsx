@@ -27,13 +27,13 @@ export default function ProtectedRoute({
       const currentUserType = userProfile.userType;
       if (currentUserType && !allowedUserTypes.includes(currentUserType)) {
         // User is authenticated but not of the allowed type
-        // Redirect to a generic unauthorized page or their specific dashboard
+        // Redirect to their specific dashboard based on userType
         let unauthorizedRedirect = "/"; // Default fallback
         if (currentUserType === "admin") unauthorizedRedirect = "/admin/dashboard";
         else if (currentUserType === "restaurant") unauthorizedRedirect = "/restaurant/dashboard";
         else if (currentUserType === "applicant") unauthorizedRedirect = "/applicant/dashboard";
         
-        router.push(redirectPath || unauthorizedRedirect);
+        router.push(unauthorizedRedirect);
       }
     }
   }, [user, userProfile, isAuthenticated, isLoading, allowedUserTypes, router, redirectPath]);

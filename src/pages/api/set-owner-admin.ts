@@ -13,7 +13,7 @@ export default async function handler(
 
   try {
     const { secretKey } = req.body;
-    const ownerEmail = "staffspace@gmail.com";
+    const ownerEmail = "staffspce@gmail.com";
 
     // Validate inputs
     if (!secretKey) {

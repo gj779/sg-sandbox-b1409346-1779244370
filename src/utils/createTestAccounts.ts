@@ -1,5 +1,5 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { UserRole } from "@/types";
 
@@ -57,8 +57,8 @@ export async function createTestAccount(account: TestAccount) {
     const user = userCredential.user;
     console.log(`Auth user created: ${user.uid}`);
     
-    // Create user profile in Firestore
-    const profileData = {
+    // Base profile data common to all roles
+    const baseProfileData = {
       id: user.uid,
       email: account.email,
       userType: account.role,
@@ -66,26 +66,28 @@ export async function createTestAccount(account: TestAccount) {
       lastName: account.displayName.split(" ")[1] || "User",
       phoneNumber: "",
       photoURL: user.photoURL || "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
       isActive: true,
-      // Initialize onboarding fields
-      skills: [],
-      experience: "",
-      availability: [],
-      preferredLocation: "",
-      bio: "",
-      education: "",
-      jobPreferences: [],
-      location: "",
-      cuisineType: "",
-      hiringPositions: [],
-      jobTypes: [],
-      benefits: "",
-      profileComplete: false,
-      // Restaurant specific fields
-      businessName: account.role === UserRole.RESTAURANT ? account.displayName : undefined,
-      businessAddress: account.role === UserRole.RESTAURANT ? "123 Test St, Test City, TS 12345" : undefined,
+      profileComplete: false
+    };
+
+    // Role-specific fields only
+    const roleSpecificData = account.role === UserRole.RESTAURANT 
+      ? {
+          businessName: account.displayName,
+          businessAddress: "123 Test St, Test City, TS 12345"
+        }
+      : account.role === UserRole.APPLICANT
+      ? {
+          skills: [],
+          availability: []
+        }
+      : {};
+    
+    const profileData = {
+      ...baseProfileData,
+      ...roleSpecificData
     };
     
     await setDoc(doc(db, "users", user.uid), profileData);
@@ -108,6 +110,14 @@ export async function createTestAccount(account: TestAccount) {
   }
 }
 
+/**
+ * WARNING: This function triggers multiple sequential Firebase Auth account creations
+ * from client-side code, which can trigger Firebase's brute-force protection and
+ * result in auth/too-many-requests errors.
+ * 
+ * RECOMMENDED: Move this functionality to a server-side API route using firebase-admin
+ * SDK's admin.auth().importUsers() for batch account creation without rate limits.
+ */
 export async function createAllTestAccounts() {
   const results = [];
   
@@ -115,7 +125,7 @@ export async function createAllTestAccounts() {
     const result = await createTestAccount(account);
     results.push(result);
     
-    // Small delay between account creation
+    // Small delay between account creation (does NOT prevent rate limiting)
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   

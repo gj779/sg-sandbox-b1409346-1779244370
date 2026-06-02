@@ -7,6 +7,7 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  onReset?: () => void;
 }
 
 interface State {
@@ -43,6 +44,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleReset = () => {
+    // Call the onReset callback if provided to allow parent to clear state/cache
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
     this.setState({ hasError: false, error: null });
   };
 

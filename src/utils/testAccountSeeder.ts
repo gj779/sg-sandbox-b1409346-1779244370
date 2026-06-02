@@ -1,8 +1,8 @@
-
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { profilesService } from "@/services/profilesService";
 import { UserRole, UserProfile } from "@/types";
+import { serverTimestamp } from "firebase/firestore";
 
 export interface TestAccount {
   email: string;
@@ -146,14 +146,14 @@ export class TestAccountSeeder {
 
       const userId = userCredential.user.uid;
 
-      // Create user profile
+      // Create user profile with server timestamps
       const profileData: Partial<UserProfile> = {
         ...testAccount.profileData,
         userType: testAccount.role,
         email: testAccount.email,
         displayName: testAccount.displayName,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: serverTimestamp() as any,
+        updatedAt: serverTimestamp() as any,
         isActive: true,
       };
 
@@ -183,6 +183,14 @@ export class TestAccountSeeder {
     }
   }
 
+  /**
+   * WARNING: This method triggers multiple sequential Firebase Auth account creations
+   * from client-side code, which can trigger Firebase's brute-force protection and
+   * result in auth/too-many-requests errors.
+   * 
+   * RECOMMENDED: Move this functionality to a server-side API route using firebase-admin
+   * SDK's admin.auth().importUsers() for batch account creation without rate limits.
+   */
   async createAllTestAccounts(): Promise<void> {
     console.log("🚀 Starting test account creation...");
     const results = [];
@@ -191,7 +199,7 @@ export class TestAccountSeeder {
       const result = await this.createTestAccount(testAccount);
       results.push(result);
       
-      // Add small delay between account creations
+      // Add small delay between account creations (does NOT prevent rate limiting)
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 

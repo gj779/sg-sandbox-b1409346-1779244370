@@ -2,7 +2,6 @@ import { firestoreService } from "./firebaseFirestore";
 import { UserProfile, UserRole } from "@/types";
 import { JobListing } from "@/types";
 import { JobApplication } from "@/types";
-import { Timestamp } from "firebase/firestore";
 
 // Admin-specific operations for the StaffSpace platform
 export const firebaseAdminService = {
@@ -13,8 +12,8 @@ export const firebaseAdminService = {
       return users as UserProfile[];
     } catch (error) {
       console.error("Error getting all users:", error);
-      // Return mock data for demo purposes with proper Timestamp types
-      const now = Timestamp.now();
+      // Return mock data for demo purposes
+      const now = new Date();
       return [
         {
           id: "user1",
@@ -62,8 +61,8 @@ export const firebaseAdminService = {
       return users as UserProfile[];
     } catch (error) {
       console.error(`Error getting users by type ${userType}:`, error);
-      // Return mock data based on user type with proper Timestamp types
-      const now = Timestamp.now();
+      // Return mock data based on user type
+      const now = new Date();
       if (userType === "admin") {
         return [{
           id: "user1",
@@ -150,7 +149,7 @@ export const firebaseAdminService = {
     try {
       return await firestoreService.updateDocument("jobs", jobId, { 
         isApproved: true,
-        approvedAt: Timestamp.now()
+        approvedAt: new Date()
       });
     } catch (error) {
       console.error(`Error approving job listing ${jobId}:`, error);
@@ -204,11 +203,11 @@ export const firebaseAdminService = {
   async getRecentActivity(limit: number = 10): Promise<Array<{
     type: "user_registered" | "job_created" | "application_submitted";
     entityId: string;
-    timestamp: Timestamp;
+    timestamp: Date;
     data: any;
   }>> {
     // Return mock data to avoid Firestore errors
-    const now = Timestamp.now();
+    const now = new Date();
     return [
       {
         type: "user_registered" as const,

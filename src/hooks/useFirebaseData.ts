@@ -1,6 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
-import { firebaseJobsService, JobListing, JobListingInput } from "@/services/firebaseJobs";
-import { firebaseApplicationsService, JobApplication, JobApplicationInput } from "@/services/firebaseApplications";
+import { useState, useEffect, useCallback } from "react";
+import { applicationsService } from "@/services/applicationsService";
+import { jobsService } from "@/services/jobsService";
+import { profilesService } from "@/services/profilesService";
+import { JobListing, JobApplication, UserProfile } from "@/types";
 
 // Hook for job listings
 export function useFirebaseJobListings() {
@@ -21,7 +23,7 @@ export function useFirebaseJobListings() {
     setError(null);
 
     try {
-      const jobListings = await firebaseJobsService.getAllJobs(filters);
+      const jobListings = await jobsService.getAllJobs(filters);
       setJobs(jobListings);
       return jobListings;
     } catch (err: any) {
@@ -38,7 +40,7 @@ export function useFirebaseJobListings() {
     setError(null);
 
     try {
-      const job = await firebaseJobsService.getJobListing(jobId);
+      const job = await jobsService.getJobListing(jobId);
       return job;
     } catch (err: any) {
       setError(err.message || "Failed to fetch job listing");
@@ -72,10 +74,10 @@ export function useFirebaseJobListings() {
         endDate: jobData.endDate ? new Date(jobData.endDate) : undefined,
       };
       
-      const jobId = await firebaseJobsService.createJobListing(adaptedJobData);
+      const jobId = await jobsService.createJobListing(adaptedJobData);
       
       // Fetch the newly created job to add to state
-      const newJob = await firebaseJobsService.getJobListing(jobId);
+      const newJob = await jobsService.getJobListing(jobId);
       
       if (newJob) {
         setJobs(prev => [...prev, newJob]);
@@ -108,10 +110,10 @@ export function useFirebaseJobListings() {
         ...(updates.endDate && { endDate: new Date(updates.endDate) }),
       };
       
-      await firebaseJobsService.updateJobListing(jobId, adaptedUpdates);
+      await jobsService.updateJobListing(jobId, adaptedUpdates);
       
       // Fetch the updated job to update state
-      const updatedJob = await firebaseJobsService.getJobListing(jobId);
+      const updatedJob = await jobsService.getJobListing(jobId);
       
       if (updatedJob) {
         setJobs(prev => prev.map(job => 
@@ -134,7 +136,7 @@ export function useFirebaseJobListings() {
     setError(null);
 
     try {
-      await firebaseJobsService.deleteJobListing(jobId);
+      await jobsService.deleteJobListing(jobId);
       setJobs(prev => prev.filter(job => job.id !== jobId));
       return true;
     } catch (err: any) {
@@ -152,7 +154,7 @@ export function useFirebaseJobListings() {
 
     try {
       // Use getAllJobs with a searchTerm parameter
-      const results = await firebaseJobsService.getAllJobs({ 
+      const results = await jobsService.getAllJobs({ 
         searchTerm 
       });
       setJobs(results);
@@ -190,7 +192,7 @@ export function useFirebaseJobApplications() {
     setError(null);
 
     try {
-      const jobApplications = await firebaseApplicationsService.getApplicationsByJob(jobId);
+      const jobApplications = await applicationsService.getApplicationsByJob(jobId);
       setApplications(jobApplications);
       return jobApplications;
     } catch (err: any) {
@@ -207,7 +209,7 @@ export function useFirebaseJobApplications() {
     setError(null);
 
     try {
-      const jobApplications = await firebaseApplicationsService.getApplicationsByApplicant(applicantId);
+      const jobApplications = await applicationsService.getApplicationsByApplicant(applicantId);
       setApplications(jobApplications);
       return jobApplications;
     } catch (err: any) {
@@ -224,7 +226,7 @@ export function useFirebaseJobApplications() {
     setError(null);
 
     try {
-      const jobApplications = await firebaseApplicationsService.getApplicationsByRestaurant(restaurantId);
+      const jobApplications = await applicationsService.getApplicationsByRestaurant(restaurantId);
       setApplications(jobApplications);
       return jobApplications;
     } catch (err: any) {
@@ -242,10 +244,10 @@ export function useFirebaseJobApplications() {
 
     try {
       // Get the application ID from createApplication
-      const applicationId = await firebaseApplicationsService.createApplication(applicationData);
+      const applicationId = await applicationsService.createApplication(applicationData);
       
       // Fetch the newly created application to add to state
-      const newApplication = await firebaseApplicationsService.getApplication(applicationId);
+      const newApplication = await applicationsService.getApplication(applicationId);
       
       if (newApplication) {
         setApplications(prev => [...prev, newApplication]);
@@ -270,14 +272,14 @@ export function useFirebaseJobApplications() {
     setError(null);
 
     try {
-      await firebaseApplicationsService.updateApplicationStatus(
+      await applicationsService.updateApplicationStatus(
         applicationId, 
         status, 
         notes
       );
       
       // Fetch the updated application to update state
-      const updatedApplication = await firebaseApplicationsService.getApplication(applicationId);
+      const updatedApplication = await applicationsService.getApplication(applicationId);
       
       if (updatedApplication) {
         setApplications(prev => prev.map(app => 

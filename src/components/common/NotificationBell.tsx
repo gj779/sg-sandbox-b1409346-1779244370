@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
 import { firebaseMessagingService } from "@/services/firebaseMessaging";
-import { firebaseApplicationsService } from "@/services/firebaseApplications";
+import { applicationsService } from "@/services/applicationsService";
 import { useRouter } from "next/router";
 
 interface Notification {
@@ -41,7 +41,7 @@ export default function NotificationBell() {
         let applicationNotifications: Notification[] = [];
         
         if (userProfile.userType === "restaurant") {
-          const applications = await firebaseApplicationsService.getApplicationsByRestaurant(userProfile.id as string);
+          const applications = await applicationsService.getApplicationsByRestaurant(userProfile.id as string);
           // Only get recent applications (last 7 days)
           const recentApplications = applications.filter(app => {
             // Handle the appliedAt date properly
@@ -89,7 +89,7 @@ export default function NotificationBell() {
             link: `/restaurant/applications/${app.id}`
           }));
         } else if (userProfile.userType === "applicant") {
-          const applications = await firebaseApplicationsService.getApplicationsByApplicant(userProfile.id as string);
+          const applications = await applicationsService.getApplicationsByApplicant(userProfile.id as string);
           // Only get applications with status updates
           const updatedApplications = applications.filter(app => 
             app.status.toLowerCase() !== "pending" && 
@@ -207,6 +207,78 @@ export default function NotificationBell() {
       return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
     } else {
       return date.toLocaleDateString();
+    }
+  };
+
+  // Handle view application
+  const handleViewApplication = async (app: JobApplication) => {
+    // Mark notification as read if there is one related to this application
+    const relatedNotification = notifications.find(
+      n => n.entityId === app.id && n.type === "application_received"
+    );
+
+    if (relatedNotification) {
+      await notificationsService.markAsRead(relatedNotification.id);
+    }
+
+    // Depending on user role, navigate appropriately
+    if (userProfile?.userType === "applicant") {
+      window.location.href = `/applications/${app.id}`;
+    } else if (userProfile?.userType === "restaurant") {
+      window.location.href = `/restaurant/applicants/${app.jobId}`;
+    }
+  };
+
+  // Handle interview actions
+  const handleViewInterview = async (app: JobApplication) => {
+    // Mark notification as read
+    const relatedNotification = notifications.find(
+      n => n.entityId === app.id && (n.type === "interview_scheduled" || n.type === "interview_reminder")
+    );
+
+    if (relatedNotification) {
+      await notificationsService.markAsRead(relatedNotification.id);
+    }
+
+    // Navigate to interview details
+    if (userProfile?.userType === "applicant") {
+      window.location.href = `/applicant/interviews/${app.id}`;
+    } else if (userProfile?.userType === "restaurant") {
+      window.location.href = `/restaurant/interviews/${app.id}`;
+    }
+  };
+
+  const handleAcceptInterview = async (app: JobApplication) => {
+    try {
+      await applicationsService.updateApplication(app.id, {
+        status: "Interview Scheduled"
+      });
+      // Mark notification as read
+      const relatedNotification = notifications.find(
+        n => n.entityId === app.id && n.type === "interview_scheduled"
+      );
+      if (relatedNotification) {
+        await notificationsService.markAsRead(relatedNotification.id);
+      }
+    } catch (error) {
+      console.error("Error accepting interview:", error);
+    }
+  };
+
+  const handleDeclineInterview = async (app: JobApplication) => {
+    try {
+      await applicationsService.updateApplication(app.id, {
+        status: "Withdrawn"
+      });
+      // Mark notification as read
+      const relatedNotification = notifications.find(
+        n => n.entityId === app.id && n.type === "interview_scheduled"
+      );
+      if (relatedNotification) {
+        await notificationsService.markAsRead(relatedNotification.id);
+      }
+    } catch (error) {
+      console.error("Error declining interview:", error);
     }
   };
 

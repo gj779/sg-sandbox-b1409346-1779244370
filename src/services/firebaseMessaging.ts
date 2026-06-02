@@ -9,12 +9,17 @@ export const firebaseMessagingService = {
   async createConversation(participantIds: string[]): Promise<Conversation> {
     const conversationId = uuidv4();
     
-    const conversation: Conversation = {
+    const conversation: Omit<Conversation, 'id' | 'lastMessage' | 'lastMessageTimestamp' | 'unreadCount'> & {
+      id: string;
+      lastMessage: null;
+      lastMessageTimestamp: null;
+      unreadCount: number;
+    } = {
       id: conversationId,
       participants: participantIds,
-      lastMessage: '', // Will be set by Firestore
-      lastMessageTimestamp: null, // Will be set by Firestore
-      unreadCount: 0 // Will be set by Firestore
+      lastMessage: null, // Will be set when first message is sent
+      lastMessageTimestamp: null, // Will be set when first message is sent
+      unreadCount: 0
     };
 
     await firestoreService.createDocumentWithId("conversations", conversationId, conversation);

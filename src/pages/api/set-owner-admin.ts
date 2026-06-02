@@ -1,5 +1,4 @@
-
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -14,7 +13,7 @@ export default async function handler(
 
   try {
     const { secretKey } = req.body;
-    const ownerEmail = "staffspce@gmail.com";
+    const ownerEmail = "staffspace@gmail.com";
 
     // Validate inputs
     if (!secretKey) {
@@ -54,7 +53,7 @@ export default async function handler(
     const userRef = doc(db, "users", userId);
     await updateDoc(userRef, {
       userType: "admin",
-      updatedAt: new Date()
+      updatedAt: serverTimestamp()
     });
 
     return res.status(200).json({ 

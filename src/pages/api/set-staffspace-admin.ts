@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { adminDb, adminAuth } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -40,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await adminDb.collection("users").doc(userRecord.uid).update({
       userType: "admin",
       isStaffspaceAdmin: true,
-      updatedAt: new Date(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
 
     return res.status(200).json({

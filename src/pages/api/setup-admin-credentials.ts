@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -40,14 +41,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const userRecord = await adminAuth.getUserByEmail(email);
       
-      // If user exists, make them an admin
+      // If user exists, make them an admin with merge to preserve existing fields
       await adminDb.collection("users").doc(userRecord.uid).set({
         email: userRecord.email,
         userType: "admin",
         isAdmin: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
 
       // Set custom claims
       await adminAuth.setCustomUserClaims(userRecord.uid, {
@@ -59,38 +59,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         message: "Existing user updated with admin privileges",
         userId: userRecord.uid,
       });
-    } catch (error) {
-      // User doesn't exist, create new admin user
-      // Double-check Firebase Admin is still initialized
-      if (!adminAuth || !adminDb) {
-        return res.status(503).json({ error: "Firebase Admin is not initialized" });
+    } catch (error: any) {
+      // Only create user if they specifically don't exist
+      if (error.code === 'auth/user-not-found') {
+        // Double-check Firebase Admin is still initialized
+        if (!adminAuth || !adminDb) {
+          return res.status(503).json({ error: "Firebase Admin is not initialized" });
+        }
+
+        const userRecord = await adminAuth.createUser({
+          email,
+          password,
+          emailVerified: true,
+        });
+
+        // Create user document in Firestore
+        await adminDb.collection("users").doc(userRecord.uid).set({
+          email: userRecord.email,
+          userType: "admin",
+          isAdmin: true,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Set custom claims
+        await adminAuth.setCustomUserClaims(userRecord.uid, {
+          admin: true,
+        });
+
+        return res.status(201).json({
+          success: true,
+          message: "Admin user created successfully",
+          userId: userRecord.uid,
+        });
+      } else {
+        // Rethrow if it's a real systemic error (network, rate limit, etc.)
+        throw error;
       }
-
-      const userRecord = await adminAuth.createUser({
-        email,
-        password,
-        emailVerified: true,
-      });
-
-      // Create user document in Firestore
-      await adminDb.collection("users").doc(userRecord.uid).set({
-        email: userRecord.email,
-        userType: "admin",
-        isAdmin: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      // Set custom claims
-      await adminAuth.setCustomUserClaims(userRecord.uid, {
-        admin: true,
-      });
-
-      return res.status(201).json({
-        success: true,
-        message: "Admin user created successfully",
-        userId: userRecord.uid,
-      });
     }
   } catch (error) {
     console.error("Error setting up admin credentials:", error);

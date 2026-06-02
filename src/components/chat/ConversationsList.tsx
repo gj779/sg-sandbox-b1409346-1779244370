@@ -86,19 +86,18 @@ export default function ConversationsList({
               >
                 <div className="flex items-center gap-3">
                   {conversation.participantProfiles &&
-                    Object.values(conversation.participantProfiles).map(
-                      (profile) =>
-                        profile.id !== user?.uid && (
-                          <div key={profile.id}>
-                            <p className="font-medium">{profile.displayName}</p>
-                            {conversation.lastMessage && (
-                              <p className="text-sm text-muted-foreground truncate">
-                                {conversation.lastMessage.content || "Sent an attachment"}
-                              </p>
-                            )}
-                          </div>
-                        )
-                    )}
+                    Object.values(conversation.participantProfiles)
+                      .filter((profile) => profile.id !== user?.uid)
+                      .map((profile) => (
+                        <div key={profile.id}>
+                          <p className="font-medium">{profile.displayName}</p>
+                          {conversation.lastMessage && (
+                            <p className="text-sm text-muted-foreground truncate">
+                              {conversation.lastMessage.content || "Sent an attachment"}
+                            </p>
+                          )}
+                        </div>
+                      ))}
                 </div>
               </button>
             ))}

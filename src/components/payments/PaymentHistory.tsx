@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -191,7 +190,7 @@ export default function PaymentHistory({
                             variant="outline" 
                             size="sm"
                             onClick={() => handleRefund(payment.id)}
-                            disabled={!!isRefunding}
+                            disabled={isRefunding === payment.id}
                             className="h-8 px-2 text-xs text-red-500 border-red-200 hover:bg-red-50"
                           >
                             {isRefunding === payment.id ? (

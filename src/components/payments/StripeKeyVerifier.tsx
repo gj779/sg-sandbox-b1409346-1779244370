@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -234,8 +233,8 @@ export default function StripeKeyVerifier() {
                       
                       <div className="bg-muted p-3 rounded-md font-mono text-xs">
                         <pre>
-                          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key<br />
-                          STRIPE_SECRET_KEY=sk_test_your_secret_key
+                          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY={"pk_test"}{"_your_publishable_key"}<br />
+                          STRIPE_SECRET_KEY={"sk_test"}{"_your_secret_key"}
                         </pre>
                       </div>
                       

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   User as FirebaseUser, 
@@ -27,7 +26,7 @@ interface FirebaseAuthHook {
   loading: boolean;
   isLoading: boolean;
   error: string | null;
-  signUp: (email: string, password: string, firstName: string, lastName: string, userType: UserRole) => Promise<UserProfile | null>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, userType: UserRole, phoneNumber?: string) => Promise<UserProfile | null>;
   signIn: (email: string, password: string) => Promise<UserProfile | null>;
   signInWithGoogle: (userType: UserRole) => Promise<UserProfile | null>;
   signOut: () => Promise<void>;
@@ -98,7 +97,7 @@ export function useFirebaseAuth(): FirebaseAuthHook {
     return () => unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string, userType: UserRole): Promise<UserProfile | null> => {
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, userType: UserRole, phoneNumber?: string): Promise<UserProfile | null> => {
     try {
       setError(null);
       setLoading(true);
@@ -123,7 +122,7 @@ export function useFirebaseAuth(): FirebaseAuthHook {
       console.log("Firebase user created successfully:", result.user.uid);
       
       // Create a minimal profile that matches Firestore rules exactly
-      const profile = {
+      const profile: any = {
         email,
         userType,
         firstName,
@@ -135,6 +134,11 @@ export function useFirebaseAuth(): FirebaseAuthHook {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
+      
+      // Add phone number if provided
+      if (phoneNumber && phoneNumber.trim()) {
+        profile.phoneNumber = phoneNumber.trim();
+      }
       
       console.log("Creating user profile document:", profile);
       const userRef = doc(db, "users", result.user.uid);

@@ -34,8 +34,8 @@ export const notificationSchema = z.object({
   message: z.string().min(1, "Message is required"),
   isRead: z.boolean().default(false),
   data: z.record(z.string(), z.any()).optional(),
-  createdAt: z.date().optional(),
-  expiresAt: z.date().optional()
+  createdAt: z.preprocess((val) => (val instanceof Timestamp ? val.toDate() : val), z.date().optional()),
+  expiresAt: z.preprocess((val) => (val instanceof Timestamp ? val.toDate() : val), z.date().optional())
 });
 
 // Define the Notification type

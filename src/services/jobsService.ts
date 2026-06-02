@@ -1,11 +1,11 @@
-
 import { 
   where, 
   orderBy, 
   limit, 
   startAfter, 
   QueryConstraint,
-  DocumentData
+  DocumentData,
+  increment
 } from 'firebase/firestore';
 import { firebaseDatabaseService } from './firebaseDatabase';
 import { z } from 'zod';
@@ -218,16 +218,15 @@ export const jobsService = {
   },
 
   /**
-   * Increment job views
+   * Increment job views atomically
    * @param jobId - Job ID
    * @returns Promise<void>
    */
   async incrementJobViews(jobId: string): Promise<void> {
-    const job = await this.getJobById(jobId);
-    if (job) {
-      const currentViews = job.views || 0;
-      await firebaseDatabaseService.update<Job>(JOBS_COLLECTION, jobId, { views: currentViews + 1 });
-    }
+    // Use Firestore's atomic increment to prevent race conditions
+    await firebaseDatabaseService.update<Job>(JOBS_COLLECTION, jobId, { 
+      views: increment(1) as any 
+    });
   },
 
   /**

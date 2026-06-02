@@ -1,4 +1,3 @@
-
 import { 
   where, 
   QueryConstraint,
@@ -7,7 +6,10 @@ import {
   getDocs,
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  orderBy,
+  limit,
+  startAfter
 } from 'firebase/firestore';
 import { firebaseDatabaseService } from './firebaseDatabase';
 import { db } from "@/lib/firebase";
@@ -245,10 +247,20 @@ export const profilesService = {
     return false;
   },
 
-  async getAllUserProfiles(): Promise<UserProfile[]> {
+  async getAllUserProfiles(limitCount: number = 100, lastVisible?: any): Promise<UserProfile[]> {
     try {
       const usersRef = collection(db, USERS_COLLECTION);
-      const q = query(usersRef);
+      const constraints: QueryConstraint[] = [
+        orderBy('createdAt', 'desc'),
+        limit(limitCount)
+      ];
+      
+      // Add pagination cursor if provided
+      if (lastVisible) {
+        constraints.push(startAfter(lastVisible));
+      }
+      
+      const q = query(usersRef, ...constraints);
       const querySnapshot = await getDocs(q);
       const profiles: UserProfile[] = [];
       

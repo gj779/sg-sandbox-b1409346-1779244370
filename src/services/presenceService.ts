@@ -35,10 +35,9 @@ export const presenceService = {
       const presenceRef = ref(realTimeDb, `${PRESENCE_REF}/${user.uid}`);
 
       // Set up the presence data
-      const presenceData: UserPresence = {
+      const presenceData: Omit<UserPresence, 'lastSeen'> & { lastSeenTimestamp: any } = {
         userId: user.uid,
         status: 'online',
-        lastSeen: new Date(),
         lastSeenTimestamp: serverTimestamp(),
         displayName: user.displayName || undefined,
         photoURL: user.photoURL || "" // Ensure default empty string
@@ -60,7 +59,7 @@ export const presenceService = {
           onDisconnectRef.set({
             ...presenceData,
             status: 'offline',
-            lastSeen: serverTimestamp() // This will be a server timestamp object
+            lastSeenTimestamp: serverTimestamp()
           }).then(() => {
             // Now that we've set up the disconnect handler, set the presence data
             set(presenceRef, presenceData);
@@ -85,7 +84,7 @@ export const presenceService = {
         set(presenceRef, {
           ...presenceData,
           status: 'offline',
-          lastSeen: serverTimestamp() // This will be a server timestamp object
+          lastSeenTimestamp: serverTimestamp()
         }).catch(error => {
           console.error('Error updating presence on cleanup:', error);
         });
@@ -113,7 +112,7 @@ export const presenceService = {
       await set(presenceRef, {
         userId: user.uid,
         status,
-        lastSeen: serverTimestamp(), // This will be a server timestamp object
+        lastSeenTimestamp: serverTimestamp(),
         displayName: user.displayName || undefined,
         photoURL: user.photoURL || "" // Ensure default empty string
       });
@@ -137,8 +136,10 @@ export const presenceService = {
         if (snapshot.exists()) {
           const data = snapshot.val();
           
-          // Convert server timestamp to Date if needed, handle potential null
-          const lastSeen = data.lastSeen ? (typeof data.lastSeen === 'number' ? new Date(data.lastSeen) : data.lastSeen) : null;
+          // Convert server timestamp to Date
+          const lastSeen = data.lastSeenTimestamp 
+            ? (typeof data.lastSeenTimestamp === 'number' ? new Date(data.lastSeenTimestamp) : null)
+            : null;
           
           callback({
             ...data,
@@ -220,8 +221,10 @@ export const presenceService = {
           Object.keys(data).forEach(userId => {
             const presence = data[userId];
             if (presence.status === 'online') {
-              // Convert server timestamp to Date if needed
-              const lastSeen = presence.lastSeen ? (typeof presence.lastSeen === 'number' ? new Date(presence.lastSeen) : presence.lastSeen) : null;
+              // Convert server timestamp to Date
+              const lastSeen = presence.lastSeenTimestamp 
+                ? (typeof presence.lastSeenTimestamp === 'number' ? new Date(presence.lastSeenTimestamp) : null)
+                : null;
               
               onlineUsers.push({
                 ...presence,

@@ -1,4 +1,3 @@
-
 import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, addDoc, serverTimestamp, onSnapshot, DocumentData } from "firebase/firestore";
 import { Conversation, Message, UserProfile, MessageStatus } from "@/types";
@@ -288,22 +287,22 @@ class ConversationsService {
     );
 
     return onSnapshot(q, async (snapshot) => {
-      const conversations: Conversation[] = [];
-      
-      for (const doc of snapshot.docs) {
+      // Use Promise.all to fetch all participant profiles in parallel instead of sequential loop
+      const conversationsPromises = snapshot.docs.map(async (doc) => {
         const conversationData = doc.data();
         const participantProfiles = await this.fetchParticipantProfiles(conversationData.participants);
         
-        conversations.push({
+        return {
           id: doc.id,
           ...conversationData,
           participantProfiles,
           createdAt: conversationData.createdAt.toDate(),
           updatedAt: conversationData.updatedAt.toDate(),
-        } as Conversation);
-      }
+        };
+      });
       
-      callback(conversations);
+      const conversations = await Promise.all(conversationsPromises);
+      callback(conversations as Conversation[]);
     });
   }
 }

@@ -1,4 +1,3 @@
-
 import { collection, addDoc, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -47,6 +46,12 @@ export class AuditService {
 
   // Fallback logging to local storage
   private logToLocalStorage(event: Omit<AuditLog, 'timestamp' | 'id'>): void {
+    // Guard against SSR execution - localStorage only exists in browser
+    if (typeof window === "undefined") {
+      console.warn("Falling back to server log streaming:", event);
+      return;
+    }
+
     try {
       const auditLog = {
         ...event,

@@ -1,10 +1,8 @@
-
 import { firestoreService } from "./firebaseFirestore";
-import { doc, updateDoc, query, collection, where, getDocs, WhereFilterOp } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
 import { UserProfile, UserRole } from "@/types";
 import { JobListing } from "@/types";
 import { JobApplication } from "@/types";
+import { Timestamp } from "firebase/firestore";
 
 // Admin-specific operations for the StaffSpace platform
 export const firebaseAdminService = {
@@ -15,7 +13,8 @@ export const firebaseAdminService = {
       return users as UserProfile[];
     } catch (error) {
       console.error("Error getting all users:", error);
-      // Return mock data for demo purposes
+      // Return mock data for demo purposes with proper Timestamp types
+      const now = Timestamp.now();
       return [
         {
           id: "user1",
@@ -24,8 +23,8 @@ export const firebaseAdminService = {
           firstName: "StaffSpace",
           lastName: "Admin",
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: now,
+          updatedAt: now
         },
         {
           id: "user2",
@@ -34,8 +33,8 @@ export const firebaseAdminService = {
           firstName: "John",
           lastName: "Doe",
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: now,
+          updatedAt: now
         },
         {
           id: "user3",
@@ -44,8 +43,8 @@ export const firebaseAdminService = {
           firstName: "Jane",
           lastName: "Smith",
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: now,
+          updatedAt: now
         }
       ];
     }
@@ -55,7 +54,7 @@ export const firebaseAdminService = {
     try {
       const conditions = [{
         field: "userType",
-        operator: "==" as WhereFilterOp,
+        operator: "==" as const,
         value: userType
       }];
       
@@ -63,7 +62,8 @@ export const firebaseAdminService = {
       return users as UserProfile[];
     } catch (error) {
       console.error(`Error getting users by type ${userType}:`, error);
-      // Return mock data based on user type
+      // Return mock data based on user type with proper Timestamp types
+      const now = Timestamp.now();
       if (userType === "admin") {
         return [{
           id: "user1",
@@ -72,8 +72,8 @@ export const firebaseAdminService = {
           firstName: "StaffSpace",
           lastName: "Admin",
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: now,
+          updatedAt: now
         }];
       } else if (userType === "applicant") {
         return [{
@@ -83,8 +83,8 @@ export const firebaseAdminService = {
           firstName: "John",
           lastName: "Doe",
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: now,
+          updatedAt: now
         }];
       } else {
         return [{
@@ -94,8 +94,8 @@ export const firebaseAdminService = {
           firstName: "Jane",
           lastName: "Smith",
           isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: now,
+          updatedAt: now
         }];
       }
     }
@@ -106,7 +106,6 @@ export const firebaseAdminService = {
       return await firestoreService.updateDocument("users", userId, { isActive });
     } catch (error) {
       console.error(`Error updating user status for ${userId}:`, error);
-      // Don't throw error, just log it
       return;
     }
   },
@@ -116,7 +115,6 @@ export const firebaseAdminService = {
       return await firestoreService.updateDocument("users", userId, { userType: UserRole.ADMIN });
     } catch (error) {
       console.error(`Error setting user as admin for ${userId}:`, error);
-      // Don't throw error, just log it
       return;
     }
   },
@@ -128,10 +126,7 @@ export const firebaseAdminService = {
       return jobs as JobListing[];
     } catch (error) {
       console.error("Error getting all job listings:", error);
-      // Return mock data with correct types
-      return [
-        
-      ];
+      return [];
     }
   },
 
@@ -139,7 +134,7 @@ export const firebaseAdminService = {
     try {
       const conditions = [{
         field: "isPremium",
-        operator: "==" as WhereFilterOp,
+        operator: "==" as const,
         value: true
       }];
       
@@ -147,10 +142,7 @@ export const firebaseAdminService = {
       return jobs as JobListing[];
     } catch (error) {
       console.error("Error getting featured job listings:", error);
-      // Return mock premium job with correct types
-      return [
-        
-      ];
+      return [];
     }
   },
 
@@ -158,11 +150,10 @@ export const firebaseAdminService = {
     try {
       return await firestoreService.updateDocument("jobs", jobId, { 
         isApproved: true,
-        approvedAt: new Date()
+        approvedAt: Timestamp.now()
       });
     } catch (error) {
       console.error(`Error approving job listing ${jobId}:`, error);
-      // Don't throw error, just log it
       return;
     }
   },
@@ -175,7 +166,6 @@ export const firebaseAdminService = {
       });
     } catch (error) {
       console.error(`Error rejecting job listing ${jobId}:`, error);
-      // Don't throw error, just log it
       return;
     }
   },
@@ -187,10 +177,7 @@ export const firebaseAdminService = {
       return applications as JobApplication[];
     } catch (error) {
       console.error("Error getting all applications:", error);
-      // Return mock data
-      return [
-        
-      ];
+      return [];
     }
   },
 
@@ -203,7 +190,7 @@ export const firebaseAdminService = {
     totalApplications: number;
     activeJobs: number;
   }> {
-    // Always return mock data to avoid Firestore errors
+    // Return mock data to avoid Firestore errors
     return {
       totalUsers: 3,
       totalApplicants: 1,
@@ -217,15 +204,16 @@ export const firebaseAdminService = {
   async getRecentActivity(limit: number = 10): Promise<Array<{
     type: "user_registered" | "job_created" | "application_submitted";
     entityId: string;
-    timestamp: any;
+    timestamp: Timestamp;
     data: any;
   }>> {
-    // Always return mock data to avoid Firestore errors
+    // Return mock data to avoid Firestore errors
+    const now = Timestamp.now();
     return [
       {
-        type: "user_registered" as "user_registered",
+        type: "user_registered" as const,
         entityId: "user1",
-        timestamp: new Date(),
+        timestamp: now,
         data: {
           id: "user1",
           firstName: "John",
@@ -234,18 +222,18 @@ export const firebaseAdminService = {
         }
       },
       {
-        type: "job_created" as "job_created",
+        type: "job_created" as const,
         entityId: "job1",
-        timestamp: new Date(Date.now() - 86400000),
+        timestamp: now,
         data: {
           id: "job1",
           title: "Head Chef"
         }
       },
       {
-        type: "application_submitted" as "application_submitted",
+        type: "application_submitted" as const,
         entityId: "app1",
-        timestamp: new Date(Date.now() - 172800000),
+        timestamp: now,
         data: {
           id: "app1",
           jobId: "job1"

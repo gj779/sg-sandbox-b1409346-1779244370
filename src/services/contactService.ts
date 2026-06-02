@@ -1,4 +1,4 @@
-import { collection, addDoc, serverTimestamp, query, orderBy, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, orderBy, getDocs, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export interface ContactMessage {
@@ -9,8 +9,8 @@ export interface ContactMessage {
   message: string;
   inquiryType: string;
   status: "new" | "read" | "responded";
-  createdAt: any;
-  updatedAt?: any;
+  createdAt: Timestamp | Date;
+  updatedAt?: Timestamp | Date;
 }
 
 export async function saveContactMessage(messageData: Omit<ContactMessage, "id" | "createdAt" | "status">) {

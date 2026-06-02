@@ -1,4 +1,3 @@
-
 import { useRouter } from "next/router";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUser } from "@/contexts/UserContext";
@@ -40,8 +39,21 @@ export default function NavigationTabs({ userType, className }: NavigationTabsPr
   
   const getCurrentTab = () => {
     const path = router.pathname;
-    const tab = tabs.find(tab => path === tab.path);
-    return tab ? tab.value : tabs[0].value;
+    
+    // Extract base path for nested route matching (e.g., /jobs/123 -> /jobs)
+    const pathSegments = path.split('/').filter(Boolean);
+    const basePath = pathSegments.length > 0 ? '/' + pathSegments[0] : '/';
+    
+    // Try exact match first
+    let tab = tabs.find(tab => path === tab.path);
+    
+    // If no exact match, try base path match (for nested routes like /jobs/[id])
+    if (!tab) {
+      tab = tabs.find(tab => tab.path.startsWith(basePath) || path.startsWith(tab.path));
+    }
+    
+    // Safe fallback with validation - check if tabs[0] exists
+    return tab ? tab.value : (tabs[0]?.value || "dashboard");
   };
 
   const handleTabChange = (value: string) => {

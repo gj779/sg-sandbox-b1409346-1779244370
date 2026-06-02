@@ -63,7 +63,7 @@ export function useProfileData(userId?: string) {
         error: error.message || "Failed to load profile data",
       });
     }
-  }, [targetUserId, userId, contextProfile]);
+  }, [targetUserId, userId]); // Removed contextProfile to prevent infinite loop
 
   // Update profile data
   const updateProfileData = useCallback(async (updates: Partial<UserProfile>) => {

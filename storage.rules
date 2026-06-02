@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
@@ -12,7 +11,7 @@ service firebase.storage {
     }
     
     function isAdmin() {
-      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.userType == 'admin';
+      return request.auth.token.userType == 'admin';
     }
     
     function isEmailVerified() {
@@ -61,7 +60,7 @@ service firebase.storage {
     match /resumes/{userId}/{fileName} {
       allow read: if isSignedIn() && 
                     (isOwner(userId) || 
-                     firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.userType == 'restaurant' || 
+                     request.auth.token.userType == 'restaurant' || 
                      isAdmin()) &&
                     isSafeFileName(fileName);
       

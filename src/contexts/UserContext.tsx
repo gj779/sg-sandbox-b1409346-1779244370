@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode } from "react";
 import { User as FirebaseUser } from "firebase/auth";
 import { useFirebaseAuth } from "@/hooks/useFirebaseAuth";
@@ -10,7 +9,7 @@ interface UserContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  signUp: (email: string, password: string, firstName: string, lastName: string, userType: UserRole) => Promise<UserProfile | null>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, userType: UserRole, phoneNumber?: string) => Promise<UserProfile | null>;
   signIn: (email: string, password: string) => Promise<UserProfile | null>;
   signInWithGoogle: (userType: UserRole) => Promise<UserProfile | null>;
   signOut: () => Promise<void>;
@@ -33,8 +32,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated: !!auth.user,
     isLoading: auth.loading,
     error: auth.error,
-    signUp: async (email, password, firstName, lastName, userType) => {
-      return auth.signUp(email, password, firstName, lastName, userType);
+    signUp: async (email, password, firstName, lastName, userType, phoneNumber) => {
+      return auth.signUp(email, password, firstName, lastName, userType, phoneNumber);
     },
     signIn: async (email, password) => {
       return auth.signIn(email, password);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { 
@@ -59,7 +59,6 @@ export default function AdminJobsPage() {
   const router = useRouter();
   const { userProfile, isLoading } = useFirebaseAuth();
   const [jobs, setJobs] = useState<JobListing[]>([]);
-  const [filteredJobs, setFilteredJobs] = useState<JobListing[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [selectedJobType, setSelectedJobType] = useState<string>("all");
@@ -79,7 +78,6 @@ export default function AdminJobsPage() {
       try {
         const allJobs = await firebaseAdminService.getAllJobListings();
         setJobs(allJobs);
-        setFilteredJobs(allJobs);
       } catch (error) {
         console.error("Error fetching jobs:", error);
       } finally {
@@ -92,8 +90,7 @@ export default function AdminJobsPage() {
     }
   }, [isLoading, userProfile, router]);
 
-  useEffect(() => {
-    // Filter jobs based on search query, job type, and status
+  const filteredJobs = useMemo(() => {
     let filtered = jobs;
     
     if (searchQuery) {
@@ -123,7 +120,7 @@ export default function AdminJobsPage() {
       }
     }
     
-    setFilteredJobs(filtered);
+    return filtered;
   }, [searchQuery, selectedJobType, selectedStatus, jobs]);
 
   const handleApproveJob = async (jobId: string) => {

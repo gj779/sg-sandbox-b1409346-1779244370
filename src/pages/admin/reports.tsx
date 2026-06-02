@@ -184,7 +184,7 @@ export default function AdminReports() {
     if (isAdmin) {
       fetchReportData();
     }
-  }, [timeRange, isAdmin, fetchReportData]);
+  }, [isAdmin, fetchReportData]);
 
   const exportReport = () => {
     if (!reportData) return;

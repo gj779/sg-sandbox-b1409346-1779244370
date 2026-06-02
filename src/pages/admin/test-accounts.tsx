@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -192,8 +191,8 @@ export default function TestAccountsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {creationResults.map((result, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                {creationResults.map((result) => (
+                  <div key={result.email} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
                     {result.success ? 
                       <CheckCircle className="w-4 h-4 text-green-600" /> : 
                       <XCircle className="w-4 h-4 text-red-600" />
@@ -223,12 +222,12 @@ export default function TestAccountsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {applicantAccounts.map((account, index) => (
-                <div key={index} className="space-y-3">
+                <div key={account.email} className="space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-semibold">{account.displayName}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {account.profileData.bio?.substring(0, 80)}...
+                        {account.profileData.bio ? `${account.profileData.bio.substring(0, 80)}...` : "No bio available"}
                       </p>
                     </div>
                     <Badge variant="default">Applicant</Badge>
@@ -266,13 +265,15 @@ export default function TestAccountsPage() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-1">
-                    {account.profileData.skills?.slice(0, 3).map((skill, skillIndex) => (
-                      <Badge key={skillIndex} variant="outline" className="text-xs">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
+                  {account.profileData.skills && account.profileData.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {account.profileData.skills.slice(0, 3).map((skill, skillIndex) => (
+                        <Badge key={skillIndex} variant="outline" className="text-xs">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
 
                   {index < applicantAccounts.length - 1 && <Separator />}
                 </div>
@@ -293,7 +294,7 @@ export default function TestAccountsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {restaurantAccounts.map((account, index) => (
-                <div key={index} className="space-y-3">
+                <div key={account.email} className="space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-semibold">{account.profileData.restaurantName}</h4>

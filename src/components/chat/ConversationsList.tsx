@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -94,7 +93,7 @@ export default function ConversationsList({
                             <p className="font-medium">{profile.displayName}</p>
                             {conversation.lastMessage && (
                               <p className="text-sm text-muted-foreground truncate">
-                                {conversation.lastMessage.content}
+                                {conversation.lastMessage.content || "Sent an attachment"}
                               </p>
                             )}
                           </div>

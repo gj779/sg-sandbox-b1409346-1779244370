@@ -1,4 +1,3 @@
-
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject, listAll, getMetadata, updateMetadata, SettableMetadata } from "firebase/storage";
 import { storage } from "@/lib/firebase";
 import type { FileMetadata, FileCustomMetadata, FilePermission, UploadProgress } from "@/types";
@@ -208,11 +207,17 @@ const firebaseStorageService = {
     await deleteObject(storageRef);
   },
 
-  async listFiles(path: string = "/"): Promise<FileMetadata[]> {
-    return this.listFilesRecursive(path.endsWith("/") ? path : path + "/");
+  async listFiles(path: string = "/", maxDepth: number = 10): Promise<FileMetadata[]> {
+    return this.listFilesRecursive(path.endsWith("/") ? path : path + "/", 0, maxDepth);
   },
 
-  async listFilesRecursive(path: string): Promise<FileMetadata[]> {
+  async listFilesRecursive(path: string, currentDepth: number = 0, maxDepth: number = 10): Promise<FileMetadata[]> {
+    // Prevent deep recursion memory exhaustion
+    if (currentDepth >= maxDepth) {
+      console.warn(`Maximum recursion depth ${maxDepth} reached at path: ${path}`);
+      return [];
+    }
+
     const storageRef = ref(storage, path);
     const result = await listAll(storageRef);
     const files: FileMetadata[] = [];
@@ -233,9 +238,10 @@ const firebaseStorageService = {
       }
     }
 
+    // Recursively process subfolders with depth tracking
     for (const folderRef of result.prefixes) {
       try {
-        const subFiles = await this.listFilesRecursive(folderRef.fullPath);
+        const subFiles = await this.listFilesRecursive(folderRef.fullPath, currentDepth + 1, maxDepth);
         files.push(...subFiles);
       } catch (error) {
         console.error(`Error listing files in folder ${folderRef.fullPath}:`, error);

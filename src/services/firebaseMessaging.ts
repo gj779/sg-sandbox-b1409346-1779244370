@@ -2,24 +2,7 @@ import { firestoreService } from "./firebaseFirestore";
 import { v4 as uuidv4 } from "uuid";
 import { collection, query, where, orderBy, onSnapshot, serverTimestamp, WhereFilterOp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
-export interface Message {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  conversationId: string; // Added this property to fix TypeScript error
-  content: string;
-  timestamp: Date;
-  read: boolean;
-}
-
-export interface Conversation {
-  id: string;
-  participants: string[];
-  lastMessage: string;
-  lastMessageTimestamp: Date | null;
-  unreadCount: number;
-}
+import { Message, Conversation } from "@/types";
 
 export const firebaseMessagingService = {
   // Create a new conversation

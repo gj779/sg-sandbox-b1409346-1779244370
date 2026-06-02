@@ -433,9 +433,6 @@ export const firebaseAuthService = {
         return null;
       }
       
-      // Get current user data
-      const currentUserData = userDoc.data();
-      
       // Add updatedAt timestamp
       const updatedData = {
         ...updates,
@@ -446,16 +443,30 @@ export const firebaseAuthService = {
       await updateDoc(userRef, updatedData);
       console.log(`Successfully updated profile for user ${userId}`);
       
-      // Create a merged profile with updated data
-      const mergedProfile = {
-        id: userId,
-        ...currentUserData,
-        ...updates,
-        updatedAt: new Date() // Use a JavaScript Date for immediate use
-      };
+      // Fetch the updated document to get proper server timestamps
+      // This prevents type bifurcation between Timestamp and Date
+      const updatedDoc = await getDoc(userRef);
+      if (!updatedDoc.exists()) {
+        throw new Error("Failed to fetch updated profile");
+      }
       
-      // Return the merged profile without waiting for another Firestore read
-      return mergedProfile as UserProfile;
+      const userData = updatedDoc.data() as Omit<UserProfile, 'id'>;
+      
+      // Convert Firestore Timestamps to JavaScript Dates
+      const createdAt = userData.createdAt instanceof Timestamp 
+        ? userData.createdAt.toDate() 
+        : userData.createdAt;
+        
+      const updatedAt = userData.updatedAt instanceof Timestamp 
+        ? userData.updatedAt.toDate() 
+        : userData.updatedAt;
+      
+      return {
+        id: userId,
+        ...userData,
+        createdAt,
+        updatedAt
+      };
     } catch (error) {
       console.error(`Error updating user profile for ${userId}:`, error);
       // Improve error message to avoid @ symbol in error message

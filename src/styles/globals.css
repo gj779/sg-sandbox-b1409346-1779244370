@@ -208,10 +208,10 @@
   background: linear-gradient(45deg, hsl(var(--primary)), transparent);
   opacity: 0.5;
   z-index: -1;
-  animation: pulse 2s infinite;
+  animation: tutorial-pulse 2s infinite;
 }
 
-@keyframes pulse {
+@keyframes tutorial-pulse {
   0% {
     opacity: 0.5;
   }
@@ -239,8 +239,10 @@
   transition: background 0.3s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.5);
+@media (hover: hover) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
+  }
 }
 
 /* Custom focus styles */
@@ -249,8 +251,14 @@
   outline-offset: 2px;
 }
 
-/* Form element transitions */
-input, select, textarea {
+/* Ensure readability inside solid brand components */
+.bg-primary *:focus-visible,
+button.bg-primary:focus-visible {
+  outline-color: hsl(var(--background));
+}
+
+/* Form element transitions - use .form-input-animate class for animated inputs */
+.form-input-animate {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 

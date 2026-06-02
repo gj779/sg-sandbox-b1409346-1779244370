@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +29,12 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Clear any lingering auth errors when component mounts or mode changes
+  useEffect(() => {
+    clearAuthError();
+    setFormError(null);
+  }, [mode, clearAuthError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +79,7 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
         profile = await signIn(email, password);
       } else {
         const userType = router.query.type === "restaurant" ? UserRole.RESTAURANT : UserRole.APPLICANT;
-        profile = await signUp(email, password, firstName, lastName, userType);
+        profile = await signUp(email, password, firstName, lastName, userType, phoneNumber);
       }
 
       if (profile) {
@@ -138,6 +143,19 @@ export default function AuthForm({ mode, onSuccess }: AuthFormProps) {
                   required
                 />
               </div>
+            </div>
+          )}
+          
+          {mode === "register" && (
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">Phone Number (Optional)</Label>
+              <Input 
+                id="phoneNumber"
+                type="tel"
+                placeholder="+1 (555) 123-4567"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+              />
             </div>
           )}
           

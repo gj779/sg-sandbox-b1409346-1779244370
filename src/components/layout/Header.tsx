@@ -86,7 +86,7 @@ export default function Header() {
     if (user) {
       return (
         <>
-          {user && <NotificationBell />}
+          <NotificationBell />
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -238,7 +238,9 @@ export default function Header() {
             ) : (
               <Moon className="h-5 w-5" />
             )}
-            <span className="sr-only">Toggle theme</span>
+            <span className="sr-only">
+              {theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            </span>
           </Button>
           
           {renderAuthSection()}

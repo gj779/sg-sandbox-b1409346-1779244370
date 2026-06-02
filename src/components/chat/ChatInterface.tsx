@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser } from "@/contexts/UserContext";
-import { usePresence } from "@/hooks/usePresence";
+import { usePresence, useUserPresence } from "@/hooks/usePresence";
 import { conversationsService } from "@/services/conversationsService";
 import { 
   Message,
@@ -39,7 +38,6 @@ export default function ChatInterface({
   onBack
 }: ChatInterfaceProps) {
   const { user } = useUser();
-  const { useUserPresence } = usePresence();
   const { presence } = useUserPresence(otherParticipant?.id || null);
   
   const [messages, setMessages] = useState<Message[]>([]);

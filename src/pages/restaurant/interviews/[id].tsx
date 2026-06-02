@@ -66,7 +66,7 @@ const mockInterview = {
     skills: ["French Cuisine", "Menu Development", "Team Management", "Food Presentation"],
     resume: true
   },
-  interviewNotes: []
+  interviewNotes: [] as string[]
 };
 
 export default function InterviewDetailsPage() {

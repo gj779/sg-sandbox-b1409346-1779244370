@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FileMetadata } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -129,6 +128,4 @@ export default function FileBrowser({
     </div>
   );
 }
-
-export { FileBrowser };
 export type { FileBrowserProps };

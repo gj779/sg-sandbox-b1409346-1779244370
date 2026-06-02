@@ -9,20 +9,13 @@ export const firebaseMessagingService = {
   async createConversation(participantIds: string[]): Promise<Conversation> {
     const conversationId = uuidv4();
     
-    const conversation: Omit<Conversation, 'id' | 'lastMessage' | 'lastMessageTimestamp' | 'unreadCount'> & {
-      id: string;
-      lastMessage: null;
-      lastMessageTimestamp: null;
-      unreadCount: number;
-    } = {
-      id: conversationId,
+    const conversationData = {
       participants: participantIds,
-      lastMessage: null, // Will be set when first message is sent
-      lastMessageTimestamp: null, // Will be set when first message is sent
-      unreadCount: 0
+      lastMessage: undefined,
+      unreadCounts: {}
     };
 
-    await firestoreService.createDocumentWithId("conversations", conversationId, conversation);
+    await firestoreService.createDocumentWithId("conversations", conversationId, conversationData);
     
     // Get the created document to return with server timestamps
     const createdConversation = await firestoreService.getDocument("conversations", conversationId) as Conversation;
